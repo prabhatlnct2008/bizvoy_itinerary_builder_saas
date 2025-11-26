@@ -8,28 +8,26 @@ export default {
     extend: {
       colors: {
         primary: {
-          100: '#DBEAFE',
+          100: '#E0EDFF',
           500: '#3B82F6',
           600: '#2563EB',
         },
-        secondary: {
-          100: '#D1FAE5',
-          500: '#10B981',
-        },
-        background: '#F3F4F6',
+        success: '#16A34A',
+        warning: '#F97316',
+        neutral: '#94A3B8',
+        background: '#F5F7FB',
         surface: '#FFFFFF',
-        border: '#E5E7EB',
+        border: '#E2E8F0',
         text: {
           primary: '#111827',
           secondary: '#4B5563',
           muted: '#9CA3AF',
         },
-        warning: '#F59E0B',
         error: '#EF4444',
         info: '#3B82F6',
       },
       fontFamily: {
-        sans: ['Inter', 'Nunito', 'Roboto', 'sans-serif'],
+        sans: ['Inter', 'SF Pro', 'Inter var', 'Nunito', 'Roboto', 'sans-serif'],
       },
       spacing: {
         '4': '4px',

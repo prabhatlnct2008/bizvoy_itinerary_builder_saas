@@ -68,7 +68,8 @@ export const activitiesApi = {
   // Upload activity image
   async uploadImage(activityId: string, file: File): Promise<ActivityImage> {
     const formData = new FormData();
-    formData.append('file', file);
+    // Backend expects "files" as a list of UploadFile
+    formData.append('files', file);
 
     const response = await client.post(
       `/api/v1/activities/${activityId}/images`,

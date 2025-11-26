@@ -20,6 +20,7 @@ from app.schemas.share import (
 from app.models.share import ShareLink
 from app.models.itinerary import Itinerary
 from app.models.company_profile import CompanyProfile
+from app.utils.file_storage import file_storage
 
 router = APIRouter()
 
@@ -98,8 +99,9 @@ def get_public_itinerary(
             # Build images list
             images = []
             for img in activity.images:
+                file_url = file_storage.get_file_url(img.file_path)
                 images.append(PublicActivityImage(
-                    url=img.file_path,
+                    url=file_url,
                     file_path=img.file_path,
                     caption=getattr(img, 'caption', None),
                     is_primary=getattr(img, 'is_primary', False) or getattr(img, 'is_hero', False),

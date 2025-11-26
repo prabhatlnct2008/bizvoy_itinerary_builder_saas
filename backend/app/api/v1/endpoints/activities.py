@@ -296,12 +296,14 @@ async def upload_activity_images(
             )
 
         # Create image record
+        is_hero = current_max == 0 and idx == 0  # First image is hero if no images exist
         activity_image = ActivityImage(
             activity_id=activity_id,
             file_path=file_path,
             file_url=file_storage.get_file_url(file_path),
             display_order=current_max + idx,
-            is_hero=(current_max == 0 and idx == 0)  # First image is hero if no images exist
+            is_hero=is_hero,
+            is_primary=is_hero,
         )
 
         db.add(activity_image)
@@ -369,9 +371,10 @@ def update_activity_image(
             db.query(ActivityImage).filter(
                 ActivityImage.activity_id == activity_id,
                 ActivityImage.id != image_id
-            ).update({"is_hero": False})
+            ).update({"is_hero": False, "is_primary": False})
 
         image.is_hero = image_data.is_hero
+        image.is_primary = image_data.is_hero
 
     # Update display_order
     if image_data.display_order is not None:

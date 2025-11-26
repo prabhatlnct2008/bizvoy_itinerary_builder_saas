@@ -30,7 +30,7 @@ from app.utils.file_storage import file_storage
 router = APIRouter()
 
 
-@router.get("/", response_model=List[TemplateListItem])
+@router.get("", response_model=List[TemplateListItem])
 def list_templates(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -80,7 +80,7 @@ def list_templates(
     return result
 
 
-@router.post("/", response_model=TemplateDetailResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TemplateDetailResponse, status_code=status.HTTP_201_CREATED)
 def create_template(
     data: TemplateCreate,
     db: Session = Depends(get_db),

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Button from '../../components/ui/Button';
@@ -18,11 +18,9 @@ const ItineraryWizard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Step 1: Template selection
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [startFromScratch, setStartFromScratch] = useState(false);
 
-  // Step 2: Client & dates
   const [formData, setFormData] = useState({
     trip_name: '',
     client_name: '',
@@ -58,7 +56,6 @@ const ItineraryWizard: React.FC = () => {
   const handleTemplateSelect = (template: Template) => {
     setSelectedTemplate(template);
     setStartFromScratch(false);
-    // Pre-fill destination from template
     setFormData((prev) => ({
       ...prev,
       destination: template.destination,
@@ -84,86 +81,44 @@ const ItineraryWizard: React.FC = () => {
     setCurrentStep(2);
   };
 
-  const handleBack = () => {
-    setCurrentStep(1);
-  };
+  const handleBack = () => setCurrentStep(1);
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error for this field
     if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
+      const newErrors = { ...errors };
+      delete newErrors[field];
+      setErrors(newErrors);
     }
   };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-
-    if (!formData.trip_name.trim()) {
-      newErrors.trip_name = 'Trip name is required';
-    }
-
-    if (!formData.client_name.trim()) {
-      newErrors.client_name = 'Client name is required';
-    }
-
-    if (!formData.destination.trim()) {
-      newErrors.destination = 'Destination is required';
-    }
-
-    if (!formData.start_date) {
-      newErrors.start_date = 'Start date is required';
-    }
-
-    if (!formData.end_date) {
-      newErrors.end_date = 'End date is required';
-    }
-
+    if (!formData.trip_name.trim()) newErrors.trip_name = 'Trip name is required';
+    if (!formData.client_name.trim()) newErrors.client_name = 'Client name is required';
+    if (!formData.destination.trim()) newErrors.destination = 'Destination is required';
+    if (!formData.start_date) newErrors.start_date = 'Start date is required';
+    if (!formData.end_date) newErrors.end_date = 'End date is required';
     if (formData.start_date && formData.end_date) {
       const start = new Date(formData.start_date);
       const end = new Date(formData.end_date);
-      if (end <= start) {
-        newErrors.end_date = 'End date must be after start date';
-      }
+      if (end <= start) newErrors.end_date = 'End date must be after start date';
     }
-
-    if (formData.num_adults < 1) {
-      newErrors.num_adults = 'At least 1 adult is required';
-    }
-
+    if (formData.num_adults < 1) newErrors.num_adults = 'At least 1 adult is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleCreate = async () => {
-    if (!validate()) {
-      return;
-    }
-
+  const handleSubmit = async () => {
+    if (!validate()) return;
     setIsSaving(true);
-
     try {
-      const createData: ItineraryCreate = {
-        template_id: selectedTemplate?.id || null,
-        trip_name: formData.trip_name,
-        client_name: formData.client_name,
-        client_email: formData.client_email || null,
-        client_phone: formData.client_phone || null,
-        destination: formData.destination,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        num_adults: formData.num_adults,
-        num_children: formData.num_children,
-        special_notes: formData.special_notes || null,
-        status: 'draft',
+      const payload: ItineraryCreate = {
+        ...formData,
+        template_id: selectedTemplate ? selectedTemplate.id : undefined,
       };
-
-      const created = await itinerariesApi.createItinerary(createData);
-      toast.success('Itinerary created successfully!');
+      const created = await itinerariesApi.createItinerary(payload);
+      toast.success('Itinerary created successfully');
       navigate(`/itineraries/${created.id}`);
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to create itinerary');
@@ -172,273 +127,202 @@ const ItineraryWizard: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-primary">Create New Itinerary</h1>
-        <p className="text-secondary mt-1">
-          Step {currentStep} of 2: {currentStep === 1 ? 'Select Template' : 'Client & Dates'}
-        </p>
-      </div>
-
-      {/* Progress Steps */}
-      <div className="flex items-center mb-8">
-        <div className="flex items-center flex-1">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              currentStep >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-muted'
-            }`}
-          >
-            1
-          </div>
-          <div className="flex-1 h-1 bg-gray-200 mx-2">
-            <div
-              className={`h-full ${
-                currentStep >= 2 ? 'bg-primary-600' : 'bg-gray-200'
-              } transition-all`}
-              style={{ width: currentStep >= 2 ? '100%' : '0%' }}
-            />
-          </div>
-        </div>
-        <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            currentStep >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-muted'
-          }`}
-        >
-          2
-        </div>
-      </div>
-
-      {/* Step 1: Template Selection */}
-      {currentStep === 1 && (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-primary mb-2">Choose a starting point</h2>
-            <p className="text-secondary">
-              Select a template to pre-populate the itinerary, or start from scratch
-            </p>
-          </div>
-
-          {/* Start from Scratch Option */}
-          <div
-            onClick={handleStartFromScratch}
-            className={`mb-6 p-6 border-2 rounded-lg cursor-pointer transition-all ${
-              startFromScratch
-                ? 'border-primary-600 bg-primary-50'
-                : 'border-border hover:border-primary-300'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-primary mb-1">Start from Scratch</h3>
-                <p className="text-sm text-secondary">Build a custom itinerary from the ground up</p>
-              </div>
-              {startFromScratch && (
-                <Chip label="Selected" variant="success" />
-              )}
-            </div>
-          </div>
-
-          {/* Template Grid */}
+    <div className="px-4 py-6 md:px-6 md:py-6 bg-background min-h-screen">
+      <div className="max-w-4xl mx-auto space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h3 className="text-lg font-semibold text-primary mb-4">Or choose a template:</h3>
-
-            {templates.length === 0 ? (
-              <Card>
-                <div className="p-8 text-center text-muted">
-                  No published templates available. Start from scratch to create your itinerary.
-                </div>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {templates.map((template) => (
-                  <div
-                    key={template.id}
-                    onClick={() => handleTemplateSelect(template)}
-                    className={`bg-white rounded-lg shadow hover:shadow-lg transition-all cursor-pointer overflow-hidden border-2 ${
-                      selectedTemplate?.id === template.id
-                        ? 'border-primary-600'
-                        : 'border-transparent'
-                    }`}
-                  >
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="text-lg font-semibold text-primary">{template.name}</h3>
-                        {selectedTemplate?.id === template.id && (
-                          <Chip label="Selected" variant="success" size="sm" />
-                        )}
-                      </div>
-
-                      <p className="text-sm text-secondary mb-2">{template.destination}</p>
-
-                      <div className="flex items-center gap-4 text-sm text-muted mb-3">
-                        <span>
-                          {template.duration_nights}N / {template.duration_days}D
-                        </span>
-                        {template.approximate_price && <span>${template.approximate_price}</span>}
-                      </div>
-
-                      {template.description && (
-                        <p className="text-sm text-muted line-clamp-2">{template.description}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <h1 className="text-2xl font-semibold text-text-primary">Create Itinerary</h1>
+            <p className="text-text-muted mt-1">Two quick steps to get started</p>
           </div>
-
-          {/* Navigation */}
-          <div className="flex justify-between mt-8">
-            <Button variant="secondary" onClick={() => navigate('/itineraries')}>
-              Cancel
-            </Button>
-            <Button onClick={handleNext}>Next: Client & Dates →</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate('/itineraries')}>Cancel</Button>
+            {currentStep === 2 && <Button variant="secondary" onClick={handleBack}>Back</Button>}
           </div>
         </div>
-      )}
 
-      {/* Step 2: Client & Dates */}
-      {currentStep === 2 && (
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow p-6 space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold text-primary mb-2">Trip Details</h2>
-              <p className="text-secondary mb-6">Enter the client information and trip dates</p>
+        <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex items-center gap-4">
+          <StepperStep number={1} active={currentStep === 1} title="Starting Point" subtitle="Template or scratch" />
+          <div className="flex-1 h-px bg-border" />
+          <StepperStep number={2} active={currentStep === 2} title="Client & Dates" subtitle="Who and when" />
+        </div>
 
-              {/* Trip Name */}
-              <div className="mb-4">
+        {currentStep === 1 ? (
+          <Card className="p-5 border border-border rounded-2xl shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-text-primary">Select a starting point</h2>
+                <p className="text-sm text-text-muted">Choose a template or start from scratch</p>
+              </div>
+              <Button variant="outline" onClick={handleNext}>Skip to Client Details</Button>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={handleStartFromScratch}
+                className={`text-left p-4 rounded-xl border transition focus:outline-none focus:ring-2 focus:ring-primary-500 ${startFromScratch ? 'border-primary-200 bg-primary-100/40' : 'border-border hover:border-primary-100'}`}
+              >
+                <p className="font-semibold text-text-primary">Start from scratch</p>
+                <p className="text-text-muted text-sm">Build a custom itinerary without a template.</p>
+              </button>
+
+              {templates.map((template) => (
+                <button
+                  type="button"
+                  key={template.id}
+                  onClick={() => handleTemplateSelect(template)}
+                  className={`text-left p-4 rounded-xl border transition focus:outline-none focus:ring-2 focus:ring-primary-500 ${selectedTemplate?.id === template.id ? 'border-primary-200 bg-primary-100/40' : 'border-border hover:border-primary-100'}`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="font-semibold text-text-primary">{template.name}</p>
+                      <p className="text-sm text-text-secondary">{template.destination}</p>
+                    </div>
+                    <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600 capitalize border border-border">{template.status}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-text-muted">
+                    <Chip label={`${template.duration_days} days`} />
+                    <Chip label={`${template.duration_nights} nights`} />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </Card>
+        ) : (
+          <Card className="p-5 border border-border rounded-2xl shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-text-primary">Client & Dates</h2>
+                <p className="text-sm text-text-muted">Enter client information and trip dates</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={handleBack}>Back</Button>
+                <Button onClick={handleSubmit} disabled={isSaving}>Create Itinerary</Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Trip Name *</label>
                 <Input
-                  label="Trip Name"
                   value={formData.trip_name}
                   onChange={(e) => handleChange('trip_name', e.target.value)}
-                  error={errors.trip_name}
-                  placeholder="e.g., Kerala Family Vacation 2025"
-                  required
+                  placeholder="e.g., Bali Getaway 2024"
+                  hasError={!!errors.trip_name}
+                />
+                {errors.trip_name && <p className="text-sm text-error mt-1">{errors.trip_name}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Destination *</label>
+                <Input
+                  value={formData.destination}
+                  onChange={(e) => handleChange('destination', e.target.value)}
+                  placeholder="e.g., Bali, Indonesia"
+                  hasError={!!errors.destination}
+                />
+                {errors.destination && <p className="text-sm text-error mt-1">{errors.destination}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Client Name *</label>
+                <Input
+                  value={formData.client_name}
+                  onChange={(e) => handleChange('client_name', e.target.value)}
+                  placeholder="Client full name"
+                  hasError={!!errors.client_name}
+                />
+                {errors.client_name && <p className="text-sm text-error mt-1">{errors.client_name}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Client Email</label>
+                <Input
+                  type="email"
+                  value={formData.client_email}
+                  onChange={(e) => handleChange('client_email', e.target.value)}
+                  placeholder="name@email.com"
                 />
               </div>
 
-              {/* Client Information */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-primary mb-3">Client Information</h3>
-                <div className="space-y-4">
-                  <Input
-                    label="Client Name"
-                    value={formData.client_name}
-                    onChange={(e) => handleChange('client_name', e.target.value)}
-                    error={errors.client_name}
-                    placeholder="John Doe"
-                    required
-                  />
-                  <Input
-                    label="Email (Optional)"
-                    type="email"
-                    value={formData.client_email}
-                    onChange={(e) => handleChange('client_email', e.target.value)}
-                    error={errors.client_email}
-                    placeholder="john@example.com"
-                  />
-                  <Input
-                    label="Phone (Optional)"
-                    type="tel"
-                    value={formData.client_phone}
-                    onChange={(e) => handleChange('client_phone', e.target.value)}
-                    error={errors.client_phone}
-                    placeholder="+1 234 567 8900"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Client Phone</label>
+                <Input
+                  value={formData.client_phone}
+                  onChange={(e) => handleChange('client_phone', e.target.value)}
+                  placeholder="+1 555 123 4567"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Start Date *</label>
+                <Input
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => handleChange('start_date', e.target.value)}
+                  hasError={!!errors.start_date}
+                />
+                {errors.start_date && <p className="text-sm text-error mt-1">{errors.start_date}</p>}
               </div>
 
-              {/* Trip Details */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-primary mb-3">Trip Details</h3>
-                <div className="space-y-4">
-                  <Input
-                    label="Destination"
-                    value={formData.destination}
-                    onChange={(e) => handleChange('destination', e.target.value)}
-                    error={errors.destination}
-                    placeholder="Kerala, India"
-                    required
-                  />
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">End Date *</label>
+                <Input
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => handleChange('end_date', e.target.value)}
+                  hasError={!!errors.end_date}
+                />
+                {errors.end_date && <p className="text-sm text-error mt-1">{errors.end_date}</p>}
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      label="Start Date"
-                      type="date"
-                      value={formData.start_date}
-                      onChange={(e) => handleChange('start_date', e.target.value)}
-                      error={errors.start_date}
-                      required
-                    />
-                    <Input
-                      label="End Date"
-                      type="date"
-                      value={formData.end_date}
-                      onChange={(e) => handleChange('end_date', e.target.value)}
-                      error={errors.end_date}
-                      required
-                    />
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Adults *</label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={formData.num_adults}
+                  onChange={(e) => handleChange('num_adults', parseInt(e.target.value))}
+                  hasError={!!errors.num_adults}
+                />
+                {errors.num_adults && <p className="text-sm text-error mt-1">{errors.num_adults}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Children</label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={formData.num_children}
+                  onChange={(e) => handleChange('num_children', parseInt(e.target.value))}
+                />
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      label="Number of Adults"
-                      type="number"
-                      min="1"
-                      value={formData.num_adults}
-                      onChange={(e) => handleChange('num_adults', parseInt(e.target.value) || 1)}
-                      error={errors.num_adults}
-                      required
-                    />
-                    <Input
-                      label="Number of Children"
-                      type="number"
-                      min="0"
-                      value={formData.num_children}
-                      onChange={(e) => handleChange('num_children', parseInt(e.target.value) || 0)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-secondary mb-1">
-                      Special Notes (Optional)
-                    </label>
-                    <textarea
-                      value={formData.special_notes}
-                      onChange={(e) => handleChange('special_notes', e.target.value)}
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
-                      rows={3}
-                      placeholder="Any special requirements, dietary restrictions, etc."
-                    />
-                  </div>
-                </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-text-primary mb-1">Special Notes</label>
+                <textarea
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  rows={3}
+                  value={formData.special_notes}
+                  onChange={(e) => handleChange('special_notes', e.target.value)}
+                  placeholder="Any special requests or notes for this trip"
+                />
               </div>
             </div>
-          </div>
-
-          {/* Navigation */}
-          <div className="flex justify-between mt-8">
-            <Button variant="secondary" onClick={handleBack}>
-              ← Back
-            </Button>
-            <Button onClick={handleCreate} isLoading={isSaving}>
-              Create Itinerary
-            </Button>
-          </div>
-        </div>
-      )}
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
+
+const StepperStep: React.FC<{ number: number; active: boolean; title: string; subtitle: string }> = ({ number, active, title, subtitle }) => (
+  <div className={`flex items-center gap-2 ${active ? 'text-primary-600' : 'text-text-muted'}`}>
+    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold border ${active ? 'bg-primary-100 border-primary-200 text-primary-700' : 'bg-white border-border text-text-muted'}`}>
+      {number}
+    </div>
+    <div>
+      <p className="font-semibold text-text-primary">{title}</p>
+      <p className="text-xs text-text-muted">{subtitle}</p>
+    </div>
+  </div>
+);
 
 export default ItineraryWizard;

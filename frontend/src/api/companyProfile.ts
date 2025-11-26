@@ -48,19 +48,19 @@ export interface CompanyProfileUpdate {
 
 const companyProfileApi = {
   getProfile: async (): Promise<CompanyProfileResponse> => {
-    const response = await client.get('/company-profile');
+    const response = await client.get('/api/v1/company-profile');
     return response.data;
   },
 
   updateProfile: async (data: CompanyProfileUpdate): Promise<CompanyProfileResponse> => {
-    const response = await client.put('/company-profile', data);
+    const response = await client.put('/api/v1/company-profile', data);
     return response.data;
   },
 
   uploadLogo: async (file: File): Promise<CompanyProfileResponse> => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await client.post('/company-profile/logo', formData, {
+    const response = await client.post('/api/v1/company-profile/logo', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -71,7 +71,7 @@ const companyProfileApi = {
   uploadPaymentQR: async (file: File): Promise<CompanyProfileResponse> => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await client.post('/company-profile/payment-qr', formData, {
+    const response = await client.post('/api/v1/company-profile/payment-qr', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

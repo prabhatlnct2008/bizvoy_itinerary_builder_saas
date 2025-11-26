@@ -523,7 +523,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
               {heroImage && (
                 <div className={`${otherImages.length > 0 ? 'col-span-2 row-span-2' : 'col-span-3 row-span-2'} rounded-xl overflow-hidden`}>
                   <img
-                    src={`${baseUrl}${heroImage.file_path}`}
+                    src={`${baseUrl}${heroImage.url}`}
                     alt={activity.name}
                     className="w-full h-full object-cover"
                   />
@@ -532,7 +532,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
               {otherImages.map((img, idx) => (
                 <div key={idx} className="rounded-xl overflow-hidden">
                   <img
-                    src={`${baseUrl}${img.file_path}`}
+                    src={`${baseUrl}${img.url}`}
                     alt={`${activity.name} ${idx + 2}`}
                     className="w-full h-full object-cover"
                   />

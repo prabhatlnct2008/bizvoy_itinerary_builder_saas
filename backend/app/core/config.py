@@ -2,6 +2,9 @@ from typing import List
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -11,7 +14,8 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
 
     # Database
-    DATABASE_URL: str = "sqlite:///./travel_saas.db"
+    # Use absolute path so we don't accidentally create a new SQLite DB when starting from a different CWD
+    DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'travel_saas.db'}"
 
     # Security
     SECRET_KEY: str

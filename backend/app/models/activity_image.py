@@ -17,6 +17,8 @@ class ActivityImage(Base):
 
     # Ordering
     display_order = Column(Integer, nullable=False, default=0)
+    # is_primary is legacy; keep it in sync with is_hero to satisfy existing DB constraint
+    is_primary = Column(Boolean, default=False, nullable=False)
     is_hero = Column(Boolean, default=False, nullable=False)  # Only one image per activity should be True
 
     # Timestamp

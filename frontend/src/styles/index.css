@@ -5,6 +5,7 @@
 @layer base {
   body {
     @apply bg-background text-text-primary font-sans;
+    font-size: 14px;
   }
 }
 

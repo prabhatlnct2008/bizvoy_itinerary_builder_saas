@@ -34,6 +34,14 @@ def main() -> int:
         print("Starting activities migration...")
 
         # Core new columns needed by the API/model
+        add_column_if_missing(cursor, "activities", "location", "VARCHAR(255)")
+        add_column_if_missing(cursor, "activities", "description", "TEXT")
+        add_column_if_missing(cursor, "activities", "highlights", "TEXT")
+        add_column_if_missing(cursor, "activities", "pricing_model", "VARCHAR(50)")
+        add_column_if_missing(cursor, "activities", "pricing_notes", "TEXT")
+        add_column_if_missing(cursor, "activities", "min_duration_minutes", "INTEGER")
+        add_column_if_missing(cursor, "activities", "max_duration_minutes", "INTEGER")
+        add_column_if_missing(cursor, "activities", "tags", "TEXT")
         add_column_if_missing(cursor, "activities", "created_by_id", "TEXT")
         add_column_if_missing(cursor, "activities", "category_label", "VARCHAR(50)")
         add_column_if_missing(cursor, "activities", "location_display", "VARCHAR(200)")

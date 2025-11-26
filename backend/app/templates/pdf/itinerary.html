@@ -1,278 +1,254 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>{{ itinerary.trip_name }} - Itinerary</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', 'Helvetica', sans-serif;
-            font-size: 14px;
-            line-height: 1.6;
-            color: #111827;
-        }
-
-        .header {
-            background: #2563EB;
-            color: white;
-            padding: 30px;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-
-        .header .subtitle {
-            font-size: 16px;
-            opacity: 0.9;
-        }
-
-        .content {
-            padding: 0 30px;
-        }
-
-        .info-section {
-            background: #F3F4F6;
-            padding: 20px;
-            margin-bottom: 30px;
-            border-radius: 8px;
-        }
-
-        .info-row {
-            display: flex;
-            margin-bottom: 10px;
-        }
-
-        .info-label {
-            font-weight: bold;
-            width: 150px;
-            color: #4B5563;
-        }
-
-        .info-value {
-            color: #111827;
-        }
-
-        .day-section {
-            margin-bottom: 40px;
-            page-break-inside: avoid;
-        }
-
-        .day-header {
-            background: #DBEAFE;
-            padding: 15px 20px;
-            border-left: 4px solid #2563EB;
-            margin-bottom: 20px;
-        }
-
-        .day-title {
-            font-size: 20px;
-            font-weight: bold;
-            color: #2563EB;
-            margin-bottom: 5px;
-        }
-
-        .day-date {
-            font-size: 14px;
-            color: #4B5563;
-        }
-
-        .activity {
-            padding: 15px;
-            margin-bottom: 15px;
-            border: 1px solid #E5E7EB;
-            border-radius: 8px;
-            page-break-inside: avoid;
-        }
-
-        .activity-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .activity-time {
-            background: #10B981;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-right: 15px;
-        }
-
-        .activity-name {
-            font-size: 16px;
-            font-weight: bold;
-            color: #111827;
-        }
-
-        .activity-location {
-            color: #4B5563;
-            font-size: 13px;
-            margin-bottom: 10px;
-        }
-
-        .activity-description {
-            color: #111827;
-            margin-bottom: 10px;
-        }
-
-        .activity-notes {
-            background: #FEF3C7;
-            padding: 10px;
-            border-left: 3px solid #F59E0B;
-            font-size: 13px;
-            color: #92400E;
-        }
-
-        .footer {
-            margin-top: 50px;
-            padding: 20px 30px;
-            background: #F3F4F6;
-            text-align: center;
-            border-top: 2px solid #2563EB;
-        }
-
-        .footer-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #2563EB;
-        }
-
-        .footer-info {
-            font-size: 14px;
-            color: #4B5563;
-            margin-bottom: 5px;
-        }
-
-        .page-break {
-            page-break-after: always;
-        }
-
-        .watermark {
-            text-align: center;
-            font-size: 11px;
-            color: #9CA3AF;
-            margin-top: 20px;
-            padding: 20px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>{{ itinerary.trip_name }} · Itinerary</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --card: #0b1020;
+      --muted: #94a3b8;
+      --text: #e2e8f0;
+      --accent: #fbbf24;
+      --accent-soft: #fef3c7;
+      --border: #1f2937;
+      --chip: #1e293b;
+      --pill: #f0f9ff;
+      --pill-text: #0ea5e9;
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "Helvetica", "Arial", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+    h1, h2, h3, h4 { margin: 0; }
+    .page { padding: 24px 28px 40px; }
+    .panel {
+      background: linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.92));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      background: linear-gradient(135deg, #1e293b, #111827);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--chip);
+      color: var(--muted);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid var(--border);
+    }
+    .pill {
+      display: inline-block;
+      background: var(--pill);
+      color: var(--pill-text);
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      border: 1px solid rgba(14,165,233,0.2);
+    }
+    .grid { display: grid; gap: 14px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+    .value { font-weight: 600; color: var(--text); }
+    .day {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 12px;
+      page-break-inside: avoid;
+    }
+    .day-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(90deg, rgba(251,191,36,0.12), rgba(15,23,42,0.6));
+    }
+    .day-chip {
+      background: var(--accent);
+      color: #1f2937;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .day-title { font-size: 16px; font-weight: 700; }
+    .day-date { color: var(--muted); font-size: 12px; }
+    .activity {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      page-break-inside: avoid;
+    }
+    .activity:last-child { border-bottom: 0; }
+    .activity-hero {
+      background: #0a0f1d;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 6px;
+      min-height: 140px;
+    }
+    .activity-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumbs { display: grid; grid-template-rows: 1fr 1fr; gap: 6px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+    .hl { display: inline-block; background: rgba(148,163,184,0.15); color: var(--text); padding: 6px 10px; border-radius: 10px; margin: 4px 6px 0 0; font-size: 11px; }
+    .notes {
+      background: var(--accent-soft);
+      color: #854d0e;
+      border-left: 3px solid var(--accent);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+    .footer {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+      text-align: center;
+    }
+    .watermark { margin-top: 10px; color: var(--muted); font-size: 11px; text-align: center; }
+  </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <h1>{{ itinerary.trip_name }}</h1>
-        <div class="subtitle">{{ itinerary.destination }}</div>
-        <div class="subtitle">{{ itinerary.start_date.strftime('%B %d, %Y') }} - {{ itinerary.end_date.strftime('%B %d, %Y') }}</div>
+  <div class="page">
+    <div class="hero">
+      <div style="flex:1">
+        <div class="badge">{{ itinerary.status.value|upper }}</div>
+        <h1 style="font-size:26px; margin:10px 0 4px;">{{ itinerary.trip_name }}</h1>
+        <div style="color: var(--muted); font-size:14px;">{{ itinerary.destination }}</div>
+        <div style="margin-top:12px; color: var(--text); font-weight:600;">
+          {{ itinerary.start_date.strftime('%b %d, %Y') }} — {{ itinerary.end_date.strftime('%b %d, %Y') }}
+        </div>
+        <div class="meta">
+          <span class="pill">{{ itinerary.num_adults + itinerary.num_children }} travelers</span>
+          <span class="pill">{{ itinerary.days|length }} days / {{ itinerary.days|length - 1 if itinerary.days|length > 0 else 0 }} nights</span>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="label">Agency</div>
+        <div class="value">{{ itinerary.agency.name }}</div>
+        {% if itinerary.agency.contact_email %}<div class="value" style="color: var(--muted); font-size:12px;">{{ itinerary.agency.contact_email }}</div>{% endif %}
+        {% if itinerary.agency.contact_phone %}<div class="value" style="color: var(--muted); font-size:12px;">{{ itinerary.agency.contact_phone }}</div>{% endif %}
+      </div>
     </div>
 
-    <!-- Content -->
-    <div class="content">
-        <!-- Trip Information -->
-        <div class="info-section">
-            <h2 style="margin-bottom: 15px; color: #2563EB;">Trip Information</h2>
-            <div class="info-row">
-                <div class="info-label">Client Name:</div>
-                <div class="info-value">{{ itinerary.client_name }}</div>
+    <div class="panel">
+      <div class="grid two">
+        <div>
+          <div class="label">Client</div>
+          <div class="value">{{ itinerary.client_name }}</div>
+          {% if itinerary.client_email %}<div class="value" style="color: var(--muted); font-size:12px;">{{ itinerary.client_email }}</div>{% endif %}
+          {% if itinerary.client_phone %}<div class="value" style="color: var(--muted); font-size:12px;">{{ itinerary.client_phone }}</div>{% endif %}
+        </div>
+        <div>
+          <div class="label">Dates</div>
+          <div class="value">{{ itinerary.start_date.strftime('%A, %b %d, %Y') }} — {{ itinerary.end_date.strftime('%A, %b %d, %Y') }}</div>
+        </div>
+      </div>
+    </div>
+
+    {% for day in itinerary.days %}
+    <div class="day">
+      <div class="day-head">
+        <div>
+          <div class="day-chip">Day {{ day.day_number }}</div>
+          <div class="day-title">{{ day.title or '' }}</div>
+          <div class="day-date">{{ day.actual_date.strftime('%A, %B %d, %Y') }}</div>
+        </div>
+        {% if day.notes %}<div style="max-width:45%; color: var(--muted); font-size:12px;">{{ day.notes }}</div>{% endif %}
+      </div>
+
+      {% for activity_item in day.activities %}
+      {% set act = activity_item.activity %}
+      <div class="activity">
+        <div>
+          {% if activity_item.time_slot %}
+          <div class="badge" style="background: rgba(16,185,129,0.12); color:#34d399; border-color: rgba(52,211,153,0.4);">{{ activity_item.time_slot }}</div>
+          {% endif %}
+          <h3 style="font-size:16px; margin:8px 0 4px;">{{ act.name }}</h3>
+          <div class="meta">
+            {% if act.category_label %}<span class="pill">{{ act.category_label }}</span>{% endif %}
+            {% if act.location_display %}<span class="pill">{{ act.location_display }}</span>{% endif %}
+            {% if act.default_duration_value %}<span class="pill">{{ act.default_duration_value }} {{ act.default_duration_unit.value if act.default_duration_unit else '' }}</span>{% endif %}
+          </div>
+          {% if act.short_description %}<div style="color: var(--muted); margin-bottom:8px;">{{ act.short_description }}</div>{% endif %}
+          {% if activity_item.custom_notes %}<div class="notes">{{ activity_item.custom_notes }}</div>{% endif %}
+          {% if act.highlights %}
+            <div style="margin-top:10px;">
+              {% set highlights = act.highlights if act.highlights is iterable else [] %}
+              {% for hl in highlights %}<span class="hl">{{ hl }}</span>{% endfor %}
             </div>
-            {% if itinerary.client_email %}
-            <div class="info-row">
-                <div class="info-label">Email:</div>
-                <div class="info-value">{{ itinerary.client_email }}</div>
-            </div>
-            {% endif %}
-            {% if itinerary.client_phone %}
-            <div class="info-row">
-                <div class="info-label">Phone:</div>
-                <div class="info-value">{{ itinerary.client_phone }}</div>
-            </div>
-            {% endif %}
-            <div class="info-row">
-                <div class="info-label">Travelers:</div>
-                <div class="info-value">{{ itinerary.num_adults }} Adult(s){% if itinerary.num_children > 0 %}, {{ itinerary.num_children }} Child(ren){% endif %}</div>
-            </div>
-            {% if itinerary.total_price %}
-            <div class="info-row">
-                <div class="info-label">Total Price:</div>
-                <div class="info-value">${{ "%.2f"|format(itinerary.total_price) }}</div>
-            </div>
-            {% endif %}
+          {% endif %}
         </div>
 
-        {% if itinerary.special_notes %}
-        <div class="info-section">
-            <h2 style="margin-bottom: 15px; color: #2563EB;">Special Notes</h2>
-            <p>{{ itinerary.special_notes }}</p>
-        </div>
+        {% set hero = None %}
+        {% set others = [] %}
+        {% if act.images %}
+          {% for img in act.images %}
+            {% if (img.is_hero or img.is_primary) and not hero %}
+              {% set hero = img %}
+            {% else %}
+              {% do others.append(img) %}
+            {% endif %}
+          {% endfor %}
+          {% if not hero and act.images|length > 0 %}
+            {% set hero = act.images[0] %}
+            {% set others = act.images[1:] %}
+          {% endif %}
         {% endif %}
 
-        <!-- Itinerary Days -->
-        {% for day in itinerary.days %}
-        <div class="day-section">
-            <div class="day-header">
-                <div class="day-title">Day {{ day.day_number }}{% if day.title %} - {{ day.title }}{% endif %}</div>
-                <div class="day-date">{{ day.actual_date.strftime('%A, %B %d, %Y') }}</div>
-            </div>
-
-            {% if day.notes %}
-            <p style="margin-bottom: 20px; color: #4B5563;">{{ day.notes }}</p>
-            {% endif %}
-
-            {% for activity_item in day.activities %}
-            <div class="activity">
-                <div class="activity-header">
-                    {% if activity_item.time_slot %}
-                    <div class="activity-time">{{ activity_item.time_slot }}</div>
-                    {% endif %}
-                    <div class="activity-name">{{ activity_item.activity.name }}</div>
-                </div>
-
-                {% if activity_item.activity.location %}
-                <div class="activity-location">📍 {{ activity_item.activity.location }}</div>
-                {% endif %}
-
-                {% if activity_item.activity.short_description %}
-                <div class="activity-description">{{ activity_item.activity.short_description }}</div>
-                {% endif %}
-
-                {% if activity_item.activity.highlights %}
-                <div style="margin-top: 10px; font-size: 13px;">
-                    <strong>Highlights:</strong>
-                    <div style="margin-left: 15px; color: #4B5563;">{{ activity_item.activity.highlights }}</div>
-                </div>
-                {% endif %}
-
-                {% if activity_item.custom_notes %}
-                <div class="activity-notes">
-                    <strong>Note:</strong> {{ activity_item.custom_notes }}
-                </div>
-                {% endif %}
-            </div>
+        {% if hero %}
+        <div class="activity-hero">
+          <div><img src="{{ hero.file_url if hero.file_url else hero.file_path }}" alt="{{ act.name }}"></div>
+          {% if others|length > 0 %}
+          <div class="thumbs">
+            {% for img in others[:2] %}
+            <div><img src="{{ img.file_url if img.file_url else img.file_path }}" alt="{{ act.name }} {{ loop.index + 1 }}"></div>
             {% endfor %}
+          </div>
+          {% endif %}
         </div>
-        {% endfor %}
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-        <div class="footer-title">{{ agency.name }}</div>
-        <div class="footer-info">Email: {{ agency.contact_email }}</div>
-        {% if agency.contact_phone %}
-        <div class="footer-info">Phone: {{ agency.contact_phone }}</div>
         {% endif %}
-        <div class="watermark">
-            Generated on {{ generated_at.strftime('%B %d, %Y at %I:%M %p UTC') }}<br>
-            Created with Travel SaaS Itinerary Builder
-        </div>
+      </div>
+      {% endfor %}
     </div>
+    {% endfor %}
+
+    <div class="footer">
+      <div style="font-size:16px; font-weight:700; margin-bottom:6px;">Thank you for choosing {{ itinerary.agency.name }}</div>
+      {% if itinerary.agency.contact_email %}<div class="value" style="color: var(--muted);">{{ itinerary.agency.contact_email }}</div>{% endif %}
+      {% if itinerary.agency.contact_phone %}<div class="value" style="color: var(--muted);">{{ itinerary.agency.contact_phone }}</div>{% endif %}
+    </div>
+    <div class="watermark">Generated on {{ datetime.utcnow().strftime('%b %d, %Y · %H:%M UTC') }}</div>
+  </div>
 </body>
 </html>

@@ -230,11 +230,11 @@ const ActivityForm: React.FC = () => {
         cost_type: formData.cost_type,
         cost_display: formData.cost_display || undefined,
         highlights: formData.highlights.length > 0
-          ? JSON.stringify(formData.highlights)
-          : undefined,
+          ? formData.highlights
+          : [],
         tags: formData.tags.length > 0
-          ? JSON.stringify(formData.tags)
-          : undefined,
+          ? formData.tags
+          : [],
         is_active: formData.is_active,
         internal_notes: formData.internal_notes || undefined,
       };
