@@ -7,7 +7,8 @@ import {
   Sparkles,
   Tags,
   Users,
-  Settings,
+  Shield,
+  Building,
 } from 'lucide-react';
 
 interface NavItem {
@@ -23,7 +24,8 @@ const navItems: NavItem[] = [
   { name: 'Activities', path: '/activities', icon: Sparkles },
   { name: 'Activity Types', path: '/activity-types', icon: Tags },
   { name: 'Users', path: '/users', icon: Users },
-  { name: 'Roles', path: '/roles', icon: Settings },
+  { name: 'Roles', path: '/roles', icon: Shield },
+  { name: 'Company Settings', path: '/settings', icon: Building },
 ];
 
 const Sidebar: React.FC = () => {

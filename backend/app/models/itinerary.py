@@ -43,6 +43,7 @@ class Itinerary(Base):
     days = relationship("ItineraryDay", back_populates="itinerary", cascade="all, delete-orphan", order_by="ItineraryDay.day_number")
     share_links = relationship("ShareLink", back_populates="itinerary", cascade="all, delete-orphan")
     pdf_exports = relationship("PDFExport", back_populates="itinerary", cascade="all, delete-orphan")
+    pricing = relationship("ItineraryPricing", back_populates="itinerary", uselist=False, cascade="all, delete-orphan")
 
 
 class ItineraryDay(Base):

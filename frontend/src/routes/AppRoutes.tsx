@@ -16,6 +16,7 @@ import ItineraryList from '../features/itineraries/ItineraryList';
 import ItineraryWizard from '../features/itineraries/ItineraryWizard';
 import ItineraryEditor from '../features/itineraries/ItineraryEditor';
 import PublicItinerary from '../features/public/PublicItinerary';
+import CompanySettings from '../features/settings/CompanySettings';
 
 // Protected Route Component
 interface ProtectedRouteProps {
@@ -80,6 +81,10 @@ const AppRoutes: React.FC = () => {
           <Route path="itineraries" element={<ItineraryList />} />
           <Route path="itineraries/new" element={<ItineraryWizard />} />
           <Route path="itineraries/:id" element={<ItineraryEditor />} />
+
+          {/* Settings */}
+          <Route path="settings" element={<CompanySettings />} />
+          <Route path="settings/company" element={<CompanySettings />} />
 
           {/* Catch-all: redirect to dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />

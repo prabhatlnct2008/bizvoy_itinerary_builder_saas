@@ -4,20 +4,26 @@ import { toast } from 'react-toastify';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Chip from '../../components/ui/Chip';
-import itinerariesApi from '../../api/itineraries';
-import templatesApi from '../../api/templates';
-import { Itinerary, Template } from '../../types';
+import dashboardApi, { DashboardOverview, DashboardStats } from '../../api/dashboard';
+import {
+  Map,
+  FileText,
+  Sparkles,
+  Link2,
+  Eye,
+  Plus,
+  Copy,
+  ArrowRight,
+  TrendingUp,
+  Send,
+  CheckCircle,
+  Clock
+} from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalItineraries: 0,
-    upcomingTrips: 0,
-    activeTemplates: 0,
-  });
-  const [recentItineraries, setRecentItineraries] = useState<Itinerary[]>([]);
-  const [recentTemplates, setRecentTemplates] = useState<Template[]>([]);
+  const [data, setData] = useState<DashboardOverview | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -26,28 +32,8 @@ const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-
-      // Fetch itineraries
-      const itineraries = await itinerariesApi.getItineraries();
-      const templates = await templatesApi.getTemplates({ status: 'published' });
-
-      // Calculate stats
-      const now = new Date();
-      const upcomingTrips = itineraries.filter(
-        (itin) =>
-          new Date(itin.start_date) > now &&
-          (itin.status === 'confirmed' || itin.status === 'sent')
-      ).length;
-
-      setStats({
-        totalItineraries: itineraries.length,
-        upcomingTrips,
-        activeTemplates: templates.length,
-      });
-
-      // Get recent items
-      setRecentItineraries(itineraries.slice(0, 5));
-      setRecentTemplates(templates.slice(0, 5));
+      const dashboardData = await dashboardApi.getStats();
+      setData(dashboardData);
     } catch (error: any) {
       toast.error('Failed to load dashboard data');
       console.error(error);
@@ -64,111 +50,132 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  if (!data) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-gray-500">Failed to load dashboard data</p>
+      </div>
+    );
+  }
+
+  const { stats, recent_itineraries, recent_activities } = data;
+
+  const statusColors: Record<string, string> = {
+    draft: 'bg-gray-100 text-gray-600',
+    sent: 'bg-blue-100 text-blue-600',
+    confirmed: 'bg-green-100 text-green-600',
+    completed: 'bg-purple-100 text-purple-600',
+    cancelled: 'bg-red-100 text-red-600',
+  };
+
   return (
     <div className="p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
-        <p className="text-secondary mt-2">Welcome to your travel agency workspace</p>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-500 mt-2">Welcome to your travel agency workspace</p>
       </div>
 
       {/* Quick Actions */}
-      <div className="mb-8">
+      <div className="mb-8 flex flex-wrap gap-4">
         <Button
-          size="lg"
           onClick={() => navigate('/itineraries/new')}
-          className="mr-4"
+          className="flex items-center gap-2"
         >
-          + Create New Itinerary
+          <Plus className="w-4 h-4" />
+          Create Itinerary
         </Button>
         <Button
-          size="lg"
           variant="secondary"
           onClick={() => navigate('/templates')}
+          className="flex items-center gap-2"
         >
+          <Copy className="w-4 h-4" />
           Browse Templates
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => navigate('/activities/new')}
+          className="flex items-center gap-2"
+        >
+          <Sparkles className="w-4 h-4" />
+          Add Activity
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted mb-1">Total Itineraries</p>
-                <p className="text-3xl font-bold text-primary">{stats.totalItineraries}</p>
-              </div>
-              <div className="p-3 bg-primary-100 rounded-lg">
-                <svg
-                  className="w-8 h-8 text-primary-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <StatsCard
+          title="Total Itineraries"
+          value={stats.total_itineraries}
+          icon={<Map className="w-6 h-6" />}
+          iconBg="bg-blue-100"
+          iconColor="text-blue-600"
+          onClick={() => navigate('/itineraries')}
+        />
+        <StatsCard
+          title="Templates"
+          value={stats.total_templates}
+          icon={<FileText className="w-6 h-6" />}
+          iconBg="bg-purple-100"
+          iconColor="text-purple-600"
+          onClick={() => navigate('/templates')}
+        />
+        <StatsCard
+          title="Activities"
+          value={stats.total_activities}
+          icon={<Sparkles className="w-6 h-6" />}
+          iconBg="bg-amber-100"
+          iconColor="text-amber-600"
+          onClick={() => navigate('/activities')}
+        />
+        <StatsCard
+          title="Total Views"
+          value={stats.total_views}
+          icon={<Eye className="w-6 h-6" />}
+          iconBg="bg-green-100"
+          iconColor="text-green-600"
+          subtitle={`${stats.total_share_links} share links`}
+        />
+      </div>
 
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted mb-1">Upcoming Trips</p>
-                <p className="text-3xl font-bold text-secondary-500">{stats.upcomingTrips}</p>
-              </div>
-              <div className="p-3 bg-secondary-100 rounded-lg">
-                <svg
-                  className="w-8 h-8 text-secondary-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-            </div>
+      {/* Status Breakdown */}
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mb-8">
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-1">
+            <Clock className="w-4 h-4 text-gray-400" />
+            <span className="text-sm text-gray-500">Draft</span>
           </div>
-        </Card>
-
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted mb-1">Active Templates</p>
-                <p className="text-3xl font-bold text-primary">{stats.activeTemplates}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg
-                  className="w-8 h-8 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
-                  />
-                </svg>
-              </div>
-            </div>
+          <p className="text-2xl font-bold text-gray-700">{stats.draft_itineraries}</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-1">
+            <Send className="w-4 h-4 text-blue-400" />
+            <span className="text-sm text-gray-500">Sent</span>
           </div>
-        </Card>
+          <p className="text-2xl font-bold text-blue-600">{stats.sent_itineraries}</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle className="w-4 h-4 text-green-500" />
+            <span className="text-sm text-gray-500">Confirmed</span>
+          </div>
+          <p className="text-2xl font-bold text-green-600">{stats.confirmed_itineraries}</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-1">
+            <Link2 className="w-4 h-4 text-purple-400" />
+            <span className="text-sm text-gray-500">Share Links</span>
+          </div>
+          <p className="text-2xl font-bold text-purple-600">{stats.total_share_links}</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="w-4 h-4 text-green-400" />
+            <span className="text-sm text-gray-500">Page Views</span>
+          </div>
+          <p className="text-2xl font-bold text-green-600">{stats.total_views}</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -176,43 +183,53 @@ const Dashboard: React.FC = () => {
         <Card>
           <div className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-primary">Recent Itineraries</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Recent Itineraries</h2>
               <button
                 onClick={() => navigate('/itineraries')}
-                className="text-sm text-primary-600 hover:text-primary-500 font-medium"
+                className="text-sm text-primary-600 hover:text-primary-500 font-medium flex items-center gap-1"
               >
-                View all →
+                View all <ArrowRight className="w-4 h-4" />
               </button>
             </div>
 
-            {recentItineraries.length === 0 ? (
-              <p className="text-muted text-center py-8">No itineraries yet</p>
+            {recent_itineraries.length === 0 ? (
+              <div className="text-center py-8">
+                <Map className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No itineraries yet</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => navigate('/itineraries/new')}
+                >
+                  Create your first itinerary
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
-                {recentItineraries.map((itin) => (
+                {recent_itineraries.map((itin) => (
                   <div
                     key={itin.id}
                     onClick={() => navigate(`/itineraries/${itin.id}`)}
-                    className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                    className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer border border-transparent hover:border-gray-200"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <p className="font-medium text-primary">{itin.trip_name}</p>
-                      <Chip
-                        label={itin.status}
-                        variant={
-                          itin.status === 'confirmed'
-                            ? 'success'
-                            : itin.status === 'draft'
-                            ? 'default'
-                            : 'primary'
-                        }
-                        size="sm"
-                      />
+                      <p className="font-medium text-gray-900">{itin.trip_name}</p>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColors[itin.status] || 'bg-gray-100 text-gray-600'}`}>
+                        {itin.status}
+                      </span>
                     </div>
-                    <p className="text-sm text-secondary">{itin.client_name}</p>
-                    <p className="text-xs text-muted mt-1">
-                      {new Date(itin.start_date).toLocaleDateString()} - {itin.destination}
-                    </p>
+                    <p className="text-sm text-gray-600">{itin.client_name}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-xs text-gray-400">
+                        {new Date(itin.start_date).toLocaleDateString()} - {itin.destination}
+                      </p>
+                      {itin.total_price && (
+                        <p className="text-sm font-medium text-green-600">
+                          ${itin.total_price.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -220,41 +237,99 @@ const Dashboard: React.FC = () => {
           </div>
         </Card>
 
-        {/* Recent Templates */}
+        {/* Recent Activities */}
         <Card>
           <div className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-primary">Active Templates</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Recent Activities</h2>
               <button
-                onClick={() => navigate('/templates')}
-                className="text-sm text-primary-600 hover:text-primary-500 font-medium"
+                onClick={() => navigate('/activities')}
+                className="text-sm text-primary-600 hover:text-primary-500 font-medium flex items-center gap-1"
               >
-                View all →
+                View all <ArrowRight className="w-4 h-4" />
               </button>
             </div>
 
-            {recentTemplates.length === 0 ? (
-              <p className="text-muted text-center py-8">No templates yet</p>
+            {recent_activities.length === 0 ? (
+              <div className="text-center py-8">
+                <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No activities yet</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => navigate('/activities/new')}
+                >
+                  Add your first activity
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
-                {recentTemplates.map((template) => (
+                {recent_activities.map((activity) => (
                   <div
-                    key={template.id}
-                    onClick={() => navigate(`/templates/${template.id}`)}
-                    className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                    key={activity.id}
+                    onClick={() => navigate(`/activities/${activity.id}`)}
+                    className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer border border-transparent hover:border-gray-200"
                   >
-                    <p className="font-medium text-primary mb-2">{template.name}</p>
-                    <p className="text-sm text-secondary">{template.destination}</p>
-                    <p className="text-xs text-muted mt-1">
-                      {template.duration_nights}N / {template.duration_days}D
-                      {template.approximate_price && ` · $${template.approximate_price}`}
-                    </p>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="font-medium text-gray-900">{activity.name}</p>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${activity.is_active ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                        {activity.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    {activity.category_label && (
+                      <p className="text-sm text-gray-600 capitalize">{activity.category_label}</p>
+                    )}
+                    {activity.location_display && (
+                      <p className="text-xs text-gray-400 mt-1">{activity.location_display}</p>
+                    )}
                   </div>
                 ))}
               </div>
             )}
           </div>
         </Card>
+      </div>
+    </div>
+  );
+};
+
+// Stats Card Component
+interface StatsCardProps {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
+  subtitle?: string;
+  onClick?: () => void;
+}
+
+const StatsCard: React.FC<StatsCardProps> = ({
+  title,
+  value,
+  icon,
+  iconBg,
+  iconColor,
+  subtitle,
+  onClick
+}) => {
+  return (
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-xl shadow-sm p-5 border border-gray-100 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-gray-500 mb-1">{title}</p>
+          <p className="text-3xl font-bold text-gray-900">{value}</p>
+          {subtitle && (
+            <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
+          )}
+        </div>
+        <div className={`p-3 rounded-xl ${iconBg} ${iconColor}`}>
+          {icon}
+        </div>
       </div>
     </div>
   );
