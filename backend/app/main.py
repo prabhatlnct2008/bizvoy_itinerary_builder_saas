@@ -9,7 +9,8 @@ import os
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
-    openapi_url=f"{settings.API_V1_PREFIX}/openapi.json"
+    openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
+    redirect_slashes=False  # Prevent 307 redirects that break CORS
 )
 
 # Configure CORS
