@@ -278,14 +278,13 @@ def _build_public_itinerary_payload(itinerary: Itinerary, share_link: ShareLink)
                 "custom_price": float(activity_item.custom_price) if activity_item.custom_price is not None else None,
                 "name": activity.name,
                 "type": activity.activity_type.name if activity.activity_type else None,
-                "location": activity.location,
+                "location": activity.location_display,
                 "short_description": activity.short_description,
                 "highlights": activity.highlights,
                 "images": [{
                     "url": f"/uploads/{img.file_path}",
                     "file_path": f"/uploads/{img.file_path}",
-                    "caption": img.caption,
-                    "is_primary": img.is_primary
+                    "is_hero": img.is_hero
                 } for img in activity.images]
             })
 
