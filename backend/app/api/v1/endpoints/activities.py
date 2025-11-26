@@ -21,7 +21,7 @@ from app.utils.file_storage import file_storage
 router = APIRouter()
 
 
-@router.get("/", response_model=List[ActivityListItem])
+@router.get("", response_model=List[ActivityListItem])
 def list_activities(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -83,7 +83,7 @@ def list_activities(
     return result
 
 
-@router.post("/", response_model=ActivityResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ActivityResponse, status_code=status.HTTP_201_CREATED)
 def create_activity(
     activity_data: ActivityCreate,
     db: Session = Depends(get_db),

@@ -10,7 +10,7 @@ from app.schemas.activity_type import ActivityTypeCreate, ActivityTypeUpdate, Ac
 router = APIRouter()
 
 
-@router.get("/", response_model=List[ActivityTypeResponse])
+@router.get("", response_model=List[ActivityTypeResponse])
 def list_activity_types(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -25,7 +25,7 @@ def list_activity_types(
     return activity_types
 
 
-@router.post("/", response_model=ActivityTypeResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ActivityTypeResponse, status_code=status.HTTP_201_CREATED)
 def create_activity_type(
     activity_type_data: ActivityTypeCreate,
     db: Session = Depends(get_db),
