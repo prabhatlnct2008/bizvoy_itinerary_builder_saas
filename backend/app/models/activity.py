@@ -67,6 +67,7 @@ class Activity(Base):
     created_by = relationship("User", foreign_keys=[created_by_id])
     images = relationship("ActivityImage", back_populates="activity", cascade="all, delete-orphan", order_by="ActivityImage.display_order")
     template_day_activities = relationship("TemplateDayActivity", back_populates="activity")
+    itinerary_day_activities = relationship("ItineraryDayActivity", back_populates="activity")
 
     def __repr__(self):
         return f"<Activity(id={self.id}, name={self.name}, agency_id={self.agency_id})>"
