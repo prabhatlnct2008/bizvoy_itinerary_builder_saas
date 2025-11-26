@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-text-primary font-sans;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface rounded shadow-card;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-500 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-surface text-primary-600 border border-primary-600 px-4 py-2 rounded hover:bg-primary-100 transition-colors;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary-500;
+  }
+}
