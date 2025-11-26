@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import Table from '../../components/ui/Table';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
 import Chip from '../../components/ui/Chip';
-import Dropdown from '../../components/ui/Dropdown';
 import { usePermissions } from '../../hooks/usePermissions';
 import activitiesApi from '../../api/activities';
 import activityTypesApi from '../../api/activityTypes';
@@ -100,7 +97,7 @@ const ActivityList: React.FC = () => {
 
   if (!canView) {
     return (
-      <div className="p-6 text-center text-muted">
+      <div className="max-w-6xl mx-auto px-5 py-6 text-center text-slate-500">
         You don't have permission to view activities.
       </div>
     );
@@ -109,21 +106,24 @@ const ActivityList: React.FC = () => {
   const columns = [
     {
       key: 'name',
-      header: 'Activity Name',
+      header: 'Activity name',
       width: '30%',
+      render: (activity: ActivityDetail) => (
+        <span className="font-medium text-slate-900">{activity.name}</span>
+      ),
     },
     {
       key: 'location',
       header: 'Location',
       render: (activity: ActivityDetail) => (
-        <span className="text-muted">{activity.location || '-'}</span>
+        <span className="text-slate-700">{activity.location || '-'}</span>
       ),
     },
     {
       key: 'base_price',
       header: 'Price',
       render: (activity: ActivityDetail) => (
-        <span className="text-muted">
+        <span className="text-slate-700">
           {activity.base_price ? `$${activity.base_price}` : '-'}
         </span>
       ),
@@ -143,13 +143,13 @@ const ActivityList: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       render: (activity: ActivityDetail) => (
-        <div className="flex gap-2">
+        <div className="flex gap-3 justify-end">
           <button
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/activities/${activity.id}`);
             }}
-            className="text-primary-600 hover:text-primary-500 text-sm font-medium"
+            className="text-xs text-blue-600 hover:text-blue-700"
           >
             Edit
           </button>
@@ -159,7 +159,7 @@ const ActivityList: React.FC = () => {
                 e.stopPropagation();
                 handleDelete(activity);
               }}
-              className="text-error hover:text-red-600 text-sm font-medium"
+              className="text-xs text-slate-500 hover:text-red-600"
             >
               Delete
             </button>
@@ -170,67 +170,64 @@ const ActivityList: React.FC = () => {
   ];
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="max-w-6xl mx-auto px-5 py-6 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-primary">Activities Library</h1>
-          <p className="text-secondary mt-1">Manage reusable activities</p>
+          <h1 className="text-xl font-semibold text-slate-900">Activities</h1>
+          <p className="text-sm text-slate-500">Manage reusable activities for itineraries.</p>
         </div>
         {canCreate && (
-          <Button onClick={() => navigate('/activities/new')}>Add Activity</Button>
+          <button
+            onClick={() => navigate('/activities/new')}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium"
+          >
+            Add activity
+          </button>
         )}
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="md:col-span-2">
-            <Input
-              placeholder="Search activities (semantic search)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Dropdown
-              options={[
-                { value: '', label: 'All Types' },
-                ...activityTypes.map((type) => ({
-                  value: type.id,
-                  label: type.name,
-                })),
-              ]}
-              value={filterType}
-              onChange={(value) => setFilterType(value)}
-              placeholder="Filter by type"
-            />
-            <Dropdown
-              options={[
-                { value: '', label: 'All Status' },
-                { value: 'active', label: 'Active' },
-                { value: 'inactive', label: 'Inactive' },
-              ]}
-              value={filterStatus}
-              onChange={(value) => setFilterStatus(value)}
-              placeholder="Filter by status"
-            />
-          </div>
-          <div>
-            <Button
-              onClick={handleSearch}
-              isLoading={isSearching}
-              variant="secondary"
-              className="w-full"
-            >
-              Search
-            </Button>
-          </div>
-        </div>
+      {/* Filters */}
+      <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 flex flex-wrap gap-3 items-center">
+        <input
+          className="flex-1 min-w-[200px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Search activities..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+        />
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">All types</option>
+          {activityTypes.map((type) => (
+            <option key={type.id} value={type.id}>
+              {type.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <button
+          onClick={handleSearch}
+          disabled={isSearching}
+          className="border border-slate-300 bg-white text-slate-700 text-sm px-3 py-2 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+        >
+          {isSearching ? 'Searching...' : 'Search'}
+        </button>
       </div>
 
-      {/* Activities Table */}
-      <div className="bg-white rounded-lg shadow">
+      {/* Table */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <Table
           data={activities}
           columns={columns}

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import Table from '../../components/ui/Table';
-import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
+import Chip from '../../components/ui/Chip';
 import UserForm from './UserForm';
 import { usePermissions } from '../../hooks/usePermissions';
 import usersApi from '../../api/users';
@@ -81,7 +81,7 @@ const UserList: React.FC = () => {
 
   if (!canView) {
     return (
-      <div className="p-6 text-center text-muted">
+      <div className="max-w-6xl mx-auto px-5 py-6 text-center text-slate-500">
         You don't have permission to view users.
       </div>
     );
@@ -91,16 +91,22 @@ const UserList: React.FC = () => {
     {
       key: 'full_name',
       header: 'Name',
+      render: (user: UserWithRoles) => (
+        <span className="font-medium text-slate-900">{user.full_name}</span>
+      ),
     },
     {
       key: 'email',
       header: 'Email',
+      render: (user: UserWithRoles) => (
+        <span className="text-slate-700">{user.email}</span>
+      ),
     },
     {
       key: 'roles',
       header: 'Roles',
       render: (user: UserWithRoles) => (
-        <span className="text-muted">
+        <span className="text-slate-500 text-xs">
           {user.roles.length > 0 ? user.roles.join(', ') : 'No roles'}
         </span>
       ),
@@ -109,29 +115,25 @@ const UserList: React.FC = () => {
       key: 'is_active',
       header: 'Status',
       render: (user: UserWithRoles) => (
-        <span
-          className={`px-2 py-1 text-xs rounded-full ${
-            user.is_active
-              ? 'bg-secondary-100 text-secondary-500'
-              : 'bg-gray-200 text-gray-600'
-          }`}
-        >
-          {user.is_active ? 'Active' : 'Inactive'}
-        </span>
+        <Chip
+          label={user.is_active ? 'Active' : 'Inactive'}
+          variant={user.is_active ? 'success' : 'default'}
+          size="sm"
+        />
       ),
     },
     {
       key: 'actions',
       header: 'Actions',
       render: (user: UserWithRoles) => (
-        <div className="flex gap-2">
+        <div className="flex gap-3 justify-end">
           {canEdit && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleEdit(user);
               }}
-              className="text-primary-600 hover:text-primary-500 text-sm font-medium"
+              className="text-xs text-blue-600 hover:text-blue-700"
             >
               Edit
             </button>
@@ -142,7 +144,7 @@ const UserList: React.FC = () => {
                 e.stopPropagation();
                 handleDelete(user);
               }}
-              className="text-error hover:text-red-600 text-sm font-medium"
+              className="text-xs text-slate-500 hover:text-red-600"
             >
               Delete
             </button>
@@ -153,18 +155,25 @@ const UserList: React.FC = () => {
   ];
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="max-w-6xl mx-auto px-5 py-6 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-primary">Users</h1>
-          <p className="text-secondary mt-1">Manage agency staff members</p>
+          <h1 className="text-xl font-semibold text-slate-900">Users</h1>
+          <p className="text-sm text-slate-500">Manage agency staff members.</p>
         </div>
         {canCreate && (
-          <Button onClick={handleCreate}>Add User</Button>
+          <button
+            onClick={handleCreate}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium"
+          >
+            Add user
+          </button>
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow">
+      {/* Table */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <Table
           data={users}
           columns={columns}

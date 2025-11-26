@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import Table from '../../components/ui/Table';
-import Button from '../../components/ui/Button';
 import Chip from '../../components/ui/Chip';
-import Input from '../../components/ui/Input';
 import { usePermissions } from '../../hooks/usePermissions';
 import itinerariesApi from '../../api/itineraries';
 import { Itinerary } from '../../types';
@@ -56,7 +54,7 @@ const ItineraryList: React.FC = () => {
 
   if (!canView) {
     return (
-      <div className="p-6 text-center text-muted">
+      <div className="max-w-6xl mx-auto px-5 py-6 text-center text-slate-500">
         You don't have permission to view itineraries.
       </div>
     );
@@ -91,23 +89,32 @@ const ItineraryList: React.FC = () => {
   const columns = [
     {
       key: 'trip_name',
-      header: 'Trip Name',
+      header: 'Trip name',
       width: '25%',
+      render: (itin: Itinerary) => (
+        <span className="font-medium text-slate-900">{itin.trip_name}</span>
+      ),
     },
     {
       key: 'client_name',
       header: 'Client',
+      render: (itin: Itinerary) => (
+        <span className="text-slate-700">{itin.client_name}</span>
+      ),
     },
     {
       key: 'destination',
       header: 'Destination',
+      render: (itin: Itinerary) => (
+        <span className="text-slate-700">{itin.destination}</span>
+      ),
     },
     {
       key: 'start_date',
       header: 'Dates',
       render: (itin: Itinerary) => (
-        <span className="text-muted text-sm">
-          {new Date(itin.start_date).toLocaleDateString()} -{' '}
+        <span className="text-slate-700">
+          {new Date(itin.start_date).toLocaleDateString()} –{' '}
           {new Date(itin.end_date).toLocaleDateString()}
         </span>
       ),
@@ -127,13 +134,13 @@ const ItineraryList: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       render: (itin: Itinerary) => (
-        <div className="flex gap-2">
+        <div className="flex gap-3 justify-end">
           <button
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/itineraries/${itin.id}`);
             }}
-            className="text-primary-600 hover:text-primary-500 text-sm font-medium"
+            className="text-xs text-blue-600 hover:text-blue-700"
           >
             Edit
           </button>
@@ -143,7 +150,7 @@ const ItineraryList: React.FC = () => {
                 e.stopPropagation();
                 handleDelete(itin);
               }}
-              className="text-error hover:text-red-600 text-sm font-medium"
+              className="text-xs text-slate-500 hover:text-red-600"
             >
               Delete
             </button>
@@ -154,55 +161,54 @@ const ItineraryList: React.FC = () => {
   ];
 
   return (
-    <div className="px-4 py-6 md:px-6 md:py-6 bg-background min-h-screen">
-      <div className="max-w-5xl mx-auto space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold text-text-primary">Itineraries</h1>
-            <p className="text-text-muted mt-1">Manage client itineraries</p>
-          </div>
-          {canCreate && (
-            <Button onClick={() => navigate('/itineraries/new')} className="self-start md:self-auto">
-              Create Itinerary
-            </Button>
-          )}
+    <div className="max-w-6xl mx-auto px-5 py-6 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">Itineraries</h1>
+          <p className="text-sm text-slate-500">Manage client itineraries.</p>
         </div>
+        {canCreate && (
+          <button
+            onClick={() => navigate('/itineraries/new')}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium"
+          >
+            Create itinerary
+          </button>
+        )}
+      </div>
 
-        <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="flex-1">
-              <Input
-                placeholder="Search itineraries by trip, client, destination..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2 md:w-1/3">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="flex-1 px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-              >
-                <option value="">All Statuses</option>
-                <option value="draft">Draft</option>
-                <option value="sent">Sent</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-          </div>
-        </div>
+      {/* Filters */}
+      <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 flex flex-wrap gap-3 items-center">
+        <input
+          className="flex-1 min-w-[200px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Search by trip name, client, or destination..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">All statuses</option>
+          <option value="draft">Draft</option>
+          <option value="sent">Sent</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
 
-        <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
-          <Table
-            data={filteredItineraries}
-            columns={columns}
-            isLoading={isLoading}
-            emptyMessage="No itineraries found. Create your first itinerary to get started."
-            onRowClick={(itin) => navigate(`/itineraries/${itin.id}`)}
-          />
-        </div>
+      {/* Table */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <Table
+          data={filteredItineraries}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="No itineraries found. Create your first itinerary to get started."
+          onRowClick={(itin) => navigate(`/itineraries/${itin.id}`)}
+        />
       </div>
     </div>
   );

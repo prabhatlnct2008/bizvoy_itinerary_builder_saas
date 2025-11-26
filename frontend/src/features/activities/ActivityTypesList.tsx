@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import Table from '../../components/ui/Table';
-import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
-import Input from '../../components/ui/Input';
 import { usePermissions } from '../../hooks/usePermissions';
 import activityTypesApi from '../../api/activityTypes';
 import { ActivityType, ActivityTypeCreate } from '../../types';
@@ -93,7 +91,7 @@ const ActivityTypesList: React.FC = () => {
 
   if (!canView) {
     return (
-      <div className="p-6 text-center text-muted">
+      <div className="max-w-6xl mx-auto px-5 py-6 text-center text-slate-500">
         You don't have permission to view activity types.
       </div>
     );
@@ -102,22 +100,25 @@ const ActivityTypesList: React.FC = () => {
   const columns = [
     {
       key: 'name',
-      header: 'Type Name',
+      header: 'Type name',
       width: '30%',
+      render: (type: ActivityType) => (
+        <span className="font-medium text-slate-900">{type.name}</span>
+      ),
     },
     {
       key: 'description',
       header: 'Description',
       width: '40%',
       render: (type: ActivityType) => (
-        <span className="text-muted">{type.description || '-'}</span>
+        <span className="text-slate-500 text-xs">{type.description || '-'}</span>
       ),
     },
     {
       key: 'created_at',
       header: 'Created',
       render: (type: ActivityType) => (
-        <span className="text-muted">
+        <span className="text-slate-500 text-xs">
           {new Date(type.created_at).toLocaleDateString()}
         </span>
       ),
@@ -126,14 +127,14 @@ const ActivityTypesList: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       render: (type: ActivityType) => (
-        <div className="flex gap-2">
+        <div className="flex gap-3 justify-end">
           {canDelete && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleDelete(type);
               }}
-              className="text-error hover:text-red-600 text-sm font-medium"
+              className="text-xs text-slate-500 hover:text-red-600"
             >
               Delete
             </button>
@@ -144,27 +145,39 @@ const ActivityTypesList: React.FC = () => {
   ];
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="max-w-6xl mx-auto px-5 py-6 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-primary">Activity Types</h1>
-          <p className="text-secondary mt-1">Define categories for your activities</p>
+          <h1 className="text-xl font-semibold text-slate-900">Activity Types</h1>
+          <p className="text-sm text-slate-500">Define categories for your activities.</p>
         </div>
         {canCreate && (
-          <Button onClick={handleCreate}>+ Add Type</Button>
+          <button
+            onClick={handleCreate}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium"
+          >
+            Add type
+          </button>
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow">
+      {/* Table */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : activityTypes.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted mb-4">No activity types yet</p>
+            <p className="text-sm text-slate-500 mb-4">No activity types yet</p>
             {canCreate && (
-              <Button onClick={handleCreate}>Create your first type</Button>
+              <button
+                onClick={handleCreate}
+                className="text-xs text-blue-600 hover:text-blue-700"
+              >
+                Create your first type
+              </button>
             )}
           </div>
         ) : (
@@ -184,44 +197,50 @@ const ActivityTypesList: React.FC = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Type Name *
             </label>
-            <Input
+            <input
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g., Stay, Meal, Experience"
               required
               autoFocus
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Description (Optional)
             </label>
-            <Input
+            <input
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="e.g., Hotels, resorts, and other accommodations"
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-slate-500">
               Brief description of this activity type
             </p>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={() => setIsModalOpen(false)}
               disabled={isSaving}
+              className="border border-slate-300 bg-white text-slate-700 text-sm px-3 py-2 rounded-lg hover:bg-slate-50 disabled:opacity-50"
             >
               Cancel
-            </Button>
-            <Button type="submit" loading={isSaving}>
-              {editingType ? 'Update' : 'Create'}
-            </Button>
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+            >
+              {isSaving ? 'Saving...' : editingType ? 'Update' : 'Create'}
+            </button>
           </div>
         </form>
       </Modal>
