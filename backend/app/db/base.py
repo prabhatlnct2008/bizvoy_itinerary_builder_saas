@@ -11,3 +11,5 @@ from app.models.activity_image import ActivityImage  # noqa
 from app.models.template import Template, TemplateDay, TemplateDayActivity  # noqa
 from app.models.itinerary import Itinerary, ItineraryDay, ItineraryDayActivity  # noqa
 from app.models.share import ShareLink, PDFExport  # noqa
+from app.models.company_profile import CompanyProfile  # noqa
+from app.models.itinerary_pricing import ItineraryPricing  # noqa

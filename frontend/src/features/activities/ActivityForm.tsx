@@ -5,11 +5,12 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Textarea from '../../components/ui/Textarea';
 import Dropdown from '../../components/ui/Dropdown';
-import TagsInput from '../../components/ui/TagsInput';
+import Chip from '../../components/ui/Chip';
 import { usePermissions } from '../../hooks/usePermissions';
 import activitiesApi from '../../api/activities';
 import activityTypesApi from '../../api/activityTypes';
 import { ActivityType, ActivityCreate, ActivityUpdate, ActivityImage } from '../../types';
+import { Star, Clock, Users, DollarSign, Plus, X, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 
 const ActivityForm: React.FC = () => {
   const navigate = useNavigate();
@@ -25,21 +26,25 @@ const ActivityForm: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [images, setImages] = useState<ActivityImage[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [newHighlight, setNewHighlight] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
     activity_type_id: '',
-    location: '',
+    category_label: '',
+    location_display: '',
     short_description: '',
-    description: '',
-    highlights: '',
-    base_price: '',
-    pricing_model: '',
-    pricing_notes: '',
-    min_duration_minutes: '',
-    max_duration_minutes: '',
+    client_description: '',
+    default_duration_value: '',
+    default_duration_unit: 'hours',
+    rating: '',
+    group_size_label: '',
+    cost_type: 'included',
+    cost_display: '',
+    highlights: [] as string[],
     tags: [] as string[],
     is_active: true,
+    internal_notes: '',
   });
 
   useEffect(() => {
@@ -64,30 +69,47 @@ const ActivityForm: React.FC = () => {
       const data = await activitiesApi.getActivity(activityId);
       setImages(data.images || []);
 
-      // Parse tags from JSON string
+      // Parse highlights and tags from JSON if needed
+      let parsedHighlights: string[] = [];
       let parsedTags: string[] = [];
+
+      if (data.highlights) {
+        try {
+          parsedHighlights = typeof data.highlights === 'string'
+            ? JSON.parse(data.highlights)
+            : data.highlights;
+        } catch {
+          parsedHighlights = [];
+        }
+      }
+
       if (data.tags) {
         try {
-          parsedTags = JSON.parse(data.tags);
+          parsedTags = typeof data.tags === 'string'
+            ? JSON.parse(data.tags)
+            : data.tags;
         } catch {
           parsedTags = [];
         }
       }
 
       setFormData({
-        name: data.name,
+        name: data.name || '',
         activity_type_id: data.activity_type_id || '',
-        location: data.location || '',
+        category_label: data.category_label || '',
+        location_display: data.location_display || data.location || '',
         short_description: data.short_description || '',
-        description: data.description || '',
-        highlights: data.highlights || '',
-        base_price: data.base_price?.toString() || '',
-        pricing_model: data.pricing_model || '',
-        pricing_notes: data.pricing_notes || '',
-        min_duration_minutes: data.min_duration_minutes?.toString() || '',
-        max_duration_minutes: data.max_duration_minutes?.toString() || '',
+        client_description: data.client_description || data.description || '',
+        default_duration_value: data.default_duration_value?.toString() || '',
+        default_duration_unit: data.default_duration_unit || 'hours',
+        rating: data.rating?.toString() || '',
+        group_size_label: data.group_size_label || '',
+        cost_type: data.cost_type || 'included',
+        cost_display: data.cost_display || '',
+        highlights: parsedHighlights,
         tags: parsedTags,
-        is_active: data.is_active,
+        is_active: data.is_active ?? true,
+        internal_notes: data.internal_notes || '',
       });
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to load activity');
@@ -126,16 +148,54 @@ const ActivityForm: React.FC = () => {
     }
   };
 
-  const handleSetPrimaryImage = async (imageId: string) => {
-    // In a real implementation, you'd call an API to set primary image
-    // For now, we'll just update the local state
-    setImages((prev) =>
-      prev.map((img) => ({
-        ...img,
-        is_primary: img.id === imageId,
-      }))
-    );
-    toast.success('Primary image updated');
+  const handleSetHeroImage = async (imageId: string) => {
+    if (!id) return;
+    try {
+      await activitiesApi.updateImage(id, imageId, { is_hero: true });
+      setImages((prev) =>
+        prev.map((img) => ({
+          ...img,
+          is_hero: img.id === imageId,
+          is_primary: img.id === imageId,
+        }))
+      );
+      toast.success('Hero image updated');
+    } catch (error: any) {
+      toast.error('Failed to update hero image');
+    }
+  };
+
+  const handleAddHighlight = () => {
+    if (newHighlight.trim() && !formData.highlights.includes(newHighlight.trim())) {
+      setFormData({
+        ...formData,
+        highlights: [...formData.highlights, newHighlight.trim()],
+      });
+      setNewHighlight('');
+    }
+  };
+
+  const handleRemoveHighlight = (index: number) => {
+    setFormData({
+      ...formData,
+      highlights: formData.highlights.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleAddTag = (tag: string) => {
+    if (tag.trim() && !formData.tags.includes(tag.trim())) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, tag.trim()],
+      });
+    }
+  };
+
+  const handleRemoveTag = (index: number) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter((_, i) => i !== index),
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -157,17 +217,26 @@ const ActivityForm: React.FC = () => {
       const data: ActivityCreate | ActivityUpdate = {
         name: formData.name,
         activity_type_id: formData.activity_type_id,
-        location: formData.location || undefined,
+        category_label: formData.category_label || undefined,
+        location_display: formData.location_display || undefined,
         short_description: formData.short_description || undefined,
-        description: formData.description || undefined,
-        highlights: formData.highlights || undefined,
-        base_price: formData.base_price ? parseFloat(formData.base_price) : undefined,
-        pricing_model: formData.pricing_model || undefined,
-        pricing_notes: formData.pricing_notes || undefined,
-        min_duration_minutes: formData.min_duration_minutes ? parseInt(formData.min_duration_minutes) : undefined,
-        max_duration_minutes: formData.max_duration_minutes ? parseInt(formData.max_duration_minutes) : undefined,
-        tags: formData.tags.length > 0 ? JSON.stringify(formData.tags) : undefined,
+        client_description: formData.client_description || undefined,
+        default_duration_value: formData.default_duration_value
+          ? parseInt(formData.default_duration_value)
+          : undefined,
+        default_duration_unit: formData.default_duration_unit || undefined,
+        rating: formData.rating ? parseFloat(formData.rating) : undefined,
+        group_size_label: formData.group_size_label || undefined,
+        cost_type: formData.cost_type,
+        cost_display: formData.cost_display || undefined,
+        highlights: formData.highlights.length > 0
+          ? JSON.stringify(formData.highlights)
+          : undefined,
+        tags: formData.tags.length > 0
+          ? JSON.stringify(formData.tags)
+          : undefined,
         is_active: formData.is_active,
+        internal_notes: formData.internal_notes || undefined,
       };
 
       if (isEdit && id) {
@@ -176,7 +245,6 @@ const ActivityForm: React.FC = () => {
       } else {
         const created = await activitiesApi.createActivity(data as ActivityCreate);
         toast.success('Activity created successfully');
-        // After creation, navigate to edit mode so user can upload images
         navigate(`/activities/${created.id}`);
         return;
       }
@@ -213,16 +281,40 @@ const ActivityForm: React.FC = () => {
     );
   }
 
-  const pricingModelOptions = [
-    { value: 'per_person', label: 'Per Person' },
-    { value: 'per_night', label: 'Per Night' },
-    { value: 'per_activity', label: 'Per Activity' },
-    { value: 'flat_package', label: 'Flat Package' },
+  const durationUnitOptions = [
+    { value: 'minutes', label: 'Minutes' },
+    { value: 'hours', label: 'Hours' },
+    { value: 'days', label: 'Days' },
   ];
+
+  const groupSizeOptions = [
+    { value: 'Private', label: 'Private' },
+    { value: 'Shared', label: 'Shared' },
+    { value: '2-4', label: '2-4 people' },
+    { value: '2-8', label: '2-8 people' },
+    { value: '2-10', label: '2-10 people' },
+    { value: 'Max 10', label: 'Max 10 people' },
+    { value: 'Max 15', label: 'Max 15 people' },
+    { value: 'Max 20', label: 'Max 20 people' },
+  ];
+
+  const categoryLabelOptions = [
+    { value: 'transfer', label: 'Transfer' },
+    { value: 'relaxation', label: 'Relaxation' },
+    { value: 'dining', label: 'Dining' },
+    { value: 'sightseeing', label: 'Sightseeing' },
+    { value: 'adventure', label: 'Adventure' },
+    { value: 'culture', label: 'Culture' },
+    { value: 'wellness', label: 'Wellness' },
+    { value: 'entertainment', label: 'Entertainment' },
+  ];
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+  const baseUrl = API_URL.replace('/api/v1', '');
 
   return (
     <div className="p-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -234,14 +326,19 @@ const ActivityForm: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer">
               <span className="text-sm text-gray-700">Active</span>
-              <input
-                type="checkbox"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-              />
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  className="sr-only"
+                />
+                <div className={`w-10 h-6 rounded-full transition-colors ${formData.is_active ? 'bg-green-500' : 'bg-gray-300'}`}>
+                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.is_active ? 'translate-x-4' : ''}`} />
+                </div>
+              </div>
             </label>
           </div>
         </div>
@@ -249,16 +346,19 @@ const ActivityForm: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 1. Basic Information */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h2>
-            <div className="space-y-4">
-              <div>
+            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-6 h-6 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-bold">1</span>
+              Basic Information
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Activity Name *
                 </label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., 2N at Lakeside Resort (Deluxe Room)"
+                  placeholder="e.g., Airport Arrival & Private Transfer"
                   required
                 />
               </div>
@@ -280,12 +380,24 @@ const ActivityForm: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location
+                  Category Label (chip text)
+                </label>
+                <Dropdown
+                  options={categoryLabelOptions}
+                  value={formData.category_label}
+                  onChange={(value) => setFormData({ ...formData, category_label: value })}
+                  placeholder="Select category"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Location Display
                 </label>
                 <Input
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g., Munnar, Kerala or Downtown Paris"
+                  value={formData.location_display}
+                  onChange={(e) => setFormData({ ...formData, location_display: e.target.value })}
+                  placeholder="e.g., Ngurah Rai International Airport, Bali"
                 />
               </div>
             </div>
@@ -293,206 +405,358 @@ const ActivityForm: React.FC = () => {
 
           {/* 2. Descriptions */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Descriptions</h2>
+            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-6 h-6 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+              Descriptions
+            </h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Short Description (1-3 lines)
+                  Short Description (1-3 lines for lists)
                 </label>
                 <Textarea
                   value={formData.short_description}
                   onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
-                  placeholder="Brief teaser shown in lists and itineraries..."
+                  placeholder="Brief teaser shown in activity cards and itinerary lists..."
                   rows={2}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Detailed Highlights / Inclusions
+                  Client-facing Description (full paragraph for shared view)
                 </label>
                 <Textarea
-                  value={formData.highlights}
-                  onChange={(e) => setFormData({ ...formData, highlights: e.target.value })}
-                  placeholder="Enter each highlight on a new line:&#10;• 2 nights in Deluxe Room&#10;• Daily breakfast included&#10;• Lake-facing balcony"
-                  rows={6}
-                />
-                <p className="mt-1 text-xs text-gray-500">Use bullet points, one per line</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Detailed Description (Optional)
-                </label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Additional detailed information about the activity..."
+                  value={formData.client_description}
+                  onChange={(e) => setFormData({ ...formData, client_description: e.target.value })}
+                  placeholder="Detailed description shown to clients in the shared itinerary..."
                   rows={4}
                 />
               </div>
             </div>
           </div>
 
-          {/* 3. Media (Images) - Only show in edit mode */}
+          {/* 3. Media Gallery - Only show in edit mode */}
           {isEdit && (
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Media</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Images
-                  </label>
+              <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <span className="w-6 h-6 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-bold">3</span>
+                Media Gallery
+              </h2>
+
+              {/* Upload Area */}
+              <div className="mb-4">
+                <label className="block">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-400 transition-colors cursor-pointer">
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-1">
+                      Drag & drop images or click to browse
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      JPEG, PNG up to 5MB each (max 6 images)
+                    </p>
+                  </div>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png"
                     multiple
                     onChange={handleImageUpload}
                     disabled={uploadingImages}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                    className="hidden"
                   />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Upload one or more images. Mark one as primary for use in cards.
-                  </p>
-                </div>
+                </label>
+              </div>
 
-                {images.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                    {images.map((image) => (
-                      <div key={image.id} className="relative group">
-                        <img
-                          src={`http://localhost:8000${image.file_path}`}
-                          alt={image.caption || ''}
-                          className={`w-full h-32 object-cover rounded-md ${
-                            image.is_primary ? 'ring-2 ring-primary-500' : ''
-                          }`}
-                        />
-                        {image.is_primary && (
-                          <span className="absolute top-2 left-2 bg-primary-500 text-white text-xs px-2 py-1 rounded">
-                            Primary
+              {/* Image Grid */}
+              {images.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {images.map((image, index) => (
+                    <div
+                      key={image.id}
+                      className={`relative group rounded-lg overflow-hidden border-2 ${
+                        image.is_hero || image.is_primary
+                          ? 'border-primary-500 ring-2 ring-primary-200'
+                          : 'border-gray-200'
+                      }`}
+                    >
+                      <img
+                        src={`${baseUrl}${image.file_path}`}
+                        alt={`Activity image ${index + 1}`}
+                        className="w-full h-32 object-cover"
+                      />
+                      {(image.is_hero || image.is_primary) && (
+                        <div className="absolute top-2 left-2">
+                          <span className="bg-primary-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                            <ImageIcon className="w-3 h-3" />
+                            Hero
                           </span>
-                        )}
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-md flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                          {!image.is_primary && (
-                            <button
-                              type="button"
-                              onClick={() => handleSetPrimaryImage(image.id)}
-                              className="px-2 py-1 bg-white text-xs rounded hover:bg-gray-100"
-                            >
-                              Set Primary
-                            </button>
-                          )}
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                        {!image.is_hero && !image.is_primary && (
                           <button
                             type="button"
-                            onClick={() => handleDeleteImage(image.id)}
-                            className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                            onClick={() => handleSetHeroImage(image.id)}
+                            className="px-2 py-1 bg-white text-xs rounded hover:bg-gray-100"
                           >
-                            Delete
+                            Set Hero
                           </button>
-                        </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteImage(image.id)}
+                          className="p-1 bg-red-500 text-white rounded hover:bg-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {images.length === 0 && (
+                <p className="text-center text-gray-500 text-sm py-4">
+                  No images uploaded yet. Upload images to showcase this activity.
+                </p>
+              )}
             </div>
           )}
 
-          {/* 4. Pricing */}
+          {/* 4. Timing & Duration */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Pricing</h2>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Base Price
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.base_price}
-                    onChange={(e) => setFormData({ ...formData, base_price: e.target.value })}
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Pricing Model
-                  </label>
-                  <Dropdown
-                    options={pricingModelOptions}
-                    value={formData.pricing_model}
-                    onChange={(value) => setFormData({ ...formData, pricing_model: value })}
-                    placeholder="Select pricing model"
-                  />
-                </div>
-              </div>
-
+            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary-600" />
+              Timing & Duration
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pricing Notes
+                  Duration Value
                 </label>
                 <Input
-                  value={formData.pricing_notes}
-                  onChange={(e) => setFormData({ ...formData, pricing_notes: e.target.value })}
-                  placeholder='e.g., "Taxes extra", "Price varies by season"'
+                  type="number"
+                  min="0"
+                  value={formData.default_duration_value}
+                  onChange={(e) => setFormData({ ...formData, default_duration_value: e.target.value })}
+                  placeholder="e.g., 45"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Duration Unit
+                </label>
+                <Dropdown
+                  options={durationUnitOptions}
+                  value={formData.default_duration_unit}
+                  onChange={(value) => setFormData({ ...formData, default_duration_unit: value })}
+                  placeholder="Select unit"
                 />
               </div>
             </div>
           </div>
 
-          {/* 5. Tags & Metadata */}
+          {/* 5. Experience Meta */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Tags & Metadata</h2>
-            <div className="space-y-4">
+            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5 text-primary-600" />
+              Experience Meta
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tags
+                  Rating (0-5)
                 </label>
-                <TagsInput
-                  tags={formData.tags}
-                  onChange={(tags) => setFormData({ ...formData, tags })}
-                  placeholder="e.g., Family-friendly, Romantic, Adventure"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Add tags like "Luxury", "Adventure", "Family-friendly" for better filtering
-                </p>
+                <div className="relative">
+                  <Star className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-yellow-400" />
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    value={formData.rating}
+                    onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
+                    placeholder="4.9"
+                    className="pl-10"
+                  />
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Min Duration (minutes)
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Users className="inline w-4 h-4 mr-1" />
+                  Group Size
+                </label>
+                <Dropdown
+                  options={groupSizeOptions}
+                  value={formData.group_size_label}
+                  onChange={(value) => setFormData({ ...formData, group_size_label: value })}
+                  placeholder="Select group size"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <DollarSign className="inline w-4 h-4 mr-1" />
+                  Cost Type
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="cost_type"
+                      value="included"
+                      checked={formData.cost_type === 'included'}
+                      onChange={(e) => setFormData({ ...formData, cost_type: e.target.value })}
+                      className="text-primary-600"
+                    />
+                    <span className="text-sm text-green-600 font-medium">Included</span>
                   </label>
-                  <Input
-                    type="number"
-                    value={formData.min_duration_minutes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, min_duration_minutes: e.target.value })
-                    }
-                    placeholder="60"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Max Duration (minutes)
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="cost_type"
+                      value="extra"
+                      checked={formData.cost_type === 'extra'}
+                      onChange={(e) => setFormData({ ...formData, cost_type: e.target.value })}
+                      className="text-primary-600"
+                    />
+                    <span className="text-sm text-gray-600 font-medium">Extra Cost</span>
                   </label>
-                  <Input
-                    type="number"
-                    value={formData.max_duration_minutes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, max_duration_minutes: e.target.value })
-                    }
-                    placeholder="120"
-                  />
                 </div>
               </div>
+
+              {formData.cost_type === 'extra' && (
+                <div className="md:col-span-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cost Display Text
+                  </label>
+                  <Input
+                    value={formData.cost_display}
+                    onChange={(e) => setFormData({ ...formData, cost_display: e.target.value })}
+                    placeholder="e.g., From $120 per person"
+                  />
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* 6. Highlights */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Highlights
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Add key highlights that will be displayed as chips on the activity card (e.g., "Meet & Greet", "Welcome Drink", "WiFi Available")
+            </p>
+
+            {/* Add Highlight Input */}
+            <div className="flex gap-2 mb-4">
+              <Input
+                value={newHighlight}
+                onChange={(e) => setNewHighlight(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddHighlight();
+                  }
+                }}
+                placeholder="Type a highlight and press Enter"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleAddHighlight}
+                disabled={!newHighlight.trim()}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Highlights Chips */}
+            <div className="flex flex-wrap gap-2">
+              {formData.highlights.map((highlight, index) => (
+                <div
+                  key={index}
+                  className="inline-flex items-center gap-1 bg-primary-50 text-primary-700 px-3 py-1.5 rounded-full text-sm"
+                >
+                  <span>{highlight}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveHighlight(index)}
+                    className="hover:text-primary-900"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              {formData.highlights.length === 0 && (
+                <p className="text-gray-400 text-sm">No highlights added yet</p>
+              )}
+            </div>
+          </div>
+
+          {/* 7. Tags */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Tags & Metadata
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Add tags for filtering and search (e.g., "Family-friendly", "Luxury", "Adventure")
+            </p>
+
+            {/* Quick Add Tags */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {['Family-friendly', 'Romantic', 'Adventure', 'Luxury', 'Budget', 'Nature', 'Beach', 'Cultural'].map((tag) => (
+                !formData.tags.includes(tag) && (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => handleAddTag(tag)}
+                    className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200"
+                  >
+                    + {tag}
+                  </button>
+                )
+              ))}
+            </div>
+
+            {/* Selected Tags */}
+            <div className="flex flex-wrap gap-2">
+              {formData.tags.map((tag, index) => (
+                <Chip
+                  key={index}
+                  label={tag}
+                  onRemove={() => handleRemoveTag(index)}
+                  variant="default"
+                  size="sm"
+                />
+              ))}
+              {formData.tags.length === 0 && (
+                <p className="text-gray-400 text-sm">No tags added yet</p>
+              )}
+            </div>
+          </div>
+
+          {/* 8. Internal Notes */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Internal Notes
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Notes visible only to your team, not shown to clients
+            </p>
+            <Textarea
+              value={formData.internal_notes}
+              onChange={(e) => setFormData({ ...formData, internal_notes: e.target.value })}
+              placeholder="Add internal notes, supplier contacts, booking instructions..."
+              rows={3}
+            />
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-3 sticky bottom-6">
             <Button
               type="button"
               variant="outline"
@@ -501,16 +765,16 @@ const ActivityForm: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button type="submit" loading={isSaving}>
+            <Button type="submit" isLoading={isSaving}>
               {isEdit ? 'Update Activity' : 'Create Activity'}
             </Button>
           </div>
         </form>
 
         {!isEdit && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              💡 Tip: After creating the activity, you'll be able to upload images.
+              After creating the activity, you'll be able to upload images.
             </p>
           </div>
         )}

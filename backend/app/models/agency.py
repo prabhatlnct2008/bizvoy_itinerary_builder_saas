@@ -25,3 +25,4 @@ class Agency(Base):
     activities = relationship("Activity", back_populates="agency", cascade="all, delete-orphan")
     templates = relationship("Template", back_populates="agency", cascade="all, delete-orphan")
     itineraries = relationship("Itinerary", back_populates="agency", cascade="all, delete-orphan")
+    company_profile = relationship("CompanyProfile", back_populates="agency", uselist=False, cascade="all, delete-orphan")

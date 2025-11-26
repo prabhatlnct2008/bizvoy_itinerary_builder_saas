@@ -418,6 +418,7 @@ export interface PublicActivityImage {
   file_path: string;
   caption: string | null;
   is_primary: boolean;
+  is_hero: boolean;
 }
 
 export interface PublicActivity {
@@ -428,11 +429,22 @@ export interface PublicActivity {
   time_slot: string | null;
   custom_notes: string | null;
   custom_price: number | null;
+  // Activity details
   name: string;
-  type: string | null;
-  location: string | null;
+  activity_type_name: string | null;
+  category_label: string | null;
+  location_display: string | null;
   short_description: string | null;
-  highlights: string | null;
+  client_description: string | null;
+  // Meta
+  default_duration_value: number | null;
+  default_duration_unit: string | null;
+  rating: number | null;
+  group_size_label: string | null;
+  cost_type: string;
+  cost_display: string | null;
+  // Highlights
+  highlights: string[] | null;
   images: PublicActivityImage[];
 }
 
@@ -446,6 +458,36 @@ export interface PublicItineraryDay {
   activities: PublicActivity[];
 }
 
+export interface PublicCompanyProfile {
+  company_name: string | null;
+  tagline: string | null;
+  description: string | null;
+  logo_url: string | null;
+  email: string | null;
+  phone: string | null;
+  website_url: string | null;
+  payment_qr_url: string | null;
+  payment_note: string | null;
+}
+
+export interface PublicPricing {
+  base_package: number | null;
+  taxes_fees: number | null;
+  discount_code: string | null;
+  discount_amount: number | null;
+  total: number | null;
+  currency: string;
+}
+
+export interface TripOverview {
+  total_days: number;
+  total_nights: number;
+  accommodation_count: number;
+  activity_count: number;
+  meal_count: number;
+  transfer_count: number;
+}
+
 export interface PublicItineraryResponse {
   id: string;
   trip_name: string;
@@ -457,10 +499,11 @@ export interface PublicItineraryResponse {
   num_children: number;
   status: string;
   total_price: number | null;
+  special_notes: string | null;
   days: PublicItineraryDay[];
-  agency_name: string;
-  agency_contact_email: string;
-  agency_contact_phone: string | null;
+  trip_overview: TripOverview;
+  company_profile: PublicCompanyProfile | null;
+  pricing: PublicPricing | null;
   live_updates_enabled: boolean;
   share_link: ShareLink;
 }
