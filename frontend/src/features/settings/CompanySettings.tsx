@@ -1,22 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import Textarea from '../../components/ui/Textarea';
 import companyProfileApi, { CompanyProfileResponse, CompanyProfileUpdate } from '../../api/companyProfile';
 import {
-  Building,
   Upload,
-  Mail,
-  Phone,
-  Globe,
-  CreditCard,
   Eye,
   EyeOff,
-  Trash2,
   QrCode,
   Save,
-  Loader2
 } from 'lucide-react';
 
 const CompanySettings: React.FC = () => {
@@ -124,318 +114,305 @@ const CompanySettings: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-3">
-            <Building className="w-7 h-7 text-primary-600" />
-            Company Settings
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Configure your company profile for shared itineraries
-          </p>
+    <div className="max-w-6xl mx-auto px-5 py-6 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-slate-900">Company Settings</h1>
+        <p className="text-sm text-slate-500">Configure your company profile for shared itineraries.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Branding Section */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-slate-900 mb-4">Branding</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Logo Upload */}
+            <div className="md:col-span-2">
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                Company Logo
+              </label>
+              <div className="flex items-center gap-4">
+                {profile?.logo_url ? (
+                  <img
+                    src={`${baseUrl}${profile.logo_url}`}
+                    alt="Company Logo"
+                    className="w-16 h-16 rounded-lg object-cover border border-slate-200"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center border border-dashed border-slate-300">
+                    <span className="text-slate-400 text-xs">Logo</span>
+                  </div>
+                )}
+                <div>
+                  <label className="cursor-pointer">
+                    <span className="inline-flex items-center gap-2 border border-slate-300 bg-white text-slate-700 text-sm px-3 py-2 rounded-lg hover:bg-slate-50">
+                      <Upload className="w-4 h-4" />
+                      Upload
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-xs text-slate-400 mt-1">200x200px, PNG or JPG</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                Company Name
+              </label>
+              <input
+                value={formData.company_name || ''}
+                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                placeholder="Your Company Name"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                Tagline
+              </label>
+              <input
+                value={formData.tagline || ''}
+                onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
+                placeholder="Your Travel Partner"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                Description
+              </label>
+              <textarea
+                value={formData.description || ''}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Tell clients about your company..."
+                rows={3}
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Branding Section */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-              <span className="w-8 h-8 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center text-sm font-bold">1</span>
-              Branding
-            </h2>
+        {/* Contact Information Section */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-slate-900 mb-4">Contact Information</h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Logo Upload */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Logo
-                </label>
-                <div className="flex items-center gap-6">
-                  {profile?.logo_url ? (
-                    <img
-                      src={`${baseUrl}${profile.logo_url}`}
-                      alt="Company Logo"
-                      className="w-24 h-24 rounded-xl object-cover border border-gray-200"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-xl bg-gray-100 flex items-center justify-center border border-dashed border-gray-300">
-                      <Building className="w-8 h-8 text-gray-400" />
-                    </div>
-                  )}
-                  <div>
-                    <label className="cursor-pointer">
-                      <span className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        <Upload className="w-4 h-4" />
-                        Upload Logo
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/gif,image/webp"
-                        onChange={handleLogoUpload}
-                        className="hidden"
-                      />
-                    </label>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Recommended: 200x200px, PNG or JPG
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Name
-                </label>
-                <Input
-                  value={formData.company_name || ''}
-                  onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                  placeholder="Your Company Name"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                Email
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={formData.email || ''}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="contact@yourcompany.com"
+                  className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tagline
-                </label>
-                <Input
-                  value={formData.tagline || ''}
-                  onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
-                  placeholder="Your Travel Partner"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Description
-                </label>
-                <Textarea
-                  value={formData.description || ''}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Tell clients about your company... (2-4 sentences)"
-                  rows={3}
-                />
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, show_email: !formData.show_email })}
+                  className={`px-3 py-2 rounded-lg border ${formData.show_email ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+                  title={formData.show_email ? 'Visible' : 'Hidden'}
+                >
+                  {formData.show_email ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
               </div>
             </div>
-          </div>
 
-          {/* Contact Information Section */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-              <span className="w-8 h-8 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center text-sm font-bold">2</span>
-              Contact Information
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Mail className="inline w-4 h-4 mr-1" />
-                  Email
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="contact@yourcompany.com"
-                    className="flex-1"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, show_email: !formData.show_email })}
-                    className={`px-3 py-2 rounded-lg border ${formData.show_email ? 'bg-green-50 border-green-200 text-green-600' : 'bg-gray-50 border-gray-200 text-gray-400'}`}
-                    title={formData.show_email ? 'Visible on shared pages' : 'Hidden on shared pages'}
-                  >
-                    {formData.show_email ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Phone className="inline w-4 h-4 mr-1" />
-                  Phone
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    type="tel"
-                    value={formData.phone || ''}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+1 234 567 8900"
-                    className="flex-1"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, show_phone: !formData.show_phone })}
-                    className={`px-3 py-2 rounded-lg border ${formData.show_phone ? 'bg-green-50 border-green-200 text-green-600' : 'bg-gray-50 border-gray-200 text-gray-400'}`}
-                    title={formData.show_phone ? 'Visible on shared pages' : 'Hidden on shared pages'}
-                  >
-                    {formData.show_phone ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Globe className="inline w-4 h-4 mr-1" />
-                  Website
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    type="url"
-                    value={formData.website_url || ''}
-                    onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
-                    placeholder="https://yourcompany.com"
-                    className="flex-1"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, show_website: !formData.show_website })}
-                    className={`px-3 py-2 rounded-lg border ${formData.show_website ? 'bg-green-50 border-green-200 text-green-600' : 'bg-gray-50 border-gray-200 text-gray-400'}`}
-                    title={formData.show_website ? 'Visible on shared pages' : 'Hidden on shared pages'}
-                  >
-                    {formData.show_website ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  WhatsApp Number
-                </label>
-                <Input
+            <div>
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                Phone
+              </label>
+              <div className="flex gap-2">
+                <input
                   type="tel"
-                  value={formData.whatsapp_number || ''}
-                  onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
+                  value={formData.phone || ''}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="+1 234 567 8900"
+                  className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, show_phone: !formData.show_phone })}
+                  className={`px-3 py-2 rounded-lg border ${formData.show_phone ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+                  title={formData.show_phone ? 'Visible' : 'Hidden'}
+                >
+                  {formData.show_phone ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
               </div>
             </div>
-          </div>
 
-          {/* Payment Section */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-              <span className="w-8 h-8 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center text-sm font-bold">3</span>
-              Payment Information
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Payment QR Upload */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <QrCode className="inline w-4 h-4 mr-1" />
-                  Payment QR Code
-                </label>
-                <div className="flex items-center gap-6">
-                  {profile?.payment_qr_url ? (
-                    <img
-                      src={`${baseUrl}${profile.payment_qr_url}`}
-                      alt="Payment QR"
-                      className="w-32 h-32 rounded-xl object-cover border border-gray-200"
-                    />
-                  ) : (
-                    <div className="w-32 h-32 rounded-xl bg-gray-100 flex items-center justify-center border border-dashed border-gray-300">
-                      <QrCode className="w-12 h-12 text-gray-400" />
-                    </div>
-                  )}
-                  <div>
-                    <label className="cursor-pointer">
-                      <span className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        <Upload className="w-4 h-4" />
-                        Upload QR Code
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png"
-                        onChange={handlePaymentQRUpload}
-                        className="hidden"
-                      />
-                    </label>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Upload your payment QR code (UPI, PayPal, etc.)
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Note
-                </label>
-                <Input
-                  value={formData.payment_note || ''}
-                  onChange={(e) => setFormData({ ...formData, payment_note: e.target.value })}
-                  placeholder="Secure payment powered by Stripe"
+            <div>
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                Website
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={formData.website_url || ''}
+                  onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
+                  placeholder="https://yourcompany.com"
+                  className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, show_website: !formData.show_website })}
+                  className={`px-3 py-2 rounded-lg border ${formData.show_website ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+                  title={formData.show_website ? 'Visible' : 'Hidden'}
+                >
+                  {formData.show_website ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
               </div>
+            </div>
 
-              <div className="md:col-span-2 border-t pt-6 mt-2">
-                <h3 className="text-sm font-medium text-gray-700 mb-4 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  Bank Account Details (Optional)
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Account Name</label>
-                    <Input
-                      value={formData.bank_account_name || ''}
-                      onChange={(e) => setFormData({ ...formData, bank_account_name: e.target.value })}
-                      placeholder="Your Company Name"
-                    />
+            <div>
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                WhatsApp
+              </label>
+              <input
+                type="tel"
+                value={formData.whatsapp_number || ''}
+                onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
+                placeholder="+1 234 567 8900"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Payment Section */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-slate-900 mb-4">Payment Information</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Payment QR Upload */}
+            <div className="md:col-span-2">
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                Payment QR Code
+              </label>
+              <div className="flex items-center gap-4">
+                {profile?.payment_qr_url ? (
+                  <img
+                    src={`${baseUrl}${profile.payment_qr_url}`}
+                    alt="Payment QR"
+                    className="w-24 h-24 rounded-lg object-cover border border-slate-200"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-lg bg-slate-100 flex items-center justify-center border border-dashed border-slate-300">
+                    <QrCode className="w-8 h-8 text-slate-400" />
                   </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Bank Name</label>
-                    <Input
-                      value={formData.bank_name || ''}
-                      onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-                      placeholder="Bank of America"
+                )}
+                <div>
+                  <label className="cursor-pointer">
+                    <span className="inline-flex items-center gap-2 border border-slate-300 bg-white text-slate-700 text-sm px-3 py-2 rounded-lg hover:bg-slate-50">
+                      <Upload className="w-4 h-4" />
+                      Upload QR
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      onChange={handlePaymentQRUpload}
+                      className="hidden"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Account Number</label>
-                    <Input
-                      value={formData.bank_account_number || ''}
-                      onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value })}
-                      placeholder="XXXX XXXX XXXX"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">IFSC/SWIFT Code</label>
-                    <Input
-                      value={formData.bank_ifsc_swift || ''}
-                      onChange={(e) => setFormData({ ...formData, bank_ifsc_swift: e.target.value })}
-                      placeholder="ABCD0001234"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm text-gray-600 mb-1">Reference Note</label>
-                    <Input
-                      value={formData.bank_reference_note || ''}
-                      onChange={(e) => setFormData({ ...formData, bank_reference_note: e.target.value })}
-                      placeholder="Please include your booking ID as reference"
-                    />
-                  </div>
+                  </label>
+                  <p className="text-xs text-slate-400 mt-1">UPI, PayPal, etc.</p>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Save Button */}
-          <div className="flex justify-end">
-            <Button type="submit" isLoading={isSaving}>
-              <Save className="w-4 h-4 mr-2" />
-              Save Changes
-            </Button>
+            <div className="md:col-span-2">
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                Payment Note
+              </label>
+              <input
+                value={formData.payment_note || ''}
+                onChange={(e) => setFormData({ ...formData, payment_note: e.target.value })}
+                placeholder="Secure payment powered by Stripe"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div className="md:col-span-2 border-t border-slate-200 pt-4 mt-2">
+              <h3 className="text-xs text-slate-500 uppercase tracking-[0.08em] mb-4">Bank Account Details (Optional)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Account Name</label>
+                  <input
+                    value={formData.bank_account_name || ''}
+                    onChange={(e) => setFormData({ ...formData, bank_account_name: e.target.value })}
+                    placeholder="Your Company Name"
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Bank Name</label>
+                  <input
+                    value={formData.bank_name || ''}
+                    onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                    placeholder="Bank of America"
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Account Number</label>
+                  <input
+                    value={formData.bank_account_number || ''}
+                    onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value })}
+                    placeholder="XXXX XXXX XXXX"
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">IFSC/SWIFT Code</label>
+                  <input
+                    value={formData.bank_ifsc_swift || ''}
+                    onChange={(e) => setFormData({ ...formData, bank_ifsc_swift: e.target.value })}
+                    placeholder="ABCD0001234"
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs text-slate-500 mb-1">Reference Note</label>
+                  <input
+                    value={formData.bank_reference_note || ''}
+                    onChange={(e) => setFormData({ ...formData, bank_reference_note: e.target.value })}
+                    placeholder="Please include your booking ID as reference"
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        </form>
-      </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save changes'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

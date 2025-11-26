@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../components/ui/Button';
 import { usePermissions } from '../../hooks/usePermissions';
 import templatesApi from '../../api/templates';
 import { Template } from '../../types';
-import TemplateCard from './components/TemplateCard';
 
 const TemplateList: React.FC = () => {
   const navigate = useNavigate();
@@ -63,7 +61,7 @@ const TemplateList: React.FC = () => {
 
   if (!canView) {
     return (
-      <div className="p-6 text-center text-muted">
+      <div className="max-w-6xl mx-auto px-5 py-6 text-center text-slate-500">
         You don't have permission to view templates.
       </div>
     );
@@ -72,74 +70,117 @@ const TemplateList: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  const filteredTemplates = templates;
-
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-primary">Templates</h1>
-          <p className="text-secondary mt-1">Reusable itinerary templates</p>
-        </div>
+    <div className="max-w-6xl mx-auto px-5 py-6 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-slate-900">Templates</h1>
         {canCreate && (
-          <Button onClick={() => navigate('/templates/new')}>Create Template</Button>
+          <button
+            onClick={() => navigate('/templates/new')}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium"
+          >
+            Create template
+          </button>
         )}
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 mb-6">
+      {/* Filter tabs */}
+      <div className="inline-flex rounded-full bg-slate-100 p-1 text-xs">
         <button
           onClick={() => setFilterStatus('all')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+          className={`px-3 py-1 rounded-full transition-colors ${
             filterStatus === 'all'
-              ? 'bg-primary-600 text-white'
-              : 'bg-white text-primary border border-border hover:bg-gray-50'
+              ? 'bg-white shadow border border-slate-200 text-slate-900'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           All
         </button>
         <button
           onClick={() => setFilterStatus('draft')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+          className={`px-3 py-1 rounded-full transition-colors ${
             filterStatus === 'draft'
-              ? 'bg-primary-600 text-white'
-              : 'bg-white text-primary border border-border hover:bg-gray-50'
+              ? 'bg-white shadow border border-slate-200 text-slate-900'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           Drafts
         </button>
         <button
           onClick={() => setFilterStatus('published')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+          className={`px-3 py-1 rounded-full transition-colors ${
             filterStatus === 'published'
-              ? 'bg-primary-600 text-white'
-              : 'bg-white text-primary border border-border hover:bg-gray-50'
+              ? 'bg-white shadow border border-slate-200 text-slate-900'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           Published
         </button>
       </div>
 
-      {/* Templates Grid */}
-      {filteredTemplates.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <p className="text-muted">No templates found. Create your first template to get started.</p>
+      {/* Cards */}
+      {templates.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
+          <p className="text-sm text-slate-500">No templates found. Create your first template to get started.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTemplates.map((template) => (
-            <TemplateCard
+        <div className="grid md:grid-cols-3 gap-4">
+          {templates.map((template) => (
+            <article
               key={template.id}
-              template={template}
-              onPublish={handlePublish}
-              onDelete={handleDelete}
-              canDelete={canDelete}
-            />
+              className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between"
+            >
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">{template.name}</h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  {template.destination} &bull; {template.duration_nights}N / {template.duration_days}D
+                </p>
+                {template.description && (
+                  <p className="mt-2 text-xs text-slate-500 line-clamp-2">{template.description}</p>
+                )}
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                    template.status === 'published'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  {template.status.charAt(0).toUpperCase() + template.status.slice(1)}
+                </span>
+                <div className="flex items-center gap-3">
+                  {template.status === 'draft' && (
+                    <button
+                      onClick={() => handlePublish(template)}
+                      className="text-xs text-slate-500 hover:text-emerald-600"
+                    >
+                      Publish
+                    </button>
+                  )}
+                  <button
+                    onClick={() => navigate(`/templates/${template.id}`)}
+                    className="text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    Edit
+                  </button>
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDelete(template)}
+                      className="text-xs text-slate-500 hover:text-red-600"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            </article>
           ))}
         </div>
       )}

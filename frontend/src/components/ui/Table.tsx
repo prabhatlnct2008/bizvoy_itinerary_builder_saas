@@ -25,29 +25,29 @@ function Table<T extends { id: string }>({
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className="text-center py-12 text-muted">
-        <p>{emptyMessage}</p>
+      <div className="text-center py-12 text-slate-500">
+        <p className="text-sm">{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-border">
-        <thead className="bg-gray-50">
+    <div className="overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
           <tr>
             {columns.map((column) => (
               <th
                 key={column.key}
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
+                className="px-4 py-2 text-left font-medium"
                 style={{ width: column.width }}
               >
                 {column.header}
@@ -55,19 +55,19 @@ function Table<T extends { id: string }>({
             ))}
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-border">
+        <tbody className="divide-y divide-slate-100">
           {data.map((item) => (
             <tr
               key={item.id}
               onClick={() => onRowClick && onRowClick(item)}
               className={`${
-                onRowClick ? 'hover:bg-gray-50 cursor-pointer' : ''
+                onRowClick ? 'hover:bg-slate-50/60 cursor-pointer' : ''
               } transition-colors`}
             >
               {columns.map((column) => (
                 <td
                   key={column.key}
-                  className="px-6 py-4 whitespace-nowrap text-sm text-primary"
+                  className="px-4 py-2 whitespace-nowrap text-slate-700"
                 >
                   {column.render
                     ? column.render(item)

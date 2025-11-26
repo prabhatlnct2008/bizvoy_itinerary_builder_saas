@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import Table from '../../components/ui/Table';
-import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import RoleForm from './RoleForm';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -45,7 +44,6 @@ const RoleList: React.FC = () => {
 
   const handleEdit = async (role: Role) => {
     try {
-      // Fetch full role with permissions
       const fullRole = await rolesApi.getRole(role.id);
       setEditingRole(fullRole);
       setIsModalOpen(true);
@@ -87,7 +85,7 @@ const RoleList: React.FC = () => {
 
   if (!canView) {
     return (
-      <div className="p-6 text-center text-muted">
+      <div className="max-w-6xl mx-auto px-5 py-6 text-center text-slate-500">
         You don't have permission to view roles.
       </div>
     );
@@ -96,13 +94,16 @@ const RoleList: React.FC = () => {
   const columns = [
     {
       key: 'name',
-      header: 'Role Name',
+      header: 'Role name',
+      render: (role: Role) => (
+        <span className="font-medium text-slate-900">{role.name}</span>
+      ),
     },
     {
       key: 'description',
       header: 'Description',
       render: (role: Role) => (
-        <span className="text-muted">
+        <span className="text-slate-500 text-xs">
           {role.description || 'No description'}
         </span>
       ),
@@ -111,7 +112,7 @@ const RoleList: React.FC = () => {
       key: 'created_at',
       header: 'Created',
       render: (role: Role) => (
-        <span className="text-muted">
+        <span className="text-slate-500 text-xs">
           {new Date(role.created_at).toLocaleDateString()}
         </span>
       ),
@@ -120,14 +121,14 @@ const RoleList: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       render: (role: Role) => (
-        <div className="flex gap-2">
+        <div className="flex gap-3 justify-end">
           {canEdit && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleEdit(role);
               }}
-              className="text-primary-600 hover:text-primary-500 text-sm font-medium"
+              className="text-xs text-blue-600 hover:text-blue-700"
             >
               Edit
             </button>
@@ -138,7 +139,7 @@ const RoleList: React.FC = () => {
                 e.stopPropagation();
                 handleDelete(role);
               }}
-              className="text-error hover:text-red-600 text-sm font-medium"
+              className="text-xs text-slate-500 hover:text-red-600"
             >
               Delete
             </button>
@@ -149,18 +150,25 @@ const RoleList: React.FC = () => {
   ];
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="max-w-6xl mx-auto px-5 py-6 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-primary">Roles & Permissions</h1>
-          <p className="text-secondary mt-1">Define access levels for your team</p>
+          <h1 className="text-xl font-semibold text-slate-900">Roles</h1>
+          <p className="text-sm text-slate-500">Define access levels for your team.</p>
         </div>
         {canCreate && (
-          <Button onClick={handleCreate}>Create Role</Button>
+          <button
+            onClick={handleCreate}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium"
+          >
+            Create role
+          </button>
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow">
+      {/* Table */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <Table
           data={roles}
           columns={columns}

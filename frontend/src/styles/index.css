@@ -11,18 +11,45 @@
 
 @layer components {
   .card {
-    @apply bg-surface rounded shadow-card;
+    @apply bg-white border border-slate-200 rounded-xl;
   }
 
   .btn-primary {
-    @apply bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-500 transition-colors;
+    @apply bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors;
   }
 
   .btn-secondary {
-    @apply bg-surface text-primary-600 border border-primary-600 px-4 py-2 rounded hover:bg-primary-100 transition-colors;
+    @apply border border-slate-300 bg-white text-slate-700 text-sm px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors;
   }
 
   .input-field {
-    @apply w-full px-3 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary-500;
+    @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+  }
+
+  /* Filter/subtle surface */
+  .surface-subtle {
+    @apply bg-slate-50 border border-slate-200 rounded-lg;
+  }
+
+  /* Page container */
+  .page-container {
+    @apply max-w-6xl mx-auto px-5 py-6;
+  }
+
+  /* Typography */
+  .page-title {
+    @apply text-xl font-semibold text-slate-900;
+  }
+
+  .section-title {
+    @apply text-sm font-semibold text-slate-900;
+  }
+
+  .text-body {
+    @apply text-sm text-slate-700;
+  }
+
+  .text-meta {
+    @apply text-xs text-slate-500 uppercase tracking-[0.08em];
   }
 }

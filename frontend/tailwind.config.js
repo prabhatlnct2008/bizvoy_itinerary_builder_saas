@@ -12,10 +12,14 @@ export default {
           500: '#3B82F6',
           600: '#2563EB',
         },
+        secondary: {
+          100: '#D1FAE5',
+          500: '#10B981',
+        },
         success: '#16A34A',
         warning: '#F97316',
         neutral: '#94A3B8',
-        background: '#F5F7FB',
+        background: '#F8FAFC',
         surface: '#FFFFFF',
         border: '#E2E8F0',
         text: {
