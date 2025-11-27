@@ -74,7 +74,7 @@ const DayActivityList: React.FC<DayActivityListProps> = ({
             {/* Activity Header */}
             <div className="flex items-center gap-3 p-3">
               {/* Drag Handle */}
-              <div className="cursor-grab active:cursor-grabbing text-muted hover:text-primary">
+              <div className="cursor-grab active:cursor-grabbing text-muted hover:text-primary p-1">
                 <GripVertical className="w-5 h-5" />
               </div>
 
@@ -106,11 +106,11 @@ const DayActivityList: React.FC<DayActivityListProps> = ({
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setExpandedIndex(isExpanded ? null : index)}
-                  className="p-1 text-muted hover:text-primary transition-colors"
+                  className="p-2 text-muted hover:text-primary hover:bg-gray-100 rounded transition-colors"
                   title="Edit details"
                 >
                   <svg
-                    className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -127,27 +127,27 @@ const DayActivityList: React.FC<DayActivityListProps> = ({
                 <button
                   onClick={() => onMoveUp(index)}
                   disabled={index === 0}
-                  className="p-1 text-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 text-muted hover:text-primary hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Move up"
                 >
-                  <ChevronUp className="w-4 h-4" />
+                  <ChevronUp className="w-5 h-5" />
                 </button>
 
                 <button
                   onClick={() => onMoveDown(index)}
                   disabled={index === activities.length - 1}
-                  className="p-1 text-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 text-muted hover:text-primary hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Move down"
                 >
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-5 h-5" />
                 </button>
 
                 <button
                   onClick={() => onRemove(index)}
-                  className="p-1 text-error hover:text-red-600 transition-colors"
+                  className="p-2 text-error hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                   title="Remove activity"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>

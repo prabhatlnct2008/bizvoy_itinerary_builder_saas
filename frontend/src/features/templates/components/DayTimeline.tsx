@@ -135,7 +135,7 @@ const DayTimeline: React.FC<DayTimelineProps> = ({
                     selectedDayIndex === index ? 'text-primary-200' : 'text-gray-400'
                   }`}
                 >
-                  <GripVertical className="w-4 h-4" />
+                  <GripVertical className="w-5 h-5" />
                 </div>
 
                 {/* Day Badge */}
@@ -186,31 +186,45 @@ const DayTimeline: React.FC<DayTimelineProps> = ({
                   )}
                 </div>
 
-                {/* Move Buttons (shown on hover) */}
-                <div className="hidden group-hover:flex items-center gap-0.5">
+                {/* Action Buttons (shown on hover) */}
+                <div className="hidden group-hover:flex items-center gap-1">
                   <button
                     onClick={(e) => handleMoveUp(index, e)}
                     disabled={index === 0}
-                    className={`p-1 rounded transition-colors ${
+                    className={`p-1.5 rounded transition-colors ${
                       selectedDayIndex === index
-                        ? 'text-primary-200 hover:text-white disabled:text-primary-400'
-                        : 'text-gray-400 hover:text-gray-600 disabled:text-gray-300'
+                        ? 'text-primary-200 hover:text-white hover:bg-primary-500 disabled:text-primary-400'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:text-gray-300'
                     } disabled:cursor-not-allowed`}
                     title="Move up"
                   >
-                    <ChevronUp className="w-4 h-4" />
+                    <ChevronUp className="w-5 h-5" />
                   </button>
                   <button
                     onClick={(e) => handleMoveDown(index, e)}
                     disabled={index === days.length - 1}
-                    className={`p-1 rounded transition-colors ${
+                    className={`p-1.5 rounded transition-colors ${
                       selectedDayIndex === index
-                        ? 'text-primary-200 hover:text-white disabled:text-primary-400'
-                        : 'text-gray-400 hover:text-gray-600 disabled:text-gray-300'
+                        ? 'text-primary-200 hover:text-white hover:bg-primary-500 disabled:text-primary-400'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:text-gray-300'
                     } disabled:cursor-not-allowed`}
                     title="Move down"
                   >
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(index);
+                    }}
+                    className={`p-1.5 rounded transition-colors ${
+                      selectedDayIndex === index
+                        ? 'text-red-300 hover:text-white hover:bg-red-500'
+                        : 'text-red-400 hover:text-red-600 hover:bg-red-50'
+                    }`}
+                    title="Delete day"
+                  >
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
 
@@ -221,40 +235,40 @@ const DayTimeline: React.FC<DayTimelineProps> = ({
                       e.stopPropagation();
                       setOpenMenuIndex(openMenuIndex === index ? null : index);
                     }}
-                    className={`p-1 rounded transition-colors ${
+                    className={`p-1.5 rounded transition-colors ${
                       selectedDayIndex === index
                         ? 'text-primary-200 hover:text-white hover:bg-primary-500'
                         : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    <MoreVertical className="w-4 h-4" />
+                    <MoreVertical className="w-5 h-5" />
                   </button>
 
                   {openMenuIndex === index && (
                     <div
-                      className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1"
+                      className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <button
                         onClick={() => startRename(index)}
-                        className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                       >
-                        <Edit3 className="w-3.5 h-3.5" />
+                        <Edit3 className="w-4 h-4" />
                         Rename
                       </button>
                       <button
                         onClick={() => handleDuplicate(index)}
-                        className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                       >
-                        <Copy className="w-3.5 h-3.5" />
+                        <Copy className="w-4 h-4" />
                         Duplicate
                       </button>
                       <hr className="my-1 border-gray-100" />
                       <button
                         onClick={() => handleDelete(index)}
-                        className="w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                         Delete
                       </button>
                     </div>
@@ -271,7 +285,7 @@ const DayTimeline: React.FC<DayTimelineProps> = ({
         onClick={onAddDay}
         className="w-full mt-3 py-2.5 px-4 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-500 hover:text-primary-600 hover:border-primary-400 hover:bg-primary-50 transition-colors flex items-center justify-center gap-2"
       >
-        <Plus className="w-4 h-4" />
+        <Plus className="w-5 h-5" />
         Add Day
       </button>
 
