@@ -298,21 +298,21 @@ const TemplateList: React.FC = () => {
                       <div className="relative inline-block" ref={openMenuId === template.id ? menuRef : null}>
                         <button
                           onClick={() => setOpenMenuId(openMenuId === template.id ? null : template.id)}
-                          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700"
+                          className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
                         >
-                          <MoreVertical className="w-4 h-4" />
+                          <MoreVertical className="w-5 h-5" />
                         </button>
 
                         {openMenuId === template.id && (
-                          <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1">
+                          <div className="absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1">
                             <button
                               onClick={() => {
                                 navigate(`/templates/${template.id}`);
                                 setOpenMenuId(null);
                               }}
-                              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                              className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-5 h-5" />
                               View / Edit
                             </button>
 
@@ -320,9 +320,9 @@ const TemplateList: React.FC = () => {
                               <button
                                 onClick={() => handleCopy(template)}
                                 disabled={isCopying === template.id}
-                                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 disabled:opacity-50"
+                                className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 disabled:opacity-50"
                               >
-                                <Copy className="w-4 h-4" />
+                                <Copy className="w-5 h-5" />
                                 {isCopying === template.id ? 'Copying...' : 'Copy'}
                               </button>
                             )}
@@ -330,9 +330,9 @@ const TemplateList: React.FC = () => {
                             {template.status === 'published' && (
                               <button
                                 onClick={() => handleCreateItinerary(template)}
-                                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
                               >
-                                <FileText className="w-4 h-4" />
+                                <FileText className="w-5 h-5" />
                                 Create Itinerary
                               </button>
                             )}
@@ -340,9 +340,9 @@ const TemplateList: React.FC = () => {
                             {template.status === 'draft' && canEdit && (
                               <button
                                 onClick={() => handlePublish(template)}
-                                className="w-full px-4 py-2 text-left text-sm text-emerald-600 hover:bg-slate-50 flex items-center gap-2"
+                                className="w-full px-4 py-2.5 text-left text-sm text-emerald-600 hover:bg-slate-50 flex items-center gap-3"
                               >
-                                <FileText className="w-4 h-4" />
+                                <FileText className="w-5 h-5" />
                                 Publish
                               </button>
                             )}
@@ -353,9 +353,9 @@ const TemplateList: React.FC = () => {
                               canEdit && (
                                 <button
                                   onClick={() => handleUnarchive(template)}
-                                  className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                  className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
                                 >
-                                  <RotateCcw className="w-4 h-4" />
+                                  <RotateCcw className="w-5 h-5" />
                                   Restore
                                 </button>
                               )
@@ -363,9 +363,9 @@ const TemplateList: React.FC = () => {
                               canDelete && (
                                 <button
                                   onClick={() => handleArchive(template)}
-                                  className="w-full px-4 py-2 text-left text-sm text-amber-600 hover:bg-slate-50 flex items-center gap-2"
+                                  className="w-full px-4 py-2.5 text-left text-sm text-amber-600 hover:bg-slate-50 flex items-center gap-3"
                                 >
-                                  <Archive className="w-4 h-4" />
+                                  <Archive className="w-5 h-5" />
                                   Archive
                                 </button>
                               )
