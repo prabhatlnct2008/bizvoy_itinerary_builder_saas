@@ -12,6 +12,15 @@ interface TemplateState {
   setDays: (days: TemplateDayCreate[]) => void;
   setSelectedDayIndex: (index: number) => void;
   updateDay: (dayIndex: number, updates: Partial<TemplateDayCreate>) => void;
+
+  // Day Management Actions
+  addDay: () => void;
+  deleteDay: (dayIndex: number) => void;
+  duplicateDay: (dayIndex: number) => void;
+  reorderDays: (startIndex: number, endIndex: number) => void;
+  renameDay: (dayIndex: number, newTitle: string) => void;
+
+  // Activity Actions
   addActivityToDay: (dayIndex: number, activity: TemplateDayActivityCreate) => void;
   removeActivityFromDay: (dayIndex: number, activityIndex: number) => void;
   moveActivity: (dayIndex: number, activityIndex: number, direction: 'up' | 'down') => void;
@@ -55,6 +64,91 @@ export const useTemplateStore = create<TemplateState>((set) => ({
     set((state) => {
       const newDays = [...state.days];
       newDays[dayIndex] = { ...newDays[dayIndex], ...updates };
+      return { days: newDays, hasUnsavedChanges: true };
+    }),
+
+  // Day Management Actions
+  addDay: () =>
+    set((state) => {
+      const newDayNumber = state.days.length + 1;
+      const newDay: TemplateDayCreate = {
+        day_number: newDayNumber,
+        title: `Day ${newDayNumber}`,
+        notes: null,
+        activities: [],
+      };
+      return {
+        days: [...state.days, newDay],
+        hasUnsavedChanges: true,
+      };
+    }),
+
+  deleteDay: (dayIndex) =>
+    set((state) => {
+      if (state.days.length <= 1) {
+        return state; // Don't delete the last day
+      }
+      const newDays = state.days.filter((_, idx) => idx !== dayIndex);
+      // Renumber days
+      newDays.forEach((day, idx) => {
+        day.day_number = idx + 1;
+      });
+      // Adjust selected day index if needed
+      let newSelectedIndex = state.selectedDayIndex;
+      if (newSelectedIndex >= newDays.length) {
+        newSelectedIndex = newDays.length - 1;
+      }
+      return {
+        days: newDays,
+        selectedDayIndex: newSelectedIndex,
+        hasUnsavedChanges: true,
+      };
+    }),
+
+  duplicateDay: (dayIndex) =>
+    set((state) => {
+      const dayToDuplicate = state.days[dayIndex];
+      const newDay: TemplateDayCreate = {
+        day_number: state.days.length + 1,
+        title: `${dayToDuplicate.title || 'Day'} (Copy)`,
+        notes: dayToDuplicate.notes,
+        activities: dayToDuplicate.activities.map((act) => ({ ...act })),
+      };
+      return {
+        days: [...state.days, newDay],
+        hasUnsavedChanges: true,
+      };
+    }),
+
+  reorderDays: (startIndex, endIndex) =>
+    set((state) => {
+      const newDays = [...state.days];
+      const [removed] = newDays.splice(startIndex, 1);
+      newDays.splice(endIndex, 0, removed);
+      // Renumber days
+      newDays.forEach((day, idx) => {
+        day.day_number = idx + 1;
+      });
+      // Update selected index to follow the moved day if it was selected
+      let newSelectedIndex = state.selectedDayIndex;
+      if (state.selectedDayIndex === startIndex) {
+        newSelectedIndex = endIndex;
+      } else if (startIndex < state.selectedDayIndex && endIndex >= state.selectedDayIndex) {
+        newSelectedIndex = state.selectedDayIndex - 1;
+      } else if (startIndex > state.selectedDayIndex && endIndex <= state.selectedDayIndex) {
+        newSelectedIndex = state.selectedDayIndex + 1;
+      }
+      return {
+        days: newDays,
+        selectedDayIndex: newSelectedIndex,
+        hasUnsavedChanges: true,
+      };
+    }),
+
+  renameDay: (dayIndex, newTitle) =>
+    set((state) => {
+      const newDays = [...state.days];
+      newDays[dayIndex] = { ...newDays[dayIndex], title: newTitle || null };
       return { days: newDays, hasUnsavedChanges: true };
     }),
 

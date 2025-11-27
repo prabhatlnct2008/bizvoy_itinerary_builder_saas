@@ -16,6 +16,7 @@ from app.schemas.template import (
     TemplateDayActivityResponse,
     AttachActivityRequest,
     ReorderRequest,
+    DayReorderRequest,
     ActivityListItem
 )
 from app.schemas.auth import MessageResponse
@@ -41,18 +42,34 @@ def list_templates(
     status: Optional[str] = None,
     search: Optional[str] = None
 ):
-    """List templates with filtering and pagination"""
+    """List templates with filtering and pagination.
+
+    Status filter:
+    - None or empty: excludes archived (shows draft + published)
+    - "all": shows all templates including archived
+    - "draft", "published", "archived": shows only that status
+    """
     query = db.query(Template).filter(Template.agency_id == agency_id)
 
-    # Apply filters
+    # Apply status filter
     if status:
-        query = query.filter(Template.status == status)
+        if status.lower() == "all":
+            # Show all templates including archived
+            pass
+        else:
+            # Filter by specific status
+            query = query.filter(Template.status == status)
+    else:
+        # Default: exclude archived templates
+        query = query.filter(Template.status != TemplateStatus.archived)
 
+    # Apply search filter
     if search:
+        search_term = f"%{search}%"
         query = query.filter(
-            (Template.name.ilike(f"%{search}%")) |
-            (Template.destination.ilike(f"%{search}%")) |
-            (Template.description.ilike(f"%{search}%"))
+            (Template.name.ilike(search_term)) |
+            (Template.destination.ilike(search_term)) |
+            (Template.description.ilike(search_term))
         )
 
     # Order and paginate
@@ -72,7 +89,7 @@ def list_templates(
             destination=template.destination,
             duration_nights=template.duration_nights,
             duration_days=template.duration_days,
-            status=template.status,
+            status=template.status.value if hasattr(template.status, 'value') else template.status,
             updated_at=template.updated_at,
             usage_count=usage_count
         ))
@@ -264,6 +281,143 @@ def delete_template(
     return None
 
 
+@router.post("/{template_id}/copy", response_model=TemplateDetailResponse, status_code=status.HTTP_201_CREATED)
+def copy_template(
+    template_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    agency_id: str = Depends(get_current_agency_id),
+    _: None = Depends(require_permission("templates.create"))
+):
+    """Clone a template with all days and activities.
+
+    Creates a new template with:
+    - Name: "Original Name (Copy)"
+    - Status: draft
+    - All days and activities copied
+    """
+    # Get original template with all related data
+    original = db.query(Template).filter(
+        Template.id == template_id,
+        Template.agency_id == agency_id
+    ).first()
+
+    if not original:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found"
+        )
+
+    # Create new template
+    new_template = Template(
+        agency_id=original.agency_id,
+        name=f"{original.name} (Copy)",
+        destination=original.destination,
+        duration_days=original.duration_days,
+        duration_nights=original.duration_nights,
+        description=original.description,
+        approximate_price=original.approximate_price,
+        created_by=current_user.id,
+        status=TemplateStatus.draft
+    )
+    db.add(new_template)
+    db.flush()
+
+    # Copy days and activities
+    for day in sorted(original.days, key=lambda d: d.day_number):
+        new_day = TemplateDay(
+            template_id=new_template.id,
+            day_number=day.day_number,
+            title=day.title,
+            notes=day.notes
+        )
+        db.add(new_day)
+        db.flush()
+
+        # Copy activities for this day
+        for activity in sorted(day.activities, key=lambda a: a.display_order):
+            new_activity = TemplateDayActivity(
+                template_day_id=new_day.id,
+                activity_id=activity.activity_id,
+                display_order=activity.display_order,
+                time_slot=activity.time_slot,
+                custom_notes=activity.custom_notes
+            )
+            db.add(new_activity)
+
+    db.commit()
+    db.refresh(new_template)
+
+    return _build_template_detail_response(new_template, db)
+
+
+@router.post("/{template_id}/archive", response_model=TemplateResponse)
+def archive_template(
+    template_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    agency_id: str = Depends(get_current_agency_id),
+    _: None = Depends(require_permission("templates.delete"))
+):
+    """Archive a template (soft delete).
+
+    Sets status to 'archived'. Template will be hidden from default list view
+    but can be viewed with status=archived filter.
+    """
+    template = db.query(Template).filter(
+        Template.id == template_id,
+        Template.agency_id == agency_id
+    ).first()
+
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found"
+        )
+
+    template.status = TemplateStatus.archived
+    db.commit()
+    db.refresh(template)
+
+    return template
+
+
+@router.post("/{template_id}/unarchive", response_model=TemplateResponse)
+def unarchive_template(
+    template_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    agency_id: str = Depends(get_current_agency_id),
+    _: None = Depends(require_permission("templates.edit"))
+):
+    """Unarchive a template (restore from archived state).
+
+    Sets status back to 'draft'.
+    """
+    template = db.query(Template).filter(
+        Template.id == template_id,
+        Template.agency_id == agency_id
+    ).first()
+
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found"
+        )
+
+    if template.status != TemplateStatus.archived:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Template is not archived"
+        )
+
+    template.status = TemplateStatus.draft
+    db.commit()
+    db.refresh(template)
+
+    return template
+
+
 # Day Management Endpoints
 
 @router.post("/{template_id}/days", response_model=TemplateDayResponse, status_code=status.HTTP_201_CREATED)
@@ -275,7 +429,11 @@ def add_template_day(
     agency_id: str = Depends(get_current_agency_id),
     _: None = Depends(require_permission("templates.edit"))
 ):
-    """Add a new day to template"""
+    """Add a new day to template.
+
+    If day_number is not provided, it will be auto-assigned as the next number.
+    Duration is auto-synced after adding a day.
+    """
     # Verify template exists and belongs to agency
     template = db.query(Template).filter(
         Template.id == template_id,
@@ -288,26 +446,47 @@ def add_template_day(
             detail="Template not found"
         )
 
-    # Check if day_number already exists
-    existing_day = db.query(TemplateDay).filter(
-        TemplateDay.template_id == template_id,
-        TemplateDay.day_number == day_data.day_number
-    ).first()
+    # Determine day_number
+    if day_data.day_number is not None:
+        day_number = day_data.day_number
+        # Check if day_number already exists
+        existing_day = db.query(TemplateDay).filter(
+            TemplateDay.template_id == template_id,
+            TemplateDay.day_number == day_number
+        ).first()
 
-    if existing_day:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Day {day_data.day_number} already exists in this template"
-        )
+        if existing_day:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Day {day_number} already exists in this template"
+            )
+    else:
+        # Auto-assign next day number
+        max_day = db.query(func.max(TemplateDay.day_number)).filter(
+            TemplateDay.template_id == template_id
+        ).scalar() or 0
+        day_number = max_day + 1
+
+    # Determine title (default to "Day N" if not provided)
+    title = day_data.title if day_data.title else f"Day {day_number}"
 
     # Create day
     day = TemplateDay(
         template_id=template_id,
-        day_number=day_data.day_number,
-        title=day_data.title,
+        day_number=day_number,
+        title=title,
         notes=day_data.notes
     )
     db.add(day)
+    db.flush()
+
+    # Auto-sync duration: days = source of truth
+    total_days = db.query(TemplateDay).filter(
+        TemplateDay.template_id == template_id
+    ).count()
+    template.duration_days = total_days
+    template.duration_nights = max(total_days - 1, 0)
+
     db.commit()
     db.refresh(day)
 
@@ -370,7 +549,7 @@ def delete_template_day(
     agency_id: str = Depends(get_current_agency_id),
     _: None = Depends(require_permission("templates.edit"))
 ):
-    """Delete a template day"""
+    """Delete a template day and auto-sync duration"""
     # Verify template belongs to agency
     template = db.query(Template).filter(
         Template.id == template_id,
@@ -396,9 +575,83 @@ def delete_template_day(
         )
 
     db.delete(day)
+
+    # Auto-sync duration: days = source of truth
+    remaining_days = db.query(TemplateDay).filter(
+        TemplateDay.template_id == template_id
+    ).count()
+    template.duration_days = remaining_days
+    template.duration_nights = max(remaining_days - 1, 0)
+
+    # Renumber remaining days to keep sequence continuous
+    remaining = db.query(TemplateDay).filter(
+        TemplateDay.template_id == template_id
+    ).order_by(TemplateDay.day_number).all()
+    for idx, d in enumerate(remaining, start=1):
+        d.day_number = idx
+
     db.commit()
 
     return None
+
+
+@router.put("/{template_id}/days/reorder", response_model=TemplateDetailResponse)
+def reorder_template_days(
+    template_id: str,
+    reorder_data: DayReorderRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    agency_id: str = Depends(get_current_agency_id),
+    _: None = Depends(require_permission("templates.edit"))
+):
+    """Reorder days within a template.
+
+    Provide list of day IDs in the desired order. Day numbers will be
+    updated to match the new order (1, 2, 3, ...).
+    """
+    # Verify template belongs to agency
+    template = db.query(Template).filter(
+        Template.id == template_id,
+        Template.agency_id == agency_id
+    ).first()
+
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found"
+        )
+
+    # Get all days for this template
+    days = db.query(TemplateDay).filter(
+        TemplateDay.template_id == template_id
+    ).all()
+
+    # Create a map of day ID to day object
+    day_map = {day.id: day for day in days}
+
+    # Verify all IDs in request exist
+    for day_id in reorder_data.day_ids:
+        if day_id not in day_map:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Day {day_id} not found in this template"
+            )
+
+    # Verify we have all days (no missing or extra)
+    if len(reorder_data.day_ids) != len(days):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Must provide all day IDs in the desired order"
+        )
+
+    # Update day_number based on position in array (1-indexed)
+    for idx, day_id in enumerate(reorder_data.day_ids, start=1):
+        day_map[day_id].day_number = idx
+
+    db.commit()
+    db.refresh(template)
+
+    return _build_template_detail_response(template, db)
 
 
 # Activity Attachment Endpoints

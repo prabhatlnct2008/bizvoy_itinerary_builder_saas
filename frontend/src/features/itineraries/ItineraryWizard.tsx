@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ChevronRight, Check, Eye } from 'lucide-react';
+import { ChevronRight, Check, Eye, X } from 'lucide-react';
 import Input from '../../components/ui/Input';
 import templatesApi from '../../api/templates';
 import itinerariesApi from '../../api/itineraries';
-import { Template, ItineraryCreate } from '../../types';
+import { Template, TemplateDetail, ItineraryCreate } from '../../types';
 
 type WizardStep = 1 | 2;
-type StartingPointSelection = { type: 'scratch' } | { type: 'template'; template: Template } | null;
+type StartingPointSelection = { type: 'scratch' } | { type: 'template'; template: Template | TemplateDetail } | null;
 
 const ItineraryWizard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState<WizardStep>(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const preselectedTemplateId = searchParams.get('templateId');
+
+  const [currentStep, setCurrentStep] = useState<WizardStep>(preselectedTemplateId ? 2 : 1);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingPreselected, setIsLoadingPreselected] = useState(!!preselectedTemplateId);
 
   const [selection, setSelection] = useState<StartingPointSelection>(null);
 
@@ -33,6 +37,33 @@ const ItineraryWizard: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Load preselected template if templateId is in URL
+  useEffect(() => {
+    if (preselectedTemplateId) {
+      loadPreselectedTemplate(preselectedTemplateId);
+    }
+  }, [preselectedTemplateId]);
+
+  const loadPreselectedTemplate = async (templateId: string) => {
+    try {
+      setIsLoadingPreselected(true);
+      const template = await templatesApi.getTemplate(templateId);
+      setSelection({ type: 'template', template });
+      setFormData((prev) => ({
+        ...prev,
+        destination: template.destination,
+        trip_name: `${template.name} - `,
+      }));
+    } catch (error: any) {
+      toast.error('Failed to load template. Please select a starting point.');
+      setCurrentStep(1);
+      // Remove templateId from URL
+      setSearchParams({});
+    } finally {
+      setIsLoadingPreselected(false);
+    }
+  };
 
   useEffect(() => {
     fetchTemplates();
@@ -299,7 +330,34 @@ const ItineraryWizard: React.FC = () => {
           </>
         ) : (
           /* Step 2 - Client & Dates */
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 px-5 md:px-6 py-5 md:py-6">
+          <div className="space-y-4">
+            {/* Template Summary Banner (when coming from template) */}
+            {selection?.type === 'template' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-amber-800">
+                    <strong>Template:</strong> {selection.template.name} · {selection.template.duration_days}N/{selection.template.duration_nights}D
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentStep(1);
+                    setSearchParams({});
+                  }}
+                  className="text-xs text-amber-700 hover:text-amber-900 font-medium underline"
+                >
+                  Change
+                </button>
+              </div>
+            )}
+
+            {isLoadingPreselected ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+              </div>
+            ) : (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 px-5 md:px-6 py-5 md:py-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
               <div>
                 <h2 className="text-sm md:text-base font-semibold text-slate-900">
@@ -414,7 +472,10 @@ const ItineraryWizard: React.FC = () => {
             <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
               <button
                 type="button"
-                onClick={handleBack}
+                onClick={() => {
+                  setCurrentStep(1);
+                  setSearchParams({});
+                }}
                 className="text-xs md:text-sm text-slate-500 hover:text-slate-700 transition"
               >
                 ← Back to starting point
@@ -441,6 +502,8 @@ const ItineraryWizard: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+            )}
           </div>
         )}
       </div>
