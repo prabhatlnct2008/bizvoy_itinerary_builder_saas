@@ -4,8 +4,11 @@ export interface User {
   agency_id: string;
   email: string;
   full_name: string;
+  phone?: string | null;
   is_active: boolean;
   is_superuser: boolean;
+  is_bizvoy_admin?: boolean;
+  force_password_reset?: boolean;
   created_at: string;
   updated_at: string;
   agency?: Agency; // Optional populated agency object
@@ -21,6 +24,13 @@ export interface Agency {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // New fields for Agency Management
+  legal_name?: string | null;
+  country?: string | null;
+  timezone?: string | null;
+  default_currency?: string | null;
+  website_url?: string | null;
+  internal_notes?: string | null;
 }
 
 export interface LoginRequest {
@@ -529,4 +539,109 @@ export interface MessageResponse {
 export interface ApiError {
   detail: string;
   error_code?: string;
+}
+
+// ============================================
+// Bizvoy Admin - Agency Management Types
+// ============================================
+
+export interface AdminUser {
+  id: string;
+  full_name: string;
+  email: string;
+  phone?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AgencyAdminUserCreate {
+  full_name: string;
+  email: string;
+  phone?: string | null;
+}
+
+export interface AgencyCreate {
+  name: string;
+  legal_name?: string | null;
+  country?: string | null;
+  timezone?: string | null;
+  default_currency?: string | null;
+  website_url?: string | null;
+  internal_notes?: string | null;
+  contact_email?: string | null;
+  admin_user: AgencyAdminUserCreate;
+}
+
+export interface AgencyUpdate {
+  name?: string;
+  legal_name?: string | null;
+  country?: string | null;
+  timezone?: string | null;
+  default_currency?: string | null;
+  website_url?: string | null;
+  internal_notes?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  logo_url?: string | null;
+}
+
+export interface AgencyWithStats extends Agency {
+  user_count: number;
+  itinerary_count: number;
+  template_count: number;
+  primary_admin?: AdminUser | null;
+}
+
+export interface AgencyListItem {
+  id: string;
+  name: string;
+  contact_email: string;
+  is_active: boolean;
+  created_at: string;
+  user_count: number;
+  itinerary_count: number;
+  primary_admin_name?: string | null;
+  primary_admin_email?: string | null;
+}
+
+export interface AgencyListResponse {
+  items: AgencyListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface TopAgency {
+  id: string;
+  name: string;
+  itinerary_count: number;
+  last_activity?: string | null;
+}
+
+export interface AdminDashboardStats {
+  total_agencies: number;
+  active_agencies: number;
+  inactive_agencies: number;
+  total_itineraries: number;
+  itineraries_last_30_days: number;
+  total_templates: number;
+  total_users: number;
+  top_agencies: TopAgency[];
+}
+
+export interface AgencyStatusChange {
+  id: string;
+  name: string;
+  is_active: boolean;
+  message: string;
+}
+
+export interface ResendInvitationRequest {
+  user_id: string;
+}
+
+export interface ResendInvitationResponse {
+  success: boolean;
+  message: string;
 }

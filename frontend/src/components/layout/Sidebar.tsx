@@ -9,12 +9,16 @@ import {
   Users,
   Shield,
   Building,
+  Building2,
+  LayoutDashboard,
 } from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
 
 interface NavItem {
   name: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
+  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -28,14 +32,59 @@ const navItems: NavItem[] = [
   { name: 'Company Settings', path: '/settings', icon: Building },
 ];
 
+const adminNavItems: NavItem[] = [
+  { name: 'Admin Dashboard', path: '/admin', icon: LayoutDashboard, adminOnly: true },
+  { name: 'Agencies', path: '/admin/agencies', icon: Building2, adminOnly: true },
+];
+
 const Sidebar: React.FC = () => {
+  const { user } = useAuthStore();
+  const isBizvoyAdmin = user?.is_bizvoy_admin || false;
+
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-primary-600">Travel SaaS</h1>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+        {/* Admin Section - Only for Bizvoy Admin */}
+        {isBizvoyAdmin && (
+          <>
+            <div className="pt-2 pb-1">
+              <p className="px-4 text-xs font-semibold text-primary-600 uppercase tracking-wider">
+                Bizvoy Admin
+              </p>
+            </div>
+            {adminNavItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-primary-100 text-primary-700'
+                        : 'text-primary-600 hover:bg-primary-50 hover:text-primary-700'
+                    }`
+                  }
+                >
+                  <Icon className="mr-3 h-5 w-5" />
+                  {item.name}
+                </NavLink>
+              );
+            })}
+            <div className="my-3 border-t border-gray-200" />
+          </>
+        )}
+
+        {/* Regular Navigation */}
+        <div className="pt-2 pb-1">
+          <p className="px-4 text-xs font-semibold text-text-muted uppercase tracking-wider">
+            Main Menu
+          </p>
+        </div>
         {navItems.map((item) => {
           const Icon = item.icon;
           return (

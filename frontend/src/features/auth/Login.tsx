@@ -41,7 +41,19 @@ const Login: React.FC = () => {
     setIsLoading(true);
     try {
       await login(email, password);
-      navigate('/dashboard');
+
+      // Redirect based on user role
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user.is_bizvoy_admin) {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Login error:', error);
     } finally {

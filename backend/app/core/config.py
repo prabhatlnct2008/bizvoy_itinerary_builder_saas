@@ -38,6 +38,18 @@ class Settings(BaseSettings):
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
 
+    # Email SMTP settings
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = "support@bizvoy.com"
+    SMTP_FROM_NAME: str = "Bizvoy Support"
+    SMTP_TLS: bool = True
+
+    # Application URL (for email links)
+    APP_URL: str = "http://localhost:5173"
+
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v):

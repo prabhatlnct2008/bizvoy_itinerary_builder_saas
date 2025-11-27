@@ -11,6 +11,7 @@ from app.schemas.auth import (
     MessageResponse
 )
 from app.models.user import User
+from app.models.agency import Agency
 from app.services.rbac_service import get_user_permissions
 from jose import jwt, JWTError
 from app.core.config import settings
@@ -33,8 +34,21 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
+    # Check if agency is active (skip for bizvoy admins)
+    is_bizvoy_admin = getattr(user, 'is_bizvoy_admin', False)
+    if not is_bizvoy_admin:
+        agency = db.query(Agency).filter(Agency.id == user.agency_id).first()
+        if agency and not agency.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your agency account has been deactivated. Please contact support."
+            )
+
     # Get user permissions
     permissions = get_user_permissions(user, db)
+
+    # Check if force password reset is needed
+    force_password_reset = getattr(user, 'force_password_reset', False)
 
     # Create token claims with user metadata
     claims = {
@@ -42,6 +56,8 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
         "full_name": user.full_name,
         "agency_id": user.agency_id,
         "is_superuser": user.is_superuser,
+        "is_bizvoy_admin": is_bizvoy_admin,
+        "force_password_reset": force_password_reset,
         "permissions": permissions
     }
 
@@ -81,8 +97,18 @@ def refresh_token(refresh_data: RefreshRequest, db: Session = Depends(get_db)):
     if user is None or not user.is_active:
         raise credentials_exception
 
+    # Check if agency is active (skip for bizvoy admins)
+    is_bizvoy_admin = getattr(user, 'is_bizvoy_admin', False)
+    if not is_bizvoy_admin:
+        agency = db.query(Agency).filter(Agency.id == user.agency_id).first()
+        if agency and not agency.is_active:
+            raise credentials_exception
+
     # Get user permissions
     permissions = get_user_permissions(user, db)
+
+    # Check if force password reset is needed
+    force_password_reset = getattr(user, 'force_password_reset', False)
 
     # Create token claims with user metadata
     claims = {
@@ -90,6 +116,8 @@ def refresh_token(refresh_data: RefreshRequest, db: Session = Depends(get_db)):
         "full_name": user.full_name,
         "agency_id": user.agency_id,
         "is_superuser": user.is_superuser,
+        "is_bizvoy_admin": is_bizvoy_admin,
+        "force_password_reset": force_password_reset,
         "permissions": permissions
     }
 

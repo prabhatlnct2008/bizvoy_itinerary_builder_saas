@@ -9,7 +9,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    agency_id = Column(String, ForeignKey("agencies.id", ondelete="CASCADE"), nullable=False, index=True)
+    agency_id = Column(String, ForeignKey("agencies.id", ondelete="CASCADE"), nullable=True, index=True)  # Nullable for bizvoy-admin users
     email = Column(String(255), nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=False)
@@ -17,6 +17,11 @@ class User(Base):
     is_superuser = Column(Boolean, default=False, nullable=False)  # Agency admin
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # New fields for Agency Management
+    phone = Column(String(50), nullable=True)
+    is_bizvoy_admin = Column(Boolean, default=False, nullable=False)  # Bizvoy platform admin
+    force_password_reset = Column(Boolean, default=False, nullable=False)
 
     # Relationships
     agency = relationship("Agency", back_populates="users")

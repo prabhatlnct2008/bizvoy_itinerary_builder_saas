@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime
+from sqlalchemy import Column, String, Boolean, DateTime, Text
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 import uuid
@@ -17,6 +17,14 @@ class Agency(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # New fields for Agency Management
+    legal_name = Column(String(255), nullable=True)
+    country = Column(String(100), nullable=True)
+    timezone = Column(String(100), nullable=True)
+    default_currency = Column(String(10), nullable=True)
+    website_url = Column(String(500), nullable=True)
+    internal_notes = Column(Text, nullable=True)  # Only visible to bizvoy-admin
 
     # Relationships
     users = relationship("User", back_populates="agency", cascade="all, delete-orphan")

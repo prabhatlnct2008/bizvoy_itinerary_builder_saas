@@ -68,3 +68,15 @@ def require_permission(permission_codename: str):
         return current_user
 
     return permission_checker
+
+
+def require_bizvoy_admin(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """Require user to be a Bizvoy platform admin"""
+    if not current_user.is_bizvoy_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Bizvoy admin privileges required."
+        )
+    return current_user
