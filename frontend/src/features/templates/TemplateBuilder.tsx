@@ -216,9 +216,9 @@ const TemplateBuilder: React.FC = () => {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-border px-6 py-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
+      <div className="bg-white border-b border-border px-4 lg:px-6 py-3 lg:py-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="flex items-center gap-3 lg:gap-4">
             <button
               onClick={() => navigate('/templates')}
               className="text-muted hover:text-primary transition-colors"
@@ -226,38 +226,40 @@ const TemplateBuilder: React.FC = () => {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl font-semibold text-primary">
+              <h1 className="text-lg lg:text-xl font-semibold text-primary">
                 {isEditMode ? 'Edit Template' : 'Create Template'}
               </h1>
               {hasUnsavedChanges && (
-                <p className="text-xs text-muted mt-1">Unsaved changes</p>
+                <p className="text-xs text-muted mt-0.5">Unsaved changes</p>
               )}
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => navigate('/templates')}>
+          <div className="flex gap-2 lg:gap-3 w-full sm:w-auto">
+            <Button variant="secondary" onClick={() => navigate('/templates')} size="sm" className="hidden sm:inline-flex">
               Cancel
             </Button>
-            <Button onClick={() => handleSave(false)} isLoading={isSaving}>
-              <Save className="w-4 h-4 mr-2" />
-              Save Draft
+            <Button onClick={() => handleSave(false)} isLoading={isSaving} size="sm" className="flex-1 sm:flex-none">
+              <Save className="w-4 h-4 mr-1 lg:mr-2" />
+              <span className="hidden lg:inline">Save Draft</span>
+              <span className="lg:hidden">Save</span>
             </Button>
-            <Button onClick={() => handleSave(true)} isLoading={isSaving}>
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Save & Publish
+            <Button onClick={() => handleSave(true)} isLoading={isSaving} size="sm" className="flex-1 sm:flex-none">
+              <CheckCircle className="w-4 h-4 mr-1 lg:mr-2" />
+              <span className="hidden lg:inline">Save & Publish</span>
+              <span className="lg:hidden">Publish</span>
             </Button>
           </div>
         </div>
       </div>
 
-      {/* 3-Column Layout */}
+      {/* Responsive Layout: 3-column on desktop, stacked on mobile */}
       <div className="flex-1 overflow-hidden">
-        <div className="h-full grid grid-cols-12 gap-0">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-0">
           {/* Left Column - Template Metadata */}
-          <div className="col-span-3 bg-white border-r border-border overflow-y-auto">
-            <div className="p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-primary mb-4">Template Details</h2>
+          <div className="lg:col-span-3 bg-white border-b lg:border-b-0 lg:border-r border-border overflow-y-auto max-h-[40vh] lg:max-h-none">
+            <div className="p-4 lg:p-6 space-y-4">
+              <h2 className="text-base lg:text-lg font-semibold text-primary mb-2 lg:mb-4">Template Details</h2>
 
               <Input
                 label="Template Name"
@@ -321,8 +323,8 @@ const TemplateBuilder: React.FC = () => {
           </div>
 
           {/* Middle Column - Day Timeline */}
-          <div className="col-span-3 bg-gray-50 border-r border-border overflow-y-auto">
-            <div className="p-6">
+          <div className="lg:col-span-3 bg-gray-50 border-b lg:border-b-0 lg:border-r border-border overflow-y-auto max-h-[30vh] lg:max-h-none">
+            <div className="p-4 lg:p-6">
               <DayTimeline
                 days={days}
                 selectedDayIndex={selectedDayIndex}
@@ -337,12 +339,12 @@ const TemplateBuilder: React.FC = () => {
           </div>
 
           {/* Right Column - Selected Day Activities */}
-          <div className="col-span-6 bg-white overflow-y-auto">
+          <div className="lg:col-span-6 bg-white overflow-y-auto flex-1">
             {currentDay && (
-              <div className="p-6">
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold text-primary">
+              <div className="p-4 lg:p-6">
+                <div className="mb-4 lg:mb-6">
+                  <div className="flex justify-between items-center mb-3 lg:mb-4">
+                    <h2 className="text-base lg:text-lg font-semibold text-primary">
                       Day {currentDay.day_number} Activities
                     </h2>
                     <Button size="sm" onClick={() => setIsActivityModalOpen(true)}>
