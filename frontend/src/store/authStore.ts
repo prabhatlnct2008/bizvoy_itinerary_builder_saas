@@ -48,6 +48,8 @@ export const useAuthStore = create<AuthState>((set) => ({
           full_name: payload.full_name || 'User',
           is_active: true,
           is_superuser: payload.is_superuser || false,
+          is_bizvoy_admin: payload.is_bizvoy_admin || false,
+          force_password_reset: payload.force_password_reset || false,
           created_at: '',
           updated_at: '',
           roles: [], // Will be fetched separately if needed

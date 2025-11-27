@@ -18,6 +18,11 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    # New fields for Agency Management
+    phone = Column(String(50), nullable=True)
+    is_bizvoy_admin = Column(Boolean, default=False, nullable=False)  # Bizvoy platform admin
+    force_password_reset = Column(Boolean, default=False, nullable=False)
+
     # Relationships
     agency = relationship("Agency", back_populates="users")
     user_roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
