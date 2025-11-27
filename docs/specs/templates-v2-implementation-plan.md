@@ -1,11 +1,25 @@
 # Templates List + Builder v2 - Implementation Plan
 
+## Decisions Made
+
+| Question | Decision |
+|----------|----------|
+| Archived Status | **Option A** - Add `archived` to status enum |
+| Create Itinerary Flow | **Option A** - Skip Step 1, show template summary with "Change" link |
+| Day Deletion | **Option A** - Simple confirmation with activity count |
+| Duration vs Days | **Option B** - Auto-sync duration to match day count (days = source of truth) |
+| Responsive Layout | **Option A** - Stacked layout on mobile |
+| Drag Library | **Native HTML5** - Already used for activities, keep consistent |
+| Permissions | **Reuse existing** - `templates.create` for copy, `templates.delete` for archive |
+
+---
+
 ## Current State Analysis
 
 ### What Already Exists ✅
 1. **Template CRUD** - Full create/read/update/delete operations
 2. **Template Days** - With `day_number` for ordering
-3. **Activity Ordering** - `display_order` field with drag-and-drop + move buttons
+3. **Activity Ordering** - `display_order` field with native drag-and-drop + move buttons
 4. **Activity Reorder API** - `PUT /templates/{id}/days/{day_id}/activities/reorder`
 5. **Template-Itinerary Integration** - `create_itinerary_from_template` service
 6. **Status** - `draft` and `published` values
@@ -46,7 +60,7 @@ class TemplateStatus(str, enum.Enum):
     archived = "archived"  # NEW
 ```
 
-**Migration needed:** Add 'archived' as valid enum value
+**Migration:** Alembic migration to add 'archived' to enum
 
 #### 1.2 Update Template List Endpoint
 **File:** `backend/app/api/v1/endpoints/templates.py`
@@ -63,9 +77,10 @@ class TemplateStatus(str, enum.Enum):
 @router.post("/{template_id}/copy", response_model=TemplateDetailResponse)
 async def copy_template(template_id: str, ...):
     """Clone a template with all days and activities"""
+    # Requires: templates.create permission
     # 1. Get original template with days and activities
     # 2. Create new template with name = "Original Name (Copy)"
-    # 3. Copy all days and activities
+    # 3. Copy all days and activities with ordering
     # 4. Set status = draft
     # 5. Return new template
 ```
@@ -77,26 +92,32 @@ async def copy_template(template_id: str, ...):
 @router.put("/{template_id}/days/reorder", response_model=TemplateDetailResponse)
 async def reorder_days(template_id: str, day_order: List[str], ...):
     """Reorder days by providing list of day IDs in desired order"""
-    # Update day_number for each day based on new order
+    # Update day_number for each day based on position in list
 ```
 
-#### 1.5 Add Day to Template Endpoint (Enhanced)
+#### 1.5 Enhance Add Day Endpoint
 **File:** `backend/app/api/v1/endpoints/templates.py`
 
 - Modify existing `POST /templates/{id}/days` to:
-  - Auto-assign next `day_number`
-  - Not require day_number from client
-  - Support default title "Day N"
+  - Auto-assign next `day_number` if not provided
+  - Default title = "Day {n}"
+  - Auto-sync template `duration_days` = day count
 
-#### 1.6 Soft Delete / Archive Endpoint
+#### 1.6 Archive Endpoint (Soft Delete)
 **File:** `backend/app/api/v1/endpoints/templates.py`
 
 ```python
 @router.post("/{template_id}/archive", response_model=TemplateResponse)
 async def archive_template(template_id: str, ...):
     """Archive a template (soft delete)"""
+    # Requires: templates.delete permission
     # Set status = 'archived'
 ```
+
+#### 1.7 Auto-Sync Duration on Day Changes
+- When adding/deleting days, auto-update:
+  - `duration_days` = number of days
+  - `duration_nights` = max(days - 1, 0)
 
 ---
 
@@ -137,18 +158,22 @@ export interface TemplateListItem extends Template {
 ### Phase 3: Frontend - Create Itinerary from Template
 
 #### 3.1 Add Route Parameter
-**File:** `frontend/src/pages/itineraries/new.tsx` (or router config)
+**File:** Router config / page component
 
 - Support query param: `/itineraries/new?templateId=xxx`
 
 #### 3.2 Update Itinerary Wizard
 **File:** `frontend/src/features/itineraries/ItineraryWizard.tsx`
 
-- If `templateId` query param exists:
-  - Fetch template details
-  - Pre-select template in Step 1
-  - Optionally skip Step 1 and go directly to Step 2
-  - Pre-fill destination and trip name
+When `templateId` query param exists:
+1. Fetch template details on mount
+2. **Skip Step 1** - go directly to Step 2 (Client & Dates)
+3. Show template summary banner at top of Step 2:
+   ```
+   Template: Kerala 5N/6D · [Change]
+   ```
+4. "Change" link navigates back to Step 1 (template picker)
+5. Pre-fill destination and trip name from template
 
 ---
 
@@ -171,7 +196,7 @@ async copyTemplate(id: string): Promise<TemplateDetail>
 
 ### Phase 5: Frontend - Template Builder Enhancements
 
-#### 5.1 Decouple Duration from Days
+#### 5.1 Duration Auto-Sync (Days = Source of Truth)
 **File:** `frontend/src/features/templates/TemplateBuilder.tsx`
 
 **Current Behavior (problematic):**
@@ -179,60 +204,70 @@ async copyTemplate(id: string): Promise<TemplateDetail>
 - Can cause data loss
 
 **New Behavior:**
-- Duration fields are informational only
-- Days managed explicitly via + Add Day / Delete Day
-- Show warning banner if `duration_days !== days.length`
+- Days are authoritative; duration follows
+- Adding/removing days auto-updates duration:
+  - `duration_days` = number of days
+  - `duration_nights` = max(days - 1, 0)
+- Manually changing duration in form:
+  - Updates display fields
+  - Does NOT delete days
+  - On save, duration syncs back to day count
+- Duration fields shown as read-only or with subtle hint that they sync from days
 
 #### 5.2 Add Day Management
 - **+ Add Day button** at bottom of days timeline
-  - Creates new day with title "Day N"
+  - Creates new day with title "Day {n}"
   - Appends to end of list
+  - Auto-updates duration
 - **Delete Day** in day's 3-dot menu
-  - Confirmation: "Delete Day X? All activities will be removed."
+  - Confirmation: "Delete Day 3 – 'Beaches & Sunsets'? This will remove 3 activities."
+  - Auto-updates duration after deletion
 - **Rename Day** in day's 3-dot menu
   - Inline edit or modal
 
 #### 5.3 Day Drag-and-Drop Reorder
 **File:** `frontend/src/features/templates/components/DayTimeline.tsx`
 
-- Add drag handles to day cards
-- Use `@dnd-kit` or `react-beautiful-dnd` (check what's already in project)
+- Add drag handles to day cards (use native HTML5 drag, same as activities)
 - On drop: call reorder API and update local state
 - Re-number days visually (Day 1, Day 2, etc.)
+- Include up/down arrow buttons as fallback for mobile
 
 #### 5.4 Duplicate Day
 - In day's 3-dot menu: "Duplicate Day"
 - Clones day with all activities
 - Appends as new day at end
+- Auto-updates duration
 
 ---
 
 ### Phase 6: Responsive Design
 
-#### 6.1 Template Builder Mobile Layout
+#### 6.1 Template Builder Mobile Layout (Stacked)
 **File:** `frontend/src/features/templates/TemplateBuilder.tsx`
 
-**Approach A - Stacked Layout:**
-- Desktop: 3 columns
-- Tablet/Mobile: Stack vertically
-  - Template Info (collapsible)
-  - Days Timeline
-  - Tap day → slide in Activities panel
+**Desktop (lg+):** 3-column layout as-is
 
-**Approach B - Tabbed Layout:**
-- Tabs: Details | Days | Activities
-- Under "Days": full-screen day list
-- Under "Activities": day selector + activity list
+**Tablet/Mobile (< lg):** Stacked layout
+1. Template Details card (collapsible accordion)
+2. Days list (full width)
+3. When day is tapped → slide in Activities panel with back button
 
-#### 6.2 Touch-Friendly Drag Fallback
-- Add up/down arrow buttons as fallback
-- Larger touch targets
-- Long-press to initiate drag (optional)
+**Implementation:**
+- Use Tailwind breakpoints: `lg:grid-cols-3`
+- Add "Back to Days" button in activities panel on mobile
+- Keep all actions visible (no hover-only controls)
+
+#### 6.2 Touch-Friendly Fallbacks
+- Up/down arrow buttons alongside drag handles
+- Larger touch targets (min 44px)
+- Day/activity cards have adequate padding
 
 #### 6.3 Template List Responsive
-- Table converts to cards on mobile
-- Actions menu remains accessible
-- Search and filters stack vertically
+- Desktop: Table view
+- Mobile: Convert to card list or simplified table
+- Search and status filter stack vertically
+- 3-dot actions menu remains accessible
 
 ---
 
