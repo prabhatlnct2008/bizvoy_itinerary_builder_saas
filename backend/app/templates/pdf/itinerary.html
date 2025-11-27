@@ -4,251 +4,1350 @@
   <meta charset="UTF-8" />
   <title>{{ itinerary.trip_name }} · Itinerary</title>
   <style>
+    /* ═══════════════════════════════════════════════════════════════
+       CSS VARIABLES & TOKENS
+       ═══════════════════════════════════════════════════════════════ */
     :root {
-      --bg: #0f172a;
-      --panel: #111827;
-      --card: #0b1020;
-      --muted: #94a3b8;
-      --text: #e2e8f0;
-      --accent: #fbbf24;
-      --accent-soft: #fef3c7;
-      --border: #1f2937;
-      --chip: #1e293b;
-      --pill: #f0f9ff;
-      --pill-text: #0ea5e9;
-      --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+      /* Dark backgrounds */
+      --bg-dark: #0f172a;
+      --bg-dark-gradient-start: #1e293b;
+      --bg-dark-gradient-end: #0f172a;
+      --bg-card-dark: rgba(15, 23, 42, 0.6);
+
+      /* Light backgrounds */
+      --bg-white: #ffffff;
+      --bg-slate-50: #f8fafc;
+      --bg-slate-100: #f1f5f9;
+
+      /* Accent colors */
+      --accent-amber: #fbbf24;
+      --accent-amber-dark: #f59e0b;
+      --accent-amber-soft: #fffbeb;
+
+      /* Category colors */
+      --cat-blue: #3b82f6;
+      --cat-teal: #14b8a6;
+      --cat-orange: #f97316;
+      --cat-emerald: #10b981;
+      --cat-purple: #a855f7;
+      --cat-rose: #f43f5e;
+
+      /* Text colors */
+      --text-dark: #0f172a;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --text-white: #ffffff;
+      --text-on-dark: #e2e8f0;
+
+      /* Borders */
+      --border-light: #e2e8f0;
+      --border-dark: #334155;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
-    * { box-sizing: border-box; }
-    body {
+
+    /* ═══════════════════════════════════════════════════════════════
+       RESET & BASE STYLES
+       ═══════════════════════════════════════════════════════════════ */
+    * {
+      box-sizing: border-box;
       margin: 0;
-      font-family: "Inter", "Helvetica", "Arial", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      font-size: 13px;
+      padding: 0;
     }
-    h1, h2, h3, h4 { margin: 0; }
-    .page { padding: 24px 28px 40px; }
-    .panel {
-      background: linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.92));
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: var(--shadow);
-      margin-bottom: 16px;
+
+    @page {
+      size: A4 portrait;
+      margin: 20mm 18mm 24mm 18mm;
     }
-    .hero {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      background: linear-gradient(135deg, #1e293b, #111827);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 22px;
-      box-shadow: var(--shadow);
-      margin-bottom: 18px;
+
+    body {
+      font-family: "Inter", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+      font-size: 10pt;
+      line-height: 1.4;
+      color: var(--text-dark);
+      background: var(--bg-white);
     }
-    .badge {
-      display: inline-block;
-      background: var(--chip);
-      color: var(--muted);
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      border: 1px solid var(--border);
+
+    h1, h2, h3, h4, h5, h6 {
+      margin: 0;
+      line-height: 1.2;
     }
-    .pill {
-      display: inline-block;
-      background: var(--pill);
-      color: var(--pill-text);
-      padding: 6px 10px;
-      border-radius: 10px;
-      font-size: 11px;
-      border: 1px solid rgba(14,165,233,0.2);
+
+    img {
+      max-width: 100%;
+      height: auto;
     }
-    .grid { display: grid; gap: 14px; }
-    .grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
-    .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
-    .value { font-weight: 600; color: var(--text); }
-    .day {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      margin-bottom: 12px;
+
+    /* ═══════════════════════════════════════════════════════════════
+       PAGE BREAK CONTROLS
+       ═══════════════════════════════════════════════════════════════ */
+    .page-break-before {
+      page-break-before: always;
+    }
+
+    .page-break-after {
+      page-break-after: always;
+    }
+
+    .avoid-break {
       page-break-inside: avoid;
     }
-    .day-head {
+
+    /* ═══════════════════════════════════════════════════════════════
+       PAGE 1: HERO SECTION
+       ═══════════════════════════════════════════════════════════════ */
+    .hero-section {
+      background: linear-gradient(135deg, var(--bg-dark-gradient-start), var(--bg-dark-gradient-end));
+      border-radius: 16px;
+      padding: 28px 24px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100px;
+      height: 100px;
+      border: 2px solid rgba(251, 191, 36, 0.3);
+      border-radius: 50%;
+      transform: translate(20%, -20%);
+    }
+
+    .welcome-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .welcome-label .line {
+      width: 20px;
+      height: 1px;
+      background: var(--accent-amber);
+    }
+
+    .welcome-label .text {
+      font-size: 9pt;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent-amber);
+    }
+
+    .hero-greeting {
+      font-size: 28pt;
+      font-weight: 300;
+      color: var(--text-white);
+      margin-bottom: 8px;
+    }
+
+    .hero-greeting .name {
+      font-weight: 700;
+    }
+
+    .hero-subtitle {
+      font-size: 11pt;
+      color: var(--text-on-dark);
+      margin-bottom: 20px;
+      max-width: 80%;
+    }
+
+    .hero-subtitle .destination {
+      color: var(--text-white);
+      font-weight: 500;
+    }
+
+    /* Stats Row */
+    .stats-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      background: var(--bg-card-dark);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .stat-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14pt;
+      color: var(--text-white);
+    }
+
+    .stat-icon.amber { background: var(--accent-amber); }
+    .stat-icon.teal { background: var(--cat-teal); }
+    .stat-icon.blue { background: var(--cat-blue); }
+    .stat-icon.rose { background: var(--cat-rose); }
+
+    .stat-content .label {
+      font-size: 7pt;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-light);
+      margin-bottom: 2px;
+    }
+
+    .stat-content .value {
+      font-size: 10pt;
+      font-weight: 600;
+      color: var(--text-white);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       PAGE 1: TRIP OVERVIEW SECTION
+       ═══════════════════════════════════════════════════════════════ */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0 16px;
+    }
+
+    .section-header .line {
+      flex: 1;
+      height: 1px;
+      background: var(--border-light);
+    }
+
+    .section-header .title {
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .overview-cards {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .overview-card {
+      flex: 1;
+      background: var(--bg-white);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: left;
+    }
+
+    .overview-card .icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16pt;
+      color: var(--text-white);
+      margin-bottom: 12px;
+    }
+
+    .overview-card .icon.blue { background: var(--cat-blue); }
+    .overview-card .icon.orange { background: var(--cat-orange); }
+    .overview-card .icon.emerald { background: var(--cat-emerald); }
+    .overview-card .icon.purple { background: var(--cat-purple); }
+
+    .overview-card .count {
+      font-size: 22pt;
+      font-weight: 700;
+      color: var(--text-dark);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .overview-card .label {
+      font-size: 9pt;
+      color: var(--text-muted);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       PAGE 1: MINI DAY LIST
+       ═══════════════════════════════════════════════════════════════ */
+    .day-list-section {
+      margin-top: 20px;
+    }
+
+    .day-list {
+      background: var(--bg-slate-50);
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+
+    .day-list-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .day-list-item:last-child {
+      border-bottom: none;
+    }
+
+    .day-list-item .day-badge {
+      background: var(--accent-amber);
+      color: var(--text-dark);
+      font-size: 8pt;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      min-width: 50px;
+      text-align: center;
+    }
+
+    .day-list-item .day-title {
+      font-size: 10pt;
+      font-weight: 500;
+      color: var(--text-dark);
+    }
+
+    .day-list-item .day-date {
+      font-size: 9pt;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       PAGES 2+: DAILY ITINERARY
+       ═══════════════════════════════════════════════════════════════ */
+    .day-section {
+      page-break-inside: avoid;
+      margin-bottom: 24px;
+    }
+
+    .day-header {
+      background: linear-gradient(90deg, var(--bg-dark-gradient-start), var(--bg-dark-gradient-end));
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .day-badge-large {
+      width: 56px;
+      height: 56px;
+      background: var(--accent-amber);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .day-badge-large .text {
+      font-size: 7pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-dark);
+    }
+
+    .day-badge-large .number {
+      font-size: 20pt;
+      font-weight: 700;
+      color: var(--text-dark);
+      line-height: 1;
+    }
+
+    .day-info {
+      flex: 1;
+    }
+
+    .day-info .date {
+      font-size: 9pt;
+      font-weight: 500;
+      color: var(--accent-amber);
+      margin-bottom: 2px;
+    }
+
+    .day-info .title {
+      font-size: 14pt;
+      font-weight: 600;
+      color: var(--text-white);
+      margin-bottom: 2px;
+    }
+
+    .day-info .activities-count {
+      font-size: 9pt;
+      color: var(--text-light);
+    }
+
+    .day-continued {
+      font-size: 8pt;
+      color: var(--text-light);
+      font-style: italic;
+      margin-left: 8px;
+    }
+
+    /* Timeline */
+    .activities-timeline {
+      position: relative;
+      padding-left: 60px;
+    }
+
+    .activities-timeline::before {
+      content: '';
+      position: absolute;
+      left: 24px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border-light);
+    }
+
+    /* Activity Card */
+    .activity-card {
+      background: var(--bg-white);
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      margin-bottom: 14px;
+      position: relative;
+      page-break-inside: avoid;
+    }
+
+    .activity-time {
+      position: absolute;
+      left: -52px;
+      top: 16px;
+      width: 44px;
+      height: 28px;
+      background: var(--bg-slate-100);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8pt;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .activity-card-inner {
+      padding: 16px;
+    }
+
+    .activity-meta-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .activity-category {
+      font-size: 8pt;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-transform: lowercase;
+    }
+
+    .activity-category.transfer { background: #f1f5f9; color: #475569; }
+    .activity-category.relaxation { background: #f0fdfa; color: #0d9488; }
+    .activity-category.dining { background: #eff6ff; color: #2563eb; }
+    .activity-category.sightseeing { background: #f1f5f9; color: #475569; }
+    .activity-category.culture { background: #fff7ed; color: #ea580c; }
+    .activity-category.adventure { background: #fff1f2; color: #e11d48; }
+    .activity-category.default { background: #f1f5f9; color: #475569; }
+
+    .activity-title {
+      font-size: 12pt;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 4px;
+    }
+
+    .activity-location-duration {
+      font-size: 9pt;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .activity-location-duration .separator {
+      color: var(--border-light);
+    }
+
+    /* Image Strip */
+    .activity-images {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .activity-images .hero-img {
+      flex: 2;
+      min-height: 120px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .activity-images .hero-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .activity-images .thumbs {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .activity-images .thumb {
+      flex: 1;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .activity-images .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .activity-images.single .hero-img {
+      flex: 1;
+      min-height: 140px;
+    }
+
+    /* Description */
+    .activity-description {
+      font-size: 9pt;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    /* Metrics Row */
+    .activity-metrics {
+      background: var(--bg-slate-50);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .activity-metric {
+      flex: 1;
+      text-align: center;
+      padding: 0 8px;
+    }
+
+    .activity-metric:not(:last-child) {
+      border-right: 1px solid var(--border-light);
+    }
+
+    .activity-metric .value {
+      font-size: 10pt;
+      font-weight: 600;
+      color: var(--text-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .activity-metric .value.included {
+      color: var(--cat-emerald);
+    }
+
+    .activity-metric .value .star {
+      color: var(--accent-amber);
+    }
+
+    .activity-metric .label {
+      font-size: 8pt;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Highlights */
+    .activity-highlights {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .highlight-tag {
+      font-size: 8pt;
+      font-weight: 500;
+      color: var(--accent-amber-dark);
+      background: var(--accent-amber-soft);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    /* Custom Notes */
+    .activity-notes {
+      background: #eff6ff;
+      border-left: 3px solid var(--cat-blue);
+      padding: 10px 12px;
+      border-radius: 0 8px 8px 0;
+      font-size: 9pt;
+      color: #1e40af;
+      margin-top: 12px;
+    }
+
+    /* Image Placeholder */
+    .image-placeholder {
+      background: var(--bg-slate-100);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 9pt;
+      min-height: 100px;
+      border-radius: 10px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       FINAL PAGE: COMPANY & PRICING
+       ═══════════════════════════════════════════════════════════════ */
+    .final-section {
+      background: linear-gradient(135deg, var(--bg-dark-gradient-start), var(--bg-dark-gradient-end));
+      border-radius: 16px;
+      padding: 28px 24px;
+      page-break-inside: avoid;
+    }
+
+    .final-columns {
+      display: flex;
+      gap: 32px;
+    }
+
+    .final-left {
+      flex: 1;
+    }
+
+    .final-right {
+      flex: 1;
+    }
+
+    /* Company Info */
+    .company-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .company-logo {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--bg-card-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .company-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .company-logo .placeholder {
+      font-size: 20pt;
+      color: var(--text-light);
+    }
+
+    .company-name {
+      font-size: 16pt;
+      font-weight: 700;
+      color: var(--text-white);
+    }
+
+    .company-tagline {
+      font-size: 10pt;
+      color: var(--accent-amber);
+    }
+
+    .company-description {
+      font-size: 9pt;
+      color: var(--text-on-dark);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .contact-list {
+      margin-bottom: 20px;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      font-size: 9pt;
+      color: var(--text-on-dark);
+    }
+
+    .contact-item .icon {
+      color: var(--text-light);
+      font-size: 12pt;
+    }
+
+    /* Bank Details */
+    .bank-details {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 16px;
+    }
+
+    .bank-details-title {
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-light);
+      margin-bottom: 10px;
+    }
+
+    .bank-detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 9pt;
+    }
+
+    .bank-detail-row .label {
+      color: var(--text-light);
+    }
+
+    .bank-detail-row .value {
+      color: var(--text-white);
+      font-weight: 500;
+    }
+
+    /* Price Summary */
+    .price-card {
+      background: var(--bg-white);
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .price-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12pt;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 16px;
+    }
+
+    .price-title .icon {
+      color: var(--accent-amber);
+    }
+
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 10pt;
+    }
+
+    .price-row .label {
+      color: var(--text-muted);
+    }
+
+    .price-row .value {
+      color: var(--text-dark);
+      font-weight: 500;
+    }
+
+    .price-row.discount .label,
+    .price-row.discount .value {
+      color: var(--cat-emerald);
+    }
+
+    .price-divider {
+      height: 1px;
+      background: var(--border-light);
+      margin: 8px 0;
+    }
+
+    .price-total {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
-      background: linear-gradient(90deg, rgba(251,191,36,0.12), rgba(15,23,42,0.6));
+      padding: 12px 0 0;
     }
-    .day-chip {
-      background: var(--accent);
-      color: #1f2937;
-      padding: 8px 12px;
-      border-radius: 12px;
+
+    .price-total .label {
+      font-size: 11pt;
       font-weight: 700;
-      font-size: 12px;
+      color: var(--text-dark);
     }
-    .day-title { font-size: 16px; font-weight: 700; }
-    .day-date { color: var(--muted); font-size: 12px; }
-    .activity {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
-      page-break-inside: avoid;
+
+    .price-total .value {
+      font-size: 18pt;
+      font-weight: 700;
+      color: var(--accent-amber-dark);
     }
-    .activity:last-child { border-bottom: 0; }
-    .activity-hero {
-      background: #0a0f1d;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      display: grid;
-      grid-template-columns: 2fr 1fr;
+
+    /* Discount Code Box */
+    .discount-box {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .discount-box .label {
+      font-size: 9pt;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .discount-input-placeholder {
+      background: var(--bg-slate-50);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 9pt;
+      color: var(--text-light);
+    }
+
+    /* QR Section */
+    .qr-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-dark);
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .qr-info {
+      flex: 1;
+    }
+
+    .qr-title {
+      font-size: 14pt;
+      font-weight: 700;
+      color: var(--text-white);
+      margin-bottom: 8px;
+    }
+
+    .qr-description {
+      font-size: 9pt;
+      color: var(--text-on-dark);
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .qr-secure {
+      display: flex;
+      align-items: center;
       gap: 6px;
-      min-height: 140px;
+      font-size: 8pt;
+      color: var(--cat-emerald);
     }
-    .activity-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .thumbs { display: grid; grid-template-rows: 1fr 1fr; gap: 6px; }
-    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
-    .hl { display: inline-block; background: rgba(148,163,184,0.15); color: var(--text); padding: 6px 10px; border-radius: 10px; margin: 4px 6px 0 0; font-size: 11px; }
-    .notes {
-      background: var(--accent-soft);
-      color: #854d0e;
-      border-left: 3px solid var(--accent);
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 12px;
-    }
-    .footer {
-      margin-top: 18px;
-      padding: 14px 16px;
-      border: 1px solid var(--border);
+
+    .qr-code-box {
+      background: var(--bg-white);
       border-radius: 12px;
-      background: var(--panel);
+      padding: 12px;
       text-align: center;
     }
-    .watermark { margin-top: 10px; color: var(--muted); font-size: 11px; text-align: center; }
+
+    .qr-code-box img {
+      width: 100px;
+      height: 100px;
+    }
+
+    .qr-code-box .scan-text {
+      font-size: 9pt;
+      font-weight: 500;
+      color: var(--accent-amber-dark);
+      margin-top: 8px;
+    }
+
+    /* No Pricing State */
+    .no-pricing-box {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .no-pricing-box .text {
+      font-size: 10pt;
+      color: var(--text-on-dark);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       FOOTER / WATERMARK
+       ═══════════════════════════════════════════════════════════════ */
+    .watermark {
+      text-align: center;
+      font-size: 8pt;
+      color: var(--text-muted);
+      margin-top: 20px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-light);
+    }
   </style>
 </head>
 <body>
-  <div class="page">
-    <div class="hero">
-      <div style="flex:1">
-        <div class="badge">{{ itinerary.status.value|upper }}</div>
-        <h1 style="font-size:26px; margin:10px 0 4px;">{{ itinerary.trip_name }}</h1>
-        <div style="color: var(--muted); font-size:14px;">{{ itinerary.destination }}</div>
-        <div style="margin-top:12px; color: var(--text); font-weight:600;">
-          {{ itinerary.start_date.strftime('%b %d, %Y') }} — {{ itinerary.end_date.strftime('%b %d, %Y') }}
-        </div>
-        <div class="meta">
-          <span class="pill">{{ itinerary.num_adults + itinerary.num_children }} travelers</span>
-          <span class="pill">{{ itinerary.days|length }} days / {{ itinerary.days|length - 1 if itinerary.days|length > 0 else 0 }} nights</span>
+  <!-- ═══════════════════════════════════════════════════════════════
+       PAGE 1: HERO & OVERVIEW
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="welcome-label">
+      <span class="line"></span>
+      <span class="text">Welcome Aboard</span>
+    </div>
+
+    <h1 class="hero-greeting">
+      Hello, <span class="name">{{ client_first_name }} {{ client_last_name }}</span>
+    </h1>
+
+    <p class="hero-subtitle">
+      Your journey to <span class="destination">{{ itinerary.destination }}</span> awaits.
+      Here's everything you need for an unforgettable adventure.
+    </p>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon amber">📅</div>
+        <div class="stat-content">
+          <div class="label">Duration</div>
+          <div class="value">{{ trip_overview.total_days }} Days / {{ trip_overview.total_nights }} Nights</div>
         </div>
       </div>
-      <div style="text-align:right;">
-        <div class="label">Agency</div>
-        <div class="value">{{ itinerary.agency.name }}</div>
-        {% if itinerary.agency.contact_email %}<div class="value" style="color: var(--muted); font-size:12px;">{{ itinerary.agency.contact_email }}</div>{% endif %}
-        {% if itinerary.agency.contact_phone %}<div class="value" style="color: var(--muted); font-size:12px;">{{ itinerary.agency.contact_phone }}</div>{% endif %}
+
+      <div class="stat-card">
+        <div class="stat-icon teal">🌍</div>
+        <div class="stat-content">
+          <div class="label">Destination</div>
+          <div class="value">{{ itinerary.destination }}</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon blue">👥</div>
+        <div class="stat-content">
+          <div class="label">Travelers</div>
+          <div class="value">{{ itinerary.num_adults + itinerary.num_children }} Guest{% if itinerary.num_adults + itinerary.num_children != 1 %}s{% endif %}</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon rose">✈️</div>
+        <div class="stat-content">
+          <div class="label">Travel Dates</div>
+          <div class="value">{{ itinerary.start_date|format_date }} - {{ itinerary.end_date|format_date }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trip Overview Section -->
+  <div class="section-header">
+    <span class="line"></span>
+    <span class="title">Trip Overview</span>
+    <span class="line"></span>
+  </div>
+
+  <div class="overview-cards">
+    {% if trip_overview.accommodation_count > 0 %}
+    <div class="overview-card">
+      <div class="icon blue">🏨</div>
+      <div class="count">{{ trip_overview.accommodation_count }}</div>
+      <div class="label">Accommodations</div>
+    </div>
+    {% endif %}
+
+    {% if trip_overview.activity_count > 0 %}
+    <div class="overview-card">
+      <div class="icon orange">📸</div>
+      <div class="count">{{ trip_overview.activity_count }}</div>
+      <div class="label">Activities</div>
+    </div>
+    {% endif %}
+
+    {% if trip_overview.meal_count > 0 %}
+    <div class="overview-card">
+      <div class="icon emerald">🍽️</div>
+      <div class="count">{{ trip_overview.meal_count }}</div>
+      <div class="label">Meals Included</div>
+    </div>
+    {% endif %}
+
+    {% if trip_overview.transfer_count > 0 %}
+    <div class="overview-card">
+      <div class="icon purple">🚗</div>
+      <div class="count">{{ trip_overview.transfer_count }}</div>
+      <div class="label">Transfers</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Mini Day List -->
+  <div class="section-header">
+    <span class="line"></span>
+    <span class="title">Your Journey</span>
+    <span class="line"></span>
+  </div>
+
+  <div class="day-list">
+    {% for day in days %}
+    <div class="day-list-item">
+      <span class="day-badge">Day {{ day.day_number }}</span>
+      <span class="day-title">{{ day.title }}</span>
+      <span class="day-date">{{ day.actual_date|format_date_full }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PAGES 2+: DAILY ITINERARY
+       ═══════════════════════════════════════════════════════════════ -->
+
+  {% for day in days %}
+  <div class="page-break-before"></div>
+
+  <section class="day-section">
+    <!-- Day Header -->
+    <div class="day-header">
+      <div class="day-badge-large">
+        <span class="text">Day</span>
+        <span class="number">{{ day.day_number }}</span>
+      </div>
+      <div class="day-info">
+        <div class="date">{{ day.actual_date|format_date_full }}</div>
+        <div class="title">{{ day.title }}</div>
+        <div class="activities-count">{{ day.activities_count }} activit{% if day.activities_count == 1 %}y{% else %}ies{% endif %} planned</div>
       </div>
     </div>
 
-    <div class="panel">
-      <div class="grid two">
-        <div>
-          <div class="label">Client</div>
-          <div class="value">{{ itinerary.client_name }}</div>
-          {% if itinerary.client_email %}<div class="value" style="color: var(--muted); font-size:12px;">{{ itinerary.client_email }}</div>{% endif %}
-          {% if itinerary.client_phone %}<div class="value" style="color: var(--muted); font-size:12px;">{{ itinerary.client_phone }}</div>{% endif %}
-        </div>
-        <div>
-          <div class="label">Dates</div>
-          <div class="value">{{ itinerary.start_date.strftime('%A, %b %d, %Y') }} — {{ itinerary.end_date.strftime('%A, %b %d, %Y') }}</div>
-        </div>
-      </div>
+    <!-- Day Notes -->
+    {% if day.notes %}
+    <div class="activity-notes" style="margin-bottom: 16px; margin-left: 0;">
+      {{ day.notes }}
     </div>
+    {% endif %}
 
-    {% for day in itinerary.days %}
-    <div class="day">
-      <div class="day-head">
-        <div>
-          <div class="day-chip">Day {{ day.day_number }}</div>
-          <div class="day-title">{{ day.title or '' }}</div>
-          <div class="day-date">{{ day.actual_date.strftime('%A, %B %d, %Y') }}</div>
-        </div>
-        {% if day.notes %}<div style="max-width:45%; color: var(--muted); font-size:12px;">{{ day.notes }}</div>{% endif %}
-      </div>
+    <!-- Activities Timeline -->
+    {% if day.activities|length > 0 %}
+    <div class="activities-timeline">
+      {% for activity in day.activities %}
+      <div class="activity-card avoid-break">
+        <div class="activity-time">{{ activity.time_slot }}</div>
 
-      {% for activity_item in day.activities %}
-      {% set act = activity_item.activity %}
-      <div class="activity">
-        <div>
-          {% if activity_item.time_slot %}
-          <div class="badge" style="background: rgba(16,185,129,0.12); color:#34d399; border-color: rgba(52,211,153,0.4);">{{ activity_item.time_slot }}</div>
-          {% endif %}
-          <h3 style="font-size:16px; margin:8px 0 4px;">{{ act.name }}</h3>
-          <div class="meta">
-            {% if act.category_label %}<span class="pill">{{ act.category_label }}</span>{% endif %}
-            {% if act.location_display %}<span class="pill">{{ act.location_display }}</span>{% endif %}
-            {% if act.default_duration_value %}<span class="pill">{{ act.default_duration_value }} {{ act.default_duration_unit.value if act.default_duration_unit else '' }}</span>{% endif %}
-          </div>
-          {% if act.short_description %}<div style="color: var(--muted); margin-bottom:8px;">{{ act.short_description }}</div>{% endif %}
-          {% if activity_item.custom_notes %}<div class="notes">{{ activity_item.custom_notes }}</div>{% endif %}
-          {% if act.highlights %}
-            <div style="margin-top:10px;">
-              {% set highlights = act.highlights if act.highlights is iterable else [] %}
-              {% for hl in highlights %}<span class="hl">{{ hl }}</span>{% endfor %}
+        <div class="activity-card-inner">
+          <!-- Meta Row -->
+          <div class="activity-meta-row">
+            <div>
+              {% if activity.category_label %}
+              {% set cat_class = 'default' %}
+              {% if 'transfer' in activity.category_label|lower or 'transport' in activity.category_label|lower %}
+                {% set cat_class = 'transfer' %}
+              {% elif 'relax' in activity.category_label|lower or 'spa' in activity.category_label|lower or 'wellness' in activity.category_label|lower %}
+                {% set cat_class = 'relaxation' %}
+              {% elif 'dining' in activity.category_label|lower or 'meal' in activity.category_label|lower or 'food' in activity.category_label|lower %}
+                {% set cat_class = 'dining' %}
+              {% elif 'sightseeing' in activity.category_label|lower or 'tour' in activity.category_label|lower %}
+                {% set cat_class = 'sightseeing' %}
+              {% elif 'culture' in activity.category_label|lower or 'temple' in activity.category_label|lower or 'museum' in activity.category_label|lower %}
+                {% set cat_class = 'culture' %}
+              {% elif 'adventure' in activity.category_label|lower or 'sport' in activity.category_label|lower or 'trek' in activity.category_label|lower %}
+                {% set cat_class = 'adventure' %}
+              {% endif %}
+              <span class="activity-category {{ cat_class }}">{{ activity.category_label }}</span>
+              {% endif %}
+
+              <h3 class="activity-title">{{ activity.name }}</h3>
+
+              <div class="activity-location-duration">
+                {% if activity.duration_text %}
+                <span>{{ activity.duration_text }}</span>
+                {% endif %}
+                {% if activity.duration_text and activity.location_display %}
+                <span class="separator">·</span>
+                {% endif %}
+                {% if activity.location_display %}
+                <span>{{ activity.location_display }}</span>
+                {% endif %}
+              </div>
             </div>
-          {% endif %}
-        </div>
+          </div>
 
-        {% set hero = None %}
-        {% set others = [] %}
-        {% if act.images %}
-          {% for img in act.images %}
-            {% if (img.is_hero or img.is_primary) and not hero %}
-              {% set hero = img %}
-            {% else %}
-              {% do others.append(img) %}
+          <!-- Images -->
+          {% if activity.hero_image %}
+          <div class="activity-images {% if not activity.other_images %}single{% endif %}">
+            <div class="hero-img">
+              <img src="{{ activity.hero_image.base64 }}" alt="{{ activity.name }}">
+            </div>
+            {% if activity.other_images %}
+            <div class="thumbs">
+              {% for img in activity.other_images %}
+              <div class="thumb">
+                <img src="{{ img.base64 }}" alt="{{ activity.name }}">
+              </div>
+              {% endfor %}
+            </div>
             {% endif %}
-          {% endfor %}
-          {% if not hero and act.images|length > 0 %}
-            {% set hero = act.images[0] %}
-            {% set others = act.images[1:] %}
+          </div>
           {% endif %}
-        {% endif %}
 
-        {% if hero %}
-        <div class="activity-hero">
-          <div><img src="{{ hero.file_url if hero.file_url else hero.file_path }}" alt="{{ act.name }}"></div>
-          {% if others|length > 0 %}
-          <div class="thumbs">
-            {% for img in others[:2] %}
-            <div><img src="{{ img.file_url if img.file_url else img.file_path }}" alt="{{ act.name }} {{ loop.index + 1 }}"></div>
+          <!-- Description -->
+          {% if activity.description %}
+          <p class="activity-description">{{ activity.description }}</p>
+          {% endif %}
+
+          <!-- Metrics Row -->
+          <div class="activity-metrics">
+            <div class="activity-metric">
+              <div class="value">
+                <span class="star">★</span>
+                {{ activity.rating if activity.rating else '—' }}
+              </div>
+              <div class="label">Rating</div>
+            </div>
+            <div class="activity-metric">
+              <div class="value">{{ activity.group_size_label }}</div>
+              <div class="label">Group Size</div>
+            </div>
+            <div class="activity-metric">
+              <div class="value {% if activity.cost_type == 'included' %}included{% endif %}">
+                {{ activity.cost_text }}
+              </div>
+              <div class="label">Cost</div>
+            </div>
+          </div>
+
+          <!-- Highlights -->
+          {% if activity.highlights %}
+          <div class="activity-highlights">
+            {% for highlight in activity.highlights %}
+            <span class="highlight-tag">{{ highlight }}</span>
             {% endfor %}
           </div>
           {% endif %}
+
+          <!-- Custom Notes -->
+          {% if activity.custom_notes %}
+          <div class="activity-notes">
+            {{ activity.custom_notes }}
+          </div>
+          {% endif %}
         </div>
-        {% endif %}
       </div>
       {% endfor %}
     </div>
-    {% endfor %}
-
-    <div class="footer">
-      <div style="font-size:16px; font-weight:700; margin-bottom:6px;">Thank you for choosing {{ itinerary.agency.name }}</div>
-      {% if itinerary.agency.contact_email %}<div class="value" style="color: var(--muted);">{{ itinerary.agency.contact_email }}</div>{% endif %}
-      {% if itinerary.agency.contact_phone %}<div class="value" style="color: var(--muted);">{{ itinerary.agency.contact_phone }}</div>{% endif %}
+    {% else %}
+    <div class="image-placeholder">
+      No activities scheduled for this day
     </div>
-    <div class="watermark">Generated on {{ datetime.utcnow().strftime('%b %d, %Y · %H:%M UTC') }}</div>
+    {% endif %}
+  </section>
+  {% endfor %}
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       FINAL PAGE: COMPANY INFO & PRICING
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="page-break-before"></div>
+
+  <section class="final-section">
+    <div class="final-columns">
+      <!-- Left Column: Company Info -->
+      <div class="final-left">
+        <div class="company-header">
+          <div class="company-logo">
+            {% if company.logo_base64 %}
+            <img src="{{ company.logo_base64 }}" alt="{{ company.company_name }}">
+            {% else %}
+            <span class="placeholder">🏢</span>
+            {% endif %}
+          </div>
+          <div>
+            <div class="company-name">{{ company.company_name }}</div>
+            {% if company.tagline %}
+            <div class="company-tagline">{{ company.tagline }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if company.description %}
+        <p class="company-description">{{ company.description }}</p>
+        {% endif %}
+
+        <div class="contact-list">
+          {% if company.email %}
+          <div class="contact-item">
+            <span class="icon">✉️</span>
+            <span>{{ company.email }}</span>
+          </div>
+          {% endif %}
+          {% if company.phone %}
+          <div class="contact-item">
+            <span class="icon">📞</span>
+            <span>{{ company.phone }}</span>
+          </div>
+          {% endif %}
+          {% if company.website_url %}
+          <div class="contact-item">
+            <span class="icon">🌐</span>
+            <span>{{ company.website_url }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Bank Details -->
+        {% if company.has_bank_details %}
+        <div class="bank-details">
+          <div class="bank-details-title">Payment Details</div>
+          {% if company.bank_account_name %}
+          <div class="bank-detail-row">
+            <span class="label">Account Name</span>
+            <span class="value">{{ company.bank_account_name }}</span>
+          </div>
+          {% endif %}
+          {% if company.bank_name %}
+          <div class="bank-detail-row">
+            <span class="label">Bank</span>
+            <span class="value">{{ company.bank_name }}</span>
+          </div>
+          {% endif %}
+          {% if company.bank_account_number %}
+          <div class="bank-detail-row">
+            <span class="label">Account No.</span>
+            <span class="value">{{ company.bank_account_number }}</span>
+          </div>
+          {% endif %}
+          {% if company.bank_ifsc_swift %}
+          <div class="bank-detail-row">
+            <span class="label">IFSC/SWIFT</span>
+            <span class="value">{{ company.bank_ifsc_swift }}</span>
+          </div>
+          {% endif %}
+          {% if company.bank_reference_note %}
+          <div class="bank-detail-row" style="flex-direction: column; gap: 4px;">
+            <span class="label">Reference</span>
+            <span class="value">{{ company.bank_reference_note }}</span>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Right Column: Pricing -->
+      <div class="final-right">
+        {% if pricing %}
+        <div class="price-card">
+          <div class="price-title">
+            <span class="icon">✨</span>
+            Price Summary
+          </div>
+
+          {% if pricing.base_package %}
+          <div class="price-row">
+            <span class="label">Base Package</span>
+            <span class="value">{{ pricing.base_package|format_currency(pricing.currency) }}</span>
+          </div>
+          {% endif %}
+
+          {% if pricing.taxes_fees and pricing.taxes_fees > 0 %}
+          <div class="price-row">
+            <span class="label">Taxes & Fees</span>
+            <span class="value">{{ pricing.taxes_fees|format_currency(pricing.currency) }}</span>
+          </div>
+          {% endif %}
+
+          {% if pricing.discount_amount and pricing.discount_amount > 0 %}
+          <div class="price-row discount">
+            <span class="label">Discount{% if pricing.discount_code %} ({{ pricing.discount_code }}){% endif %}</span>
+            <span class="value">-{{ pricing.discount_amount|format_currency(pricing.currency) }}</span>
+          </div>
+          {% endif %}
+
+          <div class="price-divider"></div>
+
+          <div class="price-total">
+            <span class="label">Total</span>
+            <span class="value">{{ (pricing.total or 0)|format_currency(pricing.currency) }}</span>
+          </div>
+
+          <div class="discount-box">
+            <div class="label">Have a discount code?</div>
+            <div class="discount-input-placeholder">Enter code</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="no-pricing-box">
+          <div class="text">Pricing to be confirmed</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- QR Code Section -->
+    {% if company.payment_qr_base64 %}
+    <div class="qr-section">
+      <div class="qr-info">
+        <h3 class="qr-title">Ready to Confirm?</h3>
+        <p class="qr-description">
+          Scan the QR code to complete your payment securely. Your booking will be confirmed instantly.
+        </p>
+        {% if company.payment_note %}
+        <div class="qr-secure">
+          <span>🛡️</span>
+          <span>{{ company.payment_note }}</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="qr-code-box">
+        <img src="{{ company.payment_qr_base64 }}" alt="Payment QR Code">
+        {% if pricing and pricing.total %}
+        <div class="scan-text">Scan to Pay {{ pricing.total|format_currency(pricing.currency) }}</div>
+        {% else %}
+        <div class="scan-text">Scan to Pay</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- Watermark -->
+  <div class="watermark">
+    Generated on {{ generated_at.strftime('%B %d, %Y · %H:%M UTC') }} | Powered by Bizvoy
   </div>
 </body>
 </html>
