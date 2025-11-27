@@ -75,35 +75,38 @@ const Sidebar: React.FC = () => {
                 </NavLink>
               );
             })}
-            <div className="my-3 border-t border-gray-200" />
           </>
         )}
 
-        {/* Regular Navigation */}
-        <div className="pt-2 pb-1">
-          <p className="px-4 text-xs font-semibold text-text-muted uppercase tracking-wider">
-            Main Menu
-          </p>
-        </div>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-primary-50 text-primary-600'
-                    : 'text-text-secondary hover:bg-gray-50 hover:text-text-primary'
-                }`
-              }
-            >
-              <Icon className="mr-3 h-5 w-5" />
-              {item.name}
-            </NavLink>
-          );
-        })}
+        {/* Regular Navigation - Only for Agency Users (not Bizvoy Admin) */}
+        {!isBizvoyAdmin && (
+          <>
+            <div className="pt-2 pb-1">
+              <p className="px-4 text-xs font-semibold text-text-muted uppercase tracking-wider">
+                Main Menu
+              </p>
+            </div>
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-primary-50 text-primary-600'
+                        : 'text-text-secondary hover:bg-gray-50 hover:text-text-primary'
+                    }`
+                  }
+                >
+                  <Icon className="mr-3 h-5 w-5" />
+                  {item.name}
+                </NavLink>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       <div className="p-4 border-t border-gray-200">
