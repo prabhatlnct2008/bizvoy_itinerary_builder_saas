@@ -16,6 +16,7 @@ sys.path.insert(0, '.')
 
 from app.db.session import SessionLocal
 from app.models.user import User
+from app.models.agency import Agency  # Required for SQLAlchemy relationship resolution
 from app.core.security import get_password_hash
 
 
