@@ -2,6 +2,9 @@
 """
 Script to create a Bizvoy Admin user.
 Run via shell: python insert_bizvoy_admin_user.py
+
+Bizvoy Admin users are platform administrators who manage agencies.
+They do NOT belong to any agency (agency_id is null).
 """
 import sys
 import getpass
@@ -11,44 +14,18 @@ from datetime import datetime
 # Add the app directory to path for imports
 sys.path.insert(0, '.')
 
-from app.db.session import SessionLocal, engine
+from app.db.session import SessionLocal
 from app.models.user import User
-from app.models.agency import Agency
 from app.core.security import get_password_hash
-
-BIZVOY_AGENCY_ID = "bizvoy-platform"
-BIZVOY_AGENCY_NAME = "Bizvoy Platform"
-
-
-def get_or_create_bizvoy_agency(db):
-    """Get or create the Bizvoy Platform agency for admin users."""
-    agency = db.query(Agency).filter(Agency.id == BIZVOY_AGENCY_ID).first()
-
-    if not agency:
-        print(f"Creating Bizvoy Platform agency...")
-        agency = Agency(
-            id=BIZVOY_AGENCY_ID,
-            name=BIZVOY_AGENCY_NAME,
-            contact_email="admin@bizvoy.com",
-            is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-        )
-        db.add(agency)
-        db.commit()
-        db.refresh(agency)
-        print(f"Created agency: {agency.name}")
-    else:
-        print(f"Using existing agency: {agency.name}")
-
-    return agency
 
 
 def create_bizvoy_admin_user():
     """Create a Bizvoy admin user with interactive prompts."""
     print("\n" + "=" * 50)
     print("  Bizvoy Admin User Creation Script")
-    print("=" * 50 + "\n")
+    print("=" * 50)
+    print("\n  Note: Bizvoy admins are platform administrators")
+    print("  who manage agencies. They don't belong to any agency.\n")
 
     # Get email
     email = input("Enter admin email: ").strip()
@@ -82,17 +59,14 @@ def create_bizvoy_admin_user():
     db = SessionLocal()
 
     try:
-        # Get or create Bizvoy agency
-        agency = get_or_create_bizvoy_agency(db)
-
-        # Check if user already exists
+        # Check if user already exists (bizvoy admins have no agency, so check globally)
         existing_user = db.query(User).filter(
-            User.agency_id == BIZVOY_AGENCY_ID,
-            User.email == email
+            User.email == email,
+            User.is_bizvoy_admin == True
         ).first()
 
         if existing_user:
-            print(f"\nError: User with email '{email}' already exists in Bizvoy Platform.")
+            print(f"\nError: Bizvoy admin with email '{email}' already exists.")
             sys.exit(1)
 
         # Create the user
@@ -100,13 +74,13 @@ def create_bizvoy_admin_user():
 
         user = User(
             id=str(uuid.uuid4()),
-            agency_id=BIZVOY_AGENCY_ID,
+            agency_id=None,  # Bizvoy admins don't belong to any agency
             email=email,
             hashed_password=hashed_password,
             full_name=full_name,
             is_active=True,
-            is_superuser=True,
-            is_bizvoy_admin=True,
+            is_superuser=False,  # Not an agency admin
+            is_bizvoy_admin=True,  # Platform administrator
             force_password_reset=False,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
@@ -122,9 +96,9 @@ def create_bizvoy_admin_user():
         print(f"\n  Email: {user.email}")
         print(f"  Name: {user.full_name}")
         print(f"  User ID: {user.id}")
-        print(f"  Agency: {agency.name}")
+        print(f"  Agency: None (Platform Admin)")
         print(f"  Is Bizvoy Admin: {user.is_bizvoy_admin}")
-        print("\n  You can now login at /login and will be redirected to /admin")
+        print("\n  Login at /login -> redirects to /admin dashboard")
         print("=" * 50 + "\n")
 
     except Exception as e:

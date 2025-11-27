@@ -9,7 +9,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    agency_id = Column(String, ForeignKey("agencies.id", ondelete="CASCADE"), nullable=False, index=True)
+    agency_id = Column(String, ForeignKey("agencies.id", ondelete="CASCADE"), nullable=True, index=True)  # Nullable for bizvoy-admin users
     email = Column(String(255), nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=False)
