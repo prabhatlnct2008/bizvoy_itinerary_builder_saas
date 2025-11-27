@@ -50,3 +50,8 @@ node_modules/
 # Logs
 *.log
 logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
