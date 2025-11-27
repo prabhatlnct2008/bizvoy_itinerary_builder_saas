@@ -3,20 +3,19 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Building2,
-  User,
   Mail,
   Phone,
-  Globe,
   FileText,
   Copy,
   Users,
   Edit,
   Save,
   X,
-  Send,
   XCircle,
   CheckCircle,
   ExternalLink,
+  Key,
+  Shield,
 } from 'lucide-react';
 import { adminAPI } from '../../api/admin';
 import { AgencyWithStats, AgencyUpdate, AdminUser } from '../../types';
@@ -60,17 +59,19 @@ const AgencyDetail: React.FC = () => {
   const navigate = useNavigate();
 
   const [agency, setAgency] = useState<AgencyWithStats | null>(null);
+  const [agencyUsers, setAgencyUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
+  const [resetPasswordLoading, setResetPasswordLoading] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<AgencyUpdate>({});
 
   useEffect(() => {
     if (id) {
       fetchAgency();
+      fetchAgencyUsers();
     }
   }, [id]);
 
@@ -95,6 +96,15 @@ const AgencyDetail: React.FC = () => {
       navigate('/admin/agencies');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAgencyUsers = async () => {
+    try {
+      const users = await adminAPI.getAgencyUsers(id!);
+      setAgencyUsers(users);
+    } catch (err: any) {
+      console.error('Failed to fetch agency users:', err);
     }
   };
 
@@ -163,27 +173,25 @@ const AgencyDetail: React.FC = () => {
     }
   };
 
-  const handleResendInvitation = async () => {
-    if (!agency?.primary_admin) return;
-
-    if (!confirm(`Send new login credentials to ${agency.primary_admin.email}?`)) {
+  const handleResetPassword = async (user: AdminUser) => {
+    if (!confirm(`Reset password for ${user.full_name} (${user.email})?\n\nA new temporary password will be generated and emailed to them. They will be required to change it on next login.`)) {
       return;
     }
 
     try {
-      setResendLoading(true);
+      setResetPasswordLoading(user.id);
       const result = await adminAPI.resendInvitation(id!, {
-        user_id: agency.primary_admin.id,
+        user_id: user.id,
       });
       if (result.success) {
-        toast.success(result.message);
+        toast.success(`Password reset email sent to ${user.email}`);
       } else {
         toast.error(result.message);
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Failed to resend invitation');
+      toast.error(err.response?.data?.detail || 'Failed to reset password');
     } finally {
-      setResendLoading(false);
+      setResetPasswordLoading(null);
     }
   };
 
@@ -434,46 +442,70 @@ const AgencyDetail: React.FC = () => {
 
         {/* Right Column - Admin User & Stats */}
         <div className="space-y-6">
-          {/* Admin User Card */}
+          {/* Agency Users Card */}
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-blue-50 rounded-lg">
-                <User className="h-5 w-5 text-blue-600" />
+                <Users className="h-5 w-5 text-blue-600" />
               </div>
-              <h2 className="text-lg font-semibold text-text-primary">Admin User</h2>
+              <h2 className="text-lg font-semibold text-text-primary">Agency Users</h2>
             </div>
 
-            {agency.primary_admin ? (
+            {agencyUsers.length > 0 ? (
               <div className="space-y-4">
-                <div>
-                  <p className="font-medium text-text-primary">
-                    {agency.primary_admin.full_name}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-text-secondary">
-                    <Mail className="h-4 w-4" />
-                    {agency.primary_admin.email}
-                  </div>
-                  {agency.primary_admin.phone && (
-                    <div className="flex items-center gap-2 mt-1 text-sm text-text-secondary">
-                      <Phone className="h-4 w-4" />
-                      {agency.primary_admin.phone}
+                {agencyUsers.map((user) => {
+                  const isPrimaryAdmin = agency.primary_admin?.id === user.id;
+                  return (
+                    <div
+                      key={user.id}
+                      className="p-3 bg-gray-50 rounded-lg border border-gray-100"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-text-primary truncate">
+                              {user.full_name}
+                            </p>
+                            {isPrimaryAdmin && (
+                              <Badge variant="info" className="text-xs">
+                                <Shield className="h-3 w-3 mr-1" />
+                                Admin
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-sm text-text-secondary">
+                            <Mail className="h-3 w-3" />
+                            <span className="truncate">{user.email}</span>
+                          </div>
+                          {user.phone && (
+                            <div className="flex items-center gap-2 mt-1 text-sm text-text-secondary">
+                              <Phone className="h-3 w-3" />
+                              {user.phone}
+                            </div>
+                          )}
+                          <div className="mt-2">
+                            <Badge variant={user.is_active ? 'success' : 'default'} className="text-xs">
+                              {user.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="w-full mt-3"
+                        onClick={() => handleResetPassword(user)}
+                        disabled={resetPasswordLoading === user.id}
+                      >
+                        <Key className="h-4 w-4 mr-2" />
+                        {resetPasswordLoading === user.id ? 'Sending...' : 'Reset Password'}
+                      </Button>
                     </div>
-                  )}
-                </div>
-
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="w-full"
-                  onClick={handleResendInvitation}
-                  disabled={resendLoading}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {resendLoading ? 'Sending...' : 'Resend Invitation'}
-                </Button>
+                  );
+                })}
               </div>
             ) : (
-              <p className="text-text-muted">No admin user found</p>
+              <p className="text-text-muted">No users found</p>
             )}
           </Card>
 
