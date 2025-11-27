@@ -32,6 +32,11 @@ const TemplateBuilder: React.FC = () => {
     setDays,
     setSelectedDayIndex,
     updateDay,
+    addDay,
+    deleteDay,
+    duplicateDay,
+    reorderDays,
+    renameDay,
     addActivityToDay,
     removeActivityFromDay,
     moveActivity,
@@ -71,22 +76,17 @@ const TemplateBuilder: React.FC = () => {
     };
   }, [id]);
 
+  // Duration is now computed from days (days = source of truth)
+  // Auto-sync duration when days change
   useEffect(() => {
-    // Auto-generate days array when duration changes
-    const newDays: TemplateDayCreate[] = [];
-    for (let i = 1; i <= formData.duration_days; i++) {
-      const existingDay = days.find((d) => d.day_number === i);
-      newDays.push(
-        existingDay || {
-          day_number: i,
-          title: `Day ${i}`,
-          notes: '',
-          activities: [],
-        }
-      );
+    if (days.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        duration_days: days.length,
+        duration_nights: Math.max(days.length - 1, 0),
+      }));
     }
-    setDays(newDays);
-  }, [formData.duration_days]);
+  }, [days.length]);
 
   const initializeNewTemplate = () => {
     setDays([
@@ -276,22 +276,26 @@ const TemplateBuilder: React.FC = () => {
               />
 
               <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Days"
-                  type="number"
-                  min="1"
-                  value={formData.duration_days}
-                  onChange={(e) => handleChange('duration_days', parseInt(e.target.value) || 1)}
-                  required
-                />
-                <Input
-                  label="Nights"
-                  type="number"
-                  min="0"
-                  value={formData.duration_nights}
-                  onChange={(e) => handleChange('duration_nights', parseInt(e.target.value) || 0)}
-                />
+                <div>
+                  <label className="block text-sm font-medium text-secondary mb-1">
+                    Days
+                  </label>
+                  <div className="px-3 py-2 bg-gray-50 border border-border rounded-lg text-gray-700">
+                    {formData.duration_days}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-secondary mb-1">
+                    Nights
+                  </label>
+                  <div className="px-3 py-2 bg-gray-50 border border-border rounded-lg text-gray-700">
+                    {formData.duration_nights}
+                  </div>
+                </div>
               </div>
+              <p className="text-xs text-muted mt-1">
+                Auto-synced from day timeline. Add or remove days to change duration.
+              </p>
 
               <Input
                 label="Approx. Price"
@@ -323,6 +327,11 @@ const TemplateBuilder: React.FC = () => {
                 days={days}
                 selectedDayIndex={selectedDayIndex}
                 onSelectDay={setSelectedDayIndex}
+                onAddDay={addDay}
+                onDeleteDay={deleteDay}
+                onDuplicateDay={duplicateDay}
+                onReorderDays={reorderDays}
+                onRenameDay={renameDay}
               />
             </div>
           </div>

@@ -9,6 +9,7 @@ import enum
 class TemplateStatus(str, enum.Enum):
     draft = "draft"
     published = "published"
+    archived = "archived"
 
 
 class Template(Base):

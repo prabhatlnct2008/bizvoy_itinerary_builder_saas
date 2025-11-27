@@ -227,6 +227,8 @@ export interface TemplateDay {
   activities: TemplateDayActivity[];
 }
 
+export type TemplateStatus = 'draft' | 'published' | 'archived';
+
 export interface Template {
   id: string;
   agency_id: string;
@@ -236,10 +238,21 @@ export interface Template {
   duration_nights: number;
   description: string | null;
   approximate_price: number | null;
-  status: 'draft' | 'published';
+  status: TemplateStatus;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface TemplateListItem {
+  id: string;
+  name: string;
+  destination: string;
+  duration_days: number;
+  duration_nights: number;
+  status: TemplateStatus;
+  updated_at: string;
+  usage_count: number;
 }
 
 export interface TemplateDetail extends Template {
@@ -268,7 +281,7 @@ export interface TemplateCreate {
   duration_nights: number;
   description?: string | null;
   approximate_price?: number | null;
-  status?: 'draft' | 'published';
+  status?: TemplateStatus;
   days: TemplateDayCreate[];
 }
 
@@ -279,7 +292,7 @@ export interface TemplateUpdate {
   duration_nights?: number;
   description?: string | null;
   approximate_price?: number | null;
-  status?: 'draft' | 'published';
+  status?: TemplateStatus;
   days?: TemplateDayCreate[];
 }
 

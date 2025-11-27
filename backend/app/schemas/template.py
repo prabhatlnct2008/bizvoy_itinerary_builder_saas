@@ -53,8 +53,12 @@ class ReorderRequest(BaseModel):
     activity_ids: List[str] = Field(..., min_length=1)
 
 
+class DayReorderRequest(BaseModel):
+    day_ids: List[str] = Field(..., min_length=1, description="List of day IDs in desired order")
+
+
 class TemplateDayCreate(BaseModel):
-    day_number: int
+    day_number: Optional[int] = None  # Auto-assigned if not provided
     title: Optional[str] = None
     notes: Optional[str] = None
     activities: List[TemplateDayActivityCreate] = []
