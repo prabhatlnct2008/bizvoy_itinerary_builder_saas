@@ -18,6 +18,11 @@ import ItineraryWizard from '../features/itineraries/ItineraryWizard';
 import ItineraryEditor from '../features/itineraries/ItineraryEditor';
 import PublicItinerary from '../features/public/PublicItinerary';
 import CompanySettings from '../features/settings/CompanySettings';
+// Gamification Pages
+import PersonalizationSettings from '../features/agency-settings/PersonalizationSettings';
+import ReadinessOverview from '../features/agency-settings/ReadinessOverview';
+import VibesManager from '../features/agency-settings/VibesManager';
+import PersonalizationAnalyticsDashboard from '../features/agency-settings/PersonalizationAnalyticsDashboard';
 // Admin Pages
 import AdminDashboard from '../features/admin/AdminDashboard';
 import AgenciesList from '../features/admin/AgenciesList';
@@ -114,6 +119,10 @@ const AppRoutes: React.FC = () => {
           {/* Settings */}
           <Route path="settings" element={<CompanySettings />} />
           <Route path="settings/company" element={<CompanySettings />} />
+          <Route path="settings/personalization" element={<PersonalizationSettings />} />
+          <Route path="settings/readiness" element={<ReadinessOverview />} />
+          <Route path="settings/vibes" element={<VibesManager />} />
+          <Route path="analytics/personalization" element={<PersonalizationAnalyticsDashboard />} />
 
           {/* Admin Routes - Bizvoy Admin Only */}
           <Route
