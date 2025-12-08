@@ -68,13 +68,13 @@ export const SwipeDeck = ({ deck, onSwipe, onComplete }: SwipeDeckProps) => {
       <div className="flex-1 relative px-4 py-6">
         <div className="max-w-md mx-auto h-full relative">
           {/* Render cards in reverse order so top card is on top */}
-          {visibleCards.reverse().map((card, index) => {
+          {[...visibleCards].reverse().map((card, index) => {
             const reverseIndex = visibleCards.length - 1 - index;
             const isTopCard = reverseIndex === 0;
 
             return (
               <motion.div
-                key={card.id}
+                key={card.activity_id}
                 className="absolute inset-0"
                 initial={{
                   scale: 1 - reverseIndex * 0.05,

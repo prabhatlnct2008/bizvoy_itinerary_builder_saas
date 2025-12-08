@@ -31,9 +31,34 @@ const ReadinessOverview: React.FC = () => {
     try {
       setLoading(true);
       const data = await getGamificationStatus();
-      setStatus(data);
+
+      // Backend returns {ready_activities, not_ready_activities, total_activities, average_readiness_score, common_issues}
+      // Normalize to the UI shape with game_ready_count, game_ready_percentage, and issues.*
+      const total =
+        data.total_activities ??
+        data.total ??
+        (data.ready_activities || 0) + (data.not_ready_activities || 0);
+      const gameReadyCount = data.game_ready_count ?? data.ready_activities ?? data.ready ?? 0;
+      const percentage =
+        data.game_ready_percentage ??
+        (total > 0 ? (gameReadyCount / total) * 100 : 0);
+      const issueSource = data.issues || data.common_issues || {};
+
+      setStatus({
+        total_activities: total,
+        game_ready_count: gameReadyCount,
+        game_ready_percentage: percentage,
+        issues: {
+          missing_hero_image: issueSource.missing_hero_image || 0,
+          missing_price: issueSource.missing_price || 0,
+          missing_vibe_tags: issueSource.missing_vibe_tags || 0,
+          missing_description: issueSource.missing_description || 0,
+          missing_location: issueSource.missing_location || 0,
+        },
+      });
     } catch (error) {
       console.error('Failed to load readiness status:', error);
+      setStatus(null);
     } finally {
       setLoading(false);
     }

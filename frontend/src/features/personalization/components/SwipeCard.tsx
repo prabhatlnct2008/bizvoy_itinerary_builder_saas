@@ -26,6 +26,11 @@ export const SwipeCard = ({ card, onSwipeLeft, onSwipeRight, isTopCard }: SwipeC
     threshold: 150,
   });
 
+  const priceLabel =
+    card.price_numeric !== null && card.price_numeric !== undefined
+      ? `${card.currency_code || ''} ${card.price_numeric.toFixed(2)}`
+      : card.price_display || 'Included';
+
   return (
     <motion.div
       className="absolute inset-0"
@@ -115,7 +120,7 @@ export const SwipeCard = ({ card, onSwipeLeft, onSwipeRight, isTopCard }: SwipeC
 
             {/* Price */}
             <div className="inline-flex items-center bg-game-accent-green text-white px-4 py-2 rounded-lg font-bold text-lg shadow-lg">
-              {card.currency_code} {card.price_numeric.toFixed(2)}
+              {priceLabel}
             </div>
           </div>
         </div>
