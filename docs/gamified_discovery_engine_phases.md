@@ -1,21 +1,65 @@
 # Project Status: Gamified Discovery Engine
 
-## Current Phase: Phase 1 (Not Started)
-
-## Overview
-
-| Phase | Focus | Tasks |
-|-------|-------|-------|
-| Phase 1 | Database, Models & Agency Settings | ~35 tasks |
-| Phase 2 | Client-Facing Game UI | ~30 tasks |
-| Phase 3 | Fit Engine, Reveal & Confirm | ~20 tasks |
-| Phase 4 | Agency Controls, Analytics & Polish | ~20 tasks |
-
-**Total Estimated Tasks: ~105**
+## Current Status: Setup Complete - Ready for Parallel Development
 
 ---
 
-## Phase 1: Database, Models & Agency Settings
+## Parallel Development Architecture
+
+This project uses **git worktrees** for parallel phase development, enabling simultaneous work on all phases.
+
+### Worktree Structure
+
+| Worktree | Branch | Focus |
+|----------|--------|-------|
+| `/home/user/bizvoy-phase1` | `claude/gamified-phase1-01B9scX6fBF4DgEUUxf9gq3W` | Database, Models, Backend APIs |
+| `/home/user/bizvoy-phase2` | `claude/gamified-phase2-01B9scX6fBF4DgEUUxf9gq3W` | Frontend Game UI |
+| `/home/user/bizvoy-phase3` | `claude/gamified-phase3-01B9scX6fBF4DgEUUxf9gq3W` | Fit Engine & Reveal |
+| `/home/user/bizvoy-phase4` | `claude/gamified-phase4-01B9scX6fBF4DgEUUxf9gq3W` | Agency Controls & Analytics |
+| `/home/user/bizvoy-integration` | `claude/gamified-integration-01B9scX6fBF4DgEUUxf9gq3W` | Integration & Testing |
+
+### Development Flow
+
+```
+Phase 1 (Backend Foundation) ─────┐
+                                  │
+Phase 2 (Frontend UI) ────────────┼──→ Integration ──→ Main
+                                  │       Phase
+Phase 3 (Fit Engine) ─────────────┤
+                                  │
+Phase 4 (Agency Controls) ────────┘
+```
+
+### Parallel Development Strategy
+
+| Phase | Can Start | Dependencies | Mocking Strategy |
+|-------|-----------|--------------|------------------|
+| Phase 1 | Immediately | None | N/A - Foundation |
+| Phase 2 | Immediately | Phase 1 APIs | Mock API responses, use TypeScript interfaces |
+| Phase 3 | Immediately | Phase 1 Models | Mock models, implement algorithm logic |
+| Phase 4 | Immediately | Phase 1 APIs | Mock API responses, build UI components |
+| Phase 5 | After all phases | All phases | Merge and integrate |
+
+---
+
+## Overview
+
+| Phase | Focus | Tasks | Status |
+|-------|-------|-------|--------|
+| Phase 1 | Database, Models & Backend APIs | ~35 | Not Started |
+| Phase 2 | Client-Facing Game UI | ~30 | Not Started |
+| Phase 3 | Fit Engine, Reveal & Confirm | ~20 | Not Started |
+| Phase 4 | Agency Controls, Analytics & Polish | ~20 | Not Started |
+| **Phase 5** | **Integration & Testing** | **~25** | Not Started |
+
+**Total Estimated Tasks: ~130**
+
+---
+
+## Phase 1: Database, Models & Backend APIs
+
+**Worktree:** `/home/user/bizvoy-phase1`
+**Branch:** `claude/gamified-phase1-01B9scX6fBF4DgEUUxf9gq3W`
 
 ### 1.1 Database Schema - New Tables
 - [ ] Create `agency_vibes` table
@@ -109,7 +153,7 @@
   - [ ] `get_settings()` - get agency personalization settings
   - [ ] `update_settings()` - update settings
   - [ ] `create_default_settings()` - initialize for new agency
-- [ ] Implement `DeckBuilder` service (basic structure)
+- [ ] Implement `DeckBuilder` service
   - [ ] `build_deck()` - curate activities by vibe + destination
   - [ ] `_score_activity()` - calculate relevance score
   - [ ] `_ensure_variety()` - limit per-category count
@@ -137,7 +181,9 @@
 - [ ] Implement `POST /public/itinerary/{token}/personalization/start`
 - [ ] Implement `GET /public/itinerary/{token}/personalization/deck`
 - [ ] Implement `POST /public/itinerary/{token}/personalization/swipe`
-- [ ] Implement stub `POST /public/itinerary/{token}/personalization/complete` (full in Phase 3)
+- [ ] Implement `POST /public/itinerary/{token}/personalization/complete`
+- [ ] Implement `POST /public/itinerary/{token}/personalization/confirm`
+- [ ] Implement `POST /public/itinerary/{token}/personalization/swap`
 - [ ] Implement `GET /public/itinerary/{token}/personalization/resume`
 
 ### 1.8 Data Migration
@@ -150,18 +196,14 @@
 - [ ] Create seed data for global vibes (10 defaults)
 - [ ] Create default personalization settings for existing agencies
 
-### 1.9 Testing Phase 1
-- [ ] Unit tests for ReadinessCalculator
-- [ ] Unit tests for VibeService
-- [ ] Unit tests for SettingsService
-- [ ] Unit tests for DeckBuilder scoring
-- [ ] API tests for agency endpoints
-- [ ] API tests for public status/start/deck endpoints
-- [ ] Test database migrations (up and down)
-
 ---
 
 ## Phase 2: Client-Facing Game UI
+
+**Worktree:** `/home/user/bizvoy-phase2`
+**Branch:** `claude/gamified-phase2-01B9scX6fBF4DgEUUxf9gq3W`
+
+**Mocking Strategy:** Create mock API responses matching Phase 1 schemas. Use TypeScript interfaces from plan.md.
 
 ### 2.1 Project Setup
 - [ ] Install dependencies: `framer-motion`, `@fingerprintjs/fingerprintjs`, `canvas-confetti`
@@ -169,8 +211,9 @@
 - [ ] Add gamification colors to Tailwind config
 - [ ] Add custom animations to Tailwind config
 - [ ] Create TypeScript interfaces in `types/personalization.ts`
+- [ ] Create mock data for development (`mocks/personalization.ts`)
 
-### 2.2 API Integration
+### 2.2 API Integration Layer
 - [ ] Create `api/personalization.ts` with client functions
   - [ ] `getPersonalizationStatus(token)`
   - [ ] `startSession(token, vibes, deviceId)`
@@ -182,6 +225,7 @@
   - [ ] `resumeSession(token, deviceId)`
 - [ ] Create `hooks/usePersonalization.ts` for state management
 - [ ] Create `hooks/useDeviceId.ts` for browser fingerprinting
+- [ ] Add environment flag for mock vs real API
 
 ### 2.3 Entry Point
 - [ ] Create `PersonalizationEntry.tsx` CTA component
@@ -236,30 +280,43 @@
 - [ ] Persist state across steps
 - [ ] Handle session resume
 
-### 2.7 Animations
-- [ ] Create `animations/cardAnimations.ts` Framer variants
-  - [ ] Card entry (scale from 0.9)
-  - [ ] Swipe left exit
-  - [ ] Swipe right exit
-  - [ ] Flip animation
-- [ ] Create `animations/bubbleAnimations.ts`
-  - [ ] Float animation
-  - [ ] Selection pulse
-- [ ] Create `animations/confetti.ts` for reveal
+### 2.7 Magic Crunch Screen
+- [ ] Create `MagicCrunch.tsx` component
+- [ ] Design stylized map background (SVG or CSS)
+- [ ] Implement pin drop animation
+  - [ ] Grey pins for locked items
+  - [ ] Green pins for liked items
+- [ ] Add polyline drawing animation
+- [ ] Create rotating copy messages array
+- [ ] Ensure max 3 second display
 
-### 2.8 Testing Phase 2
-- [ ] Test on iOS Safari
-- [ ] Test on Android Chrome
-- [ ] Test touch gestures accuracy
-- [ ] Test keyboard navigation
-- [ ] Performance test (60fps animations)
-- [ ] Test responsive design (320px - 768px)
+### 2.8 Reveal Timeline Screen (UI Only)
+- [ ] Create `RevealTimeline.tsx` container
+- [ ] Create `TimelineDay.tsx` component
+- [ ] Create `TimelineActivity.tsx` component (locked vs flexible styles)
+- [ ] Trigger confetti on load
+- [ ] Create `MissedConnections.tsx` bottom sheet
+- [ ] Create `SwapModal.tsx` confirmation dialog
+- [ ] Create `SavedForLater.tsx` expandable section
+- [ ] Create `ConfirmFooter.tsx` sticky component
+- [ ] Create `PaymentInfo.tsx`
+
+### 2.9 Animations
+- [ ] Create `animations/cardAnimations.ts` Framer variants
+- [ ] Create `animations/bubbleAnimations.ts`
+- [ ] Create `animations/confetti.ts` for reveal
 
 ---
 
 ## Phase 3: Fit Engine, Reveal & Confirm
 
+**Worktree:** `/home/user/bizvoy-phase3`
+**Branch:** `claude/gamified-phase3-01B9scX6fBF4DgEUUxf9gq3W`
+
+**Mocking Strategy:** Create mock model classes matching Phase 1 SQLAlchemy models. Focus on algorithm implementation.
+
 ### 3.1 Fit Engine Implementation
+- [ ] Create mock models for testing (`mocks/models.py`)
 - [ ] Complete `FitEngine` service
 - [ ] Define TIME_WINDOWS constants
 - [ ] Implement `get_available_windows()`
@@ -285,68 +342,34 @@
 - [ ] Calculate total added price
 - [ ] Include company payment info
 
-### 3.3 API Completion
-- [ ] Complete `POST .../personalization/complete` endpoint
-- [ ] Implement `POST .../personalization/confirm` endpoint
-  - [ ] Create ItineraryDayActivity records for fitted items
-  - [ ] Mark cart items as CONFIRMED
-  - [ ] Update itinerary total price
-  - [ ] Set personalization_completed = True
-  - [ ] Trigger WebSocket notification
-- [ ] Implement `POST .../personalization/swap` endpoint
-  - [ ] Validate swap is allowed
-  - [ ] Remove fitted item
-  - [ ] Add missed item in its place
-  - [ ] Recalculate totals
-  - [ ] Update cart item statuses
+### 3.3 Swap Logic
+- [ ] Implement swap validation
+- [ ] Implement `execute_swap()` function
+- [ ] Recalculate totals after swap
+- [ ] Update cart item statuses
 
-### 3.4 Magic Crunch Screen
-- [ ] Create `MagicCrunch.tsx` component
-- [ ] Design stylized map background (SVG or CSS)
-- [ ] Implement pin drop animation
-  - [ ] Grey pins for locked items
-  - [ ] Green pins for liked items
-- [ ] Add polyline drawing animation
-- [ ] Create rotating copy messages array
-- [ ] Ensure max 3 second display (or progress indicator)
+### 3.4 Confirmation Logic
+- [ ] Implement `confirm_personalization()` function
+- [ ] Create ItineraryDayActivity records for fitted items
+- [ ] Mark cart items as CONFIRMED
+- [ ] Update itinerary total price
+- [ ] Set personalization_completed = True
 
-### 3.5 Reveal Timeline Screen
-- [ ] Create `RevealTimeline.tsx` container
-- [ ] Create `TimelineDay.tsx` component
-  - [ ] Day header with date
-  - [ ] Expandable/collapsible
-- [ ] Create `TimelineActivity.tsx` component
-  - [ ] Locked style (grey, lock icon)
-  - [ ] Flexible style (green, user-added badge)
-  - [ ] Time slot indicator
-  - [ ] Fit reason tooltip
-- [ ] Trigger confetti on load
-- [ ] Create `MissedConnections.tsx` bottom sheet
-  - [ ] Collapsible by default
-  - [ ] List missed items with reasons
-  - [ ] "Swap with X?" action buttons
-- [ ] Create `SwapModal.tsx` confirmation dialog
-- [ ] Create `SavedForLater.tsx` expandable section
-- [ ] Create `ConfirmFooter.tsx` sticky component
-  - [ ] Added total (left side)
-  - [ ] "Confirm & Pay" button (right side)
-- [ ] Create `PaymentInfo.tsx`
-  - [ ] Company QR code display
-  - [ ] Bank details section
-  - [ ] Payment notes
-
-### 3.6 Testing Phase 3
-- [ ] Unit tests for FitEngine algorithm
-- [ ] Unit tests for time window calculations
-- [ ] Unit tests for swap logic
-- [ ] Integration tests for complete flow
+### 3.5 Unit Tests
+- [ ] Test fit algorithm with various scenarios
+- [ ] Test time window calculations
+- [ ] Test swap logic
 - [ ] Test edge cases (0 likes, all fits, no fits)
-- [ ] E2E test full journey
-- [ ] Test WebSocket notifications
+- [ ] Test policy differences (STRICT/BALANCED/AGGRESSIVE)
 
 ---
 
-## Phase 4: Agency Controls, Analytics & Polish
+## Phase 4: Agency Controls, Analytics & UI
+
+**Worktree:** `/home/user/bizvoy-phase4`
+**Branch:** `claude/gamified-phase4-01B9scX6fBF4DgEUUxf9gq3W`
+
+**Mocking Strategy:** Create mock API responses. Build UI components independently.
 
 ### 4.1 Agency Settings UI
 - [ ] Create `PersonalizationSettings.tsx` page
@@ -399,8 +422,10 @@
   - [ ] Revenue added
 - [ ] Integrate into itinerary edit/detail pages
 
-### 4.5 Analytics Dashboard
-- [ ] Implement `GET /itineraries/{id}/personalization/analytics` fully
+### 4.5 Analytics Service & Dashboard
+- [ ] Implement `AnalyticsService`
+  - [ ] `get_itinerary_analytics()`
+  - [ ] `get_agency_analytics()`
 - [ ] Create `PersonalizationAnalyticsDashboard.tsx`
   - [ ] Sessions summary cards
   - [ ] Completion/confirmation rates
@@ -410,36 +435,94 @@
   - [ ] Vibe popularity breakdown
   - [ ] Revenue impact
 
-### 4.6 Polish & Performance
-- [ ] Add loading skeletons for all async operations
-- [ ] Add error boundaries and retry logic
+---
+
+## Phase 5: Integration & Testing
+
+**Worktree:** `/home/user/bizvoy-integration`
+**Branch:** `claude/gamified-integration-01B9scX6fBF4DgEUUxf9gq3W`
+
+### 5.1 Branch Merging
+- [ ] Merge Phase 1 into integration branch
+- [ ] Resolve any conflicts
+- [ ] Merge Phase 2 into integration branch
+- [ ] Resolve any conflicts
+- [ ] Merge Phase 3 into integration branch
+- [ ] Resolve any conflicts
+- [ ] Merge Phase 4 into integration branch
+- [ ] Resolve any conflicts
+
+### 5.2 API Integration
+- [ ] Remove mock API layer from Phase 2
+- [ ] Connect frontend to real backend APIs
+- [ ] Test all API endpoints end-to-end
+- [ ] Fix any integration issues
+
+### 5.3 Database Integration
+- [ ] Run all migrations in sequence
+- [ ] Verify data integrity
+- [ ] Test data migration scripts on sample data
+- [ ] Seed test data for all agencies
+
+### 5.4 End-to-End Testing
+- [ ] Test complete personalization flow
+  - [ ] Entry from shared itinerary
+  - [ ] Vibe Check selection
+  - [ ] Swipe deck (like, pass, save)
+  - [ ] Magic Crunch animation
+  - [ ] Reveal timeline
+  - [ ] Swap functionality
+  - [ ] Confirm and persist
+- [ ] Test agency controls
+  - [ ] Settings update
+  - [ ] Vibes management
+  - [ ] Activity gamification fields
+  - [ ] Itinerary personalization toggle
+- [ ] Test analytics dashboard
+- [ ] Test multi-user scenarios (different devices, same itinerary)
+- [ ] Test session resume
+
+### 5.5 Cross-Browser & Device Testing
+- [ ] Test on iOS Safari (iPhone)
+- [ ] Test on Android Chrome
+- [ ] Test on Desktop Chrome
+- [ ] Test on Desktop Firefox
+- [ ] Test on Desktop Safari
+- [ ] Test responsive design (320px - 1920px)
+
+### 5.6 Performance Testing
+- [ ] Deck building < 500ms
+- [ ] Fit algorithm < 2s
+- [ ] Animation 60fps
+- [ ] Image loading optimization
+- [ ] API response times
+
+### 5.7 Security Review
+- [ ] Rate limiting on public endpoints
+- [ ] Input validation
+- [ ] Session hijacking prevention
+- [ ] SQL injection prevention
+- [ ] XSS prevention
+
+### 5.8 Final Polish
+- [ ] Add loading skeletons
+- [ ] Add error boundaries
+- [ ] Add retry logic for network failures
 - [ ] Implement session resume (within 24h)
 - [ ] Add "Undo last swipe" button
-- [ ] Optimize image loading (WebP format check)
-- [ ] Add offline detection and handling
 - [ ] WebSocket notifications on personalization complete
-- [ ] Rate limiting for public endpoints
 
-### 4.7 Documentation & Final Testing
+### 5.9 Documentation
 - [ ] Update API documentation
-- [ ] Add inline code comments for complex logic
+- [ ] Add inline code comments
 - [ ] Create agency onboarding guide
-- [ ] Performance audit
-  - [ ] Deck building < 500ms
-  - [ ] Fit algorithm < 2s
-  - [ ] Animation 60fps
-- [ ] Security review
-  - [ ] Rate limiting
-  - [ ] Input validation
-  - [ ] Session hijacking prevention
-- [ ] Cross-browser testing
-- [ ] Accessibility audit
+- [ ] Update README with new features
 
 ---
 
 ## Completion Checklist
 
-### MVP (End of Phase 3)
+### MVP (End of Integration)
 - [ ] CTA entry from shared itinerary
 - [ ] Vibe Check screen with agency vibes
 - [ ] 15-25 card swipe deck
@@ -449,8 +532,11 @@
 - [ ] Confirm and persist to itinerary
 - [ ] Payment info display (QR/bank)
 - [ ] Independent sessions per user/device
+- [ ] All tests passing
+- [ ] Performance targets met
+- [ ] Security review complete
 
-### Full Version (End of Phase 4)
+### Full Version
 - [ ] Full agency personalization settings
 - [ ] Custom vibes management
 - [ ] Activity gamification fields
@@ -458,22 +544,56 @@
 - [ ] Per-itinerary controls
 - [ ] Analytics dashboard
 - [ ] Session resume
-- [ ] Performance optimized
-- [ ] Security hardened
+- [ ] Cross-browser tested
 
 ---
 
 ## Session Log
 
-| Date | Phase | Tasks Completed | Notes |
-|------|-------|-----------------|-------|
-| _TBD_ | 1 | - | Project kickoff |
+| Date | Phase | Branch | Tasks Completed | Notes |
+|------|-------|--------|-----------------|-------|
+| 2025-12-08 | Setup | main | Created plan.md, phases.md | Initial documentation |
+| 2025-12-08 | Setup | all | Created worktrees for parallel dev | Ready to start |
+
+---
+
+## Git Commands Reference
+
+### Working with Worktrees
+
+```bash
+# List all worktrees
+git worktree list
+
+# Switch to a worktree
+cd /home/user/bizvoy-phase1
+
+# Push changes from a worktree
+cd /home/user/bizvoy-phase1
+git add .
+git commit -m "Phase 1: message"
+git push -u origin claude/gamified-phase1-01B9scX6fBF4DgEUUxf9gq3W
+
+# Merge into integration (from integration worktree)
+cd /home/user/bizvoy-integration
+git merge claude/gamified-phase1-01B9scX6fBF4DgEUUxf9gq3W
+```
+
+### Branch Summary
+
+| Phase | Branch Name |
+|-------|-------------|
+| Phase 1 | `claude/gamified-phase1-01B9scX6fBF4DgEUUxf9gq3W` |
+| Phase 2 | `claude/gamified-phase2-01B9scX6fBF4DgEUUxf9gq3W` |
+| Phase 3 | `claude/gamified-phase3-01B9scX6fBF4DgEUUxf9gq3W` |
+| Phase 4 | `claude/gamified-phase4-01B9scX6fBF4DgEUUxf9gq3W` |
+| Integration | `claude/gamified-integration-01B9scX6fBF4DgEUUxf9gq3W` |
 
 ---
 
 ## Dependencies
 
-### NPM Packages (Frontend)
+### NPM Packages (Phase 2 Frontend)
 - `framer-motion` - Swipe animations
 - `@fingerprintjs/fingerprintjs` - Device identification
 - `canvas-confetti` - Reveal celebration
@@ -484,25 +604,12 @@
 
 ---
 
-## Technical Debt Tracker
-
-| Item | Priority | Phase | Notes |
-|------|----------|-------|-------|
-| Full time-slot precision | Medium | Post-MVP | Using simple windows in v1, add precise scheduling later |
-| Orphaned file cleanup | Low | Post-MVP | Need cleanup job for deleted activity images |
-| Group Mode | Low | Future | Collaborative personalization with weighted merging |
-| AI Recommendations | Low | Future | ML-based card ordering from interaction patterns |
-| Payment Integration | Medium | Future | Stripe/PayPal checkout flow |
-| Offline Mode | Low | Future | PWA with local storage |
-
----
-
 ## Risk Register
 
-| Risk | Likelihood | Impact | Mitigation | Owner |
+| Risk | Likelihood | Impact | Mitigation | Phase |
 |------|------------|--------|------------|-------|
-| Low image quality activities | High | High | Readiness score gates + agency warnings | Phase 1 |
-| Complex fit algorithm bugs | Medium | Medium | Extensive unit tests, simple windows v1 | Phase 3 |
-| Session data loss | Medium | Medium | Persist on each swipe, 24h resume | Phase 1 |
-| Mobile performance issues | Medium | High | Lazy load, prefetch, limit deck size | Phase 2 |
-| Agency adoption resistance | Medium | Medium | Readiness dashboard, clear ROI | Phase 4 |
+| Merge conflicts | Medium | Medium | Small focused commits, frequent merges | 5 |
+| API contract mismatch | Medium | High | Strict TypeScript interfaces from plan.md | 2,5 |
+| Mock data divergence | Low | Medium | Generate mocks from schemas | 2,3,4 |
+| Performance regression | Low | High | Performance tests in Phase 5 | 5 |
+| Mobile gesture issues | Medium | High | Extensive device testing | 2,5 |
