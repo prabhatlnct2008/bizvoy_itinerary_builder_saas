@@ -49,8 +49,13 @@ export const SwipeDeck = ({ deck, onSwipe, onComplete }: SwipeDeckProps) => {
   if (currentIndex >= deck.length) {
     return (
       <div className="min-h-screen bg-game-bg flex items-center justify-center">
-        <div className="text-white text-2xl font-bold">
-          Preparing your personalized itinerary...
+        <div className="text-center px-8">
+          <div className="text-white text-2xl font-bold mb-3">
+            Creating your perfect trip...
+          </div>
+          <div className="text-white/50 text-sm">
+            Fitting your selections into the itinerary
+          </div>
         </div>
       </div>
     );
@@ -61,12 +66,15 @@ export const SwipeDeck = ({ deck, onSwipe, onComplete }: SwipeDeckProps) => {
 
   return (
     <div className="min-h-screen bg-game-bg flex flex-col">
-      {/* Progress Bar */}
+      {/* Progress Bar - Thin, integrated at top */}
       <ProgressBar current={currentIndex + 1} total={deck.length} />
 
-      {/* Card Stack */}
-      <div className="flex-1 relative px-4 py-6">
-        <div className="max-w-md mx-auto h-full relative">
+      {/* Card Stack - Takes up most of screen height for immersive experience */}
+      <div className="flex-1 relative px-4 pt-2 pb-4">
+        <div
+          className="max-w-md mx-auto h-full relative"
+          style={{ minHeight: 'calc(100vh - 220px)' }}
+        >
           {/* Render cards in reverse order so top card is on top */}
           {[...visibleCards].reverse().map((card, index) => {
             const reverseIndex = visibleCards.length - 1 - index;
@@ -77,12 +85,12 @@ export const SwipeDeck = ({ deck, onSwipe, onComplete }: SwipeDeckProps) => {
                 key={card.activity_id}
                 className="absolute inset-0"
                 initial={{
-                  scale: 1 - reverseIndex * 0.05,
-                  y: reverseIndex * 10,
+                  scale: 1 - reverseIndex * 0.04,
+                  y: reverseIndex * 12,
                 }}
                 animate={{
-                  scale: 1 - reverseIndex * 0.05,
-                  y: reverseIndex * 10,
+                  scale: 1 - reverseIndex * 0.04,
+                  y: reverseIndex * 12,
                 }}
                 style={{
                   zIndex: isTopCard ? 20 : 10 - reverseIndex,
@@ -100,46 +108,58 @@ export const SwipeDeck = ({ deck, onSwipe, onComplete }: SwipeDeckProps) => {
         </div>
       </div>
 
-      {/* Control Buttons (Thumb Zone) */}
-      <div className="p-6 bg-game-card border-t border-gray-700">
-        <div className="max-w-md mx-auto flex items-center justify-center gap-4">
-          {/* Pass Button */}
+      {/* Control Buttons (Thumb Zone) - Bold, High-contrast, Thumb-friendly sizing */}
+      <div className="px-6 py-5 bg-gradient-to-t from-game-bg via-game-bg to-transparent">
+        <div className="max-w-md mx-auto flex items-center justify-center gap-6">
+          {/* Pass Button (X) - Large with glow effect */}
           <motion.button
             onClick={() => handleButtonClick('PASS')}
             disabled={isAnimating}
-            className="w-16 h-16 rounded-full bg-game-discard text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+            className="w-[72px] h-[72px] rounded-full bg-game-discard text-white flex items-center justify-center shadow-xl disabled:opacity-50 disabled:cursor-not-allowed border-4 border-game-discard/20"
+            whileHover={{
+              scale: 1.1,
+              boxShadow: '0 0 30px rgba(255, 82, 82, 0.5)'
+            }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           >
-            <X className="w-8 h-8" strokeWidth={3} />
+            <X className="w-9 h-9" strokeWidth={3} />
           </motion.button>
 
-          {/* Save for Later Button */}
+          {/* Save for Later Button - Medium size */}
           <motion.button
             onClick={() => handleButtonClick('SAVE')}
             disabled={isAnimating}
-            className="w-14 h-14 rounded-full bg-game-save text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+            className="w-14 h-14 rounded-full bg-game-save text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed border-2 border-game-save/20"
+            whileHover={{
+              scale: 1.1,
+              boxShadow: '0 0 20px rgba(255, 193, 7, 0.5)'
+            }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           >
             <Bookmark className="w-6 h-6" />
           </motion.button>
 
-          {/* Like Button */}
+          {/* Like Button (Heart) - Large with glow effect */}
           <motion.button
             onClick={() => handleButtonClick('LIKE')}
             disabled={isAnimating}
-            className="w-16 h-16 rounded-full bg-game-accent-green text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+            className="w-[72px] h-[72px] rounded-full bg-game-accent-green text-white flex items-center justify-center shadow-xl disabled:opacity-50 disabled:cursor-not-allowed border-4 border-game-accent-green/20"
+            whileHover={{
+              scale: 1.1,
+              boxShadow: '0 0 30px rgba(0, 230, 118, 0.6)'
+            }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           >
-            <Heart className="w-8 h-8 fill-current" strokeWidth={3} />
+            <Heart className="w-9 h-9 fill-current" strokeWidth={2} />
           </motion.button>
         </div>
 
-        {/* Instructions */}
-        <div className="text-center text-sm text-gray-400 mt-4">
-          Swipe or tap • Tap ⓘ for details
+        {/* Instructions - Subtle hint */}
+        <div className="text-center text-xs text-white/40 mt-4 tracking-wide">
+          Swipe right to keep • Swipe left to pass • Tap card for details
         </div>
       </div>
     </div>
