@@ -21,7 +21,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy.orm import Session
-from app.core.database import SessionLocal
+from app.db.session import SessionLocal
 from app.models.activity import Activity
 from app.models.activity_type import ActivityType
 
