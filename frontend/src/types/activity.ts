@@ -63,6 +63,8 @@ export interface ActivityDetail {
   cost_display?: string;
   highlights?: string[];
   tags?: string[];
+  // Gamification fields
+  vibe_tags?: string[];
   is_active: boolean;
   internal_notes?: string;
   created_at: string;
