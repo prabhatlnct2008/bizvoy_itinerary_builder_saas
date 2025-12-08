@@ -12,6 +12,8 @@ import {
   AgencyStatusChange,
   ResendInvitationRequest,
   ResendInvitationResponse,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
   AdminUser,
 } from '../types';
 
@@ -111,6 +113,20 @@ export const adminAPI = {
    */
   getAgencyUsers: async (agencyId: string): Promise<AdminUser[]> => {
     const response = await apiClient.get<AdminUser[]>(`${API_PREFIX}/agencies/${agencyId}/users`);
+    return response.data;
+  },
+
+  /**
+   * Change user password with auto/manual generation and optional email
+   */
+  changePassword: async (
+    agencyId: string,
+    data: ChangePasswordRequest
+  ): Promise<ChangePasswordResponse> => {
+    const response = await apiClient.post<ChangePasswordResponse>(
+      `${API_PREFIX}/agencies/${agencyId}/change-password`,
+      data
+    );
     return response.data;
   },
 };

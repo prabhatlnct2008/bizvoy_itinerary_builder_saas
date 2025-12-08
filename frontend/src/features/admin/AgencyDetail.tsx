@@ -25,6 +25,7 @@ import Input from '../../components/ui/Input';
 import Textarea from '../../components/ui/Textarea';
 import Badge from '../../components/ui/Badge';
 import { toast } from 'react-toastify';
+import ChangePasswordModal from './ChangePasswordModal';
 
 // Common country list
 const COUNTRIES = [
@@ -64,7 +65,8 @@ const AgencyDetail: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [resetPasswordLoading, setResetPasswordLoading] = useState<string | null>(null);
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
 
   const [formData, setFormData] = useState<AgencyUpdate>({});
 
@@ -173,25 +175,35 @@ const AgencyDetail: React.FC = () => {
     }
   };
 
-  const handleResetPassword = async (user: AdminUser) => {
-    if (!confirm(`Reset password for ${user.full_name} (${user.email})?\n\nA new temporary password will be generated and emailed to them. They will be required to change it on next login.`)) {
-      return;
-    }
+  const handleOpenChangePasswordModal = (user: AdminUser) => {
+    setSelectedUser(user);
+    setChangePasswordModalOpen(true);
+  };
 
+  const handleChangePassword = async (
+    userId: string,
+    passwordMode: 'auto' | 'manual',
+    manualPassword: string | undefined,
+    sendEmail: boolean
+  ): Promise<string | null> => {
     try {
-      setResetPasswordLoading(user.id);
-      const result = await adminAPI.resendInvitation(id!, {
-        user_id: user.id,
+      const result = await adminAPI.changePassword(id!, {
+        user_id: userId,
+        password_mode: passwordMode,
+        manual_password: manualPassword,
+        send_email: sendEmail,
       });
+
       if (result.success) {
-        toast.success(`Password reset email sent to ${user.email}`);
+        toast.success(result.message);
+        return result.new_password || null;
       } else {
         toast.error(result.message);
+        return result.new_password || null;
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Failed to reset password');
-    } finally {
-      setResetPasswordLoading(null);
+      toast.error(err.response?.data?.detail || 'Failed to change password');
+      throw err;
     }
   };
 
@@ -494,11 +506,10 @@ const AgencyDetail: React.FC = () => {
                         variant="secondary"
                         size="sm"
                         className="w-full mt-3"
-                        onClick={() => handleResetPassword(user)}
-                        disabled={resetPasswordLoading === user.id}
+                        onClick={() => handleOpenChangePasswordModal(user)}
                       >
                         <Key className="h-4 w-4 mr-2" />
-                        {resetPasswordLoading === user.id ? 'Sending...' : 'Reset Password'}
+                        Change Password
                       </Button>
                     </div>
                   );
@@ -546,6 +557,17 @@ const AgencyDetail: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={changePasswordModalOpen}
+        onClose={() => {
+          setChangePasswordModalOpen(false);
+          setSelectedUser(null);
+        }}
+        user={selectedUser}
+        onSubmit={handleChangePassword}
+      />
     </div>
   );
 };

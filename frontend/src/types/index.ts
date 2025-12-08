@@ -645,3 +645,16 @@ export interface ResendInvitationResponse {
   success: boolean;
   message: string;
 }
+
+export interface ChangePasswordRequest {
+  user_id: string;
+  password_mode: 'auto' | 'manual';
+  manual_password?: string;
+  send_email: boolean;
+}
+
+export interface ChangePasswordResponse {
+  success: boolean;
+  message: string;
+  new_password?: string | null;
+}

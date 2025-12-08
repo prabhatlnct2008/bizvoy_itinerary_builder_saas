@@ -156,3 +156,33 @@ class AgencyStatusChange(BaseModel):
     name: str
     is_active: bool
     message: str
+
+
+class ChangePasswordRequest(BaseModel):
+    """Request to change user password"""
+    user_id: str
+    password_mode: str  # "auto" or "manual"
+    manual_password: Optional[str] = None
+    send_email: bool = True
+
+    @field_validator('password_mode')
+    @classmethod
+    def validate_mode(cls, v):
+        if v not in ['auto', 'manual']:
+            raise ValueError('password_mode must be "auto" or "manual"')
+        return v
+
+    @field_validator('manual_password')
+    @classmethod
+    def validate_manual_password(cls, v, info):
+        if info.data.get('password_mode') == 'manual':
+            if not v or len(v) < 8:
+                raise ValueError('Manual password must be at least 8 characters')
+        return v
+
+
+class ChangePasswordResponse(BaseModel):
+    """Response after changing password"""
+    success: bool
+    message: str
+    new_password: Optional[str] = None  # Only returned if email not sent

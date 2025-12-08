@@ -1,17 +1,30 @@
 import os
+import sys
 import base64
 import requests
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from typing import Optional, List, Dict, Any
 
+# Help macOS find Homebrew-installed native libs required by WeasyPrint
+if sys.platform == "darwin":
+    homebrew_lib = "/opt/homebrew/lib"
+    dyld_path = os.environ.get("DYLD_LIBRARY_PATH", "")
+    if os.path.isdir(homebrew_lib) and homebrew_lib not in dyld_path.split(":"):
+        os.environ["DYLD_LIBRARY_PATH"] = (
+            f"{homebrew_lib}:{dyld_path}" if dyld_path else homebrew_lib
+        )
+
 # Optional import for PDF generation
 try:
     from weasyprint import HTML
     WEASYPRINT_AVAILABLE = True
-except ImportError:
+except Exception as exc:
     WEASYPRINT_AVAILABLE = False
-    print("Warning: weasyprint not available. PDF generation will be disabled.")
+    print(
+        f"Warning: weasyprint not available ({exc}). "
+        "PDF generation will be disabled."
+    )
 
 from app.core.config import settings
 from app.models.itinerary import Itinerary

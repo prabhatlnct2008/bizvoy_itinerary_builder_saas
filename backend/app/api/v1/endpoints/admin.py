@@ -24,7 +24,9 @@ from app.schemas.admin import (
     AdminUserResponse,
     ResendInvitationRequest,
     ResendInvitationResponse,
-    AgencyStatusChange
+    AgencyStatusChange,
+    ChangePasswordRequest,
+    ChangePasswordResponse
 )
 from app.services.email_service import (
     generate_temporary_password,
@@ -463,6 +465,74 @@ def resend_invitation(
         return ResendInvitationResponse(
             success=False,
             message="Failed to send email. Please try again."
+        )
+
+
+@router.post("/agencies/{agency_id}/change-password", response_model=ChangePasswordResponse)
+def change_user_password(
+    agency_id: str,
+    request: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_bizvoy_admin)
+):
+    """Change user password with option for auto/manual generation and email notification"""
+    agency = db.query(Agency).filter(Agency.id == agency_id).first()
+    if not agency:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agency not found"
+        )
+
+    user = db.query(User).filter(
+        User.id == request.user_id,
+        User.agency_id == agency_id
+    ).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found in this agency"
+        )
+
+    # Determine the password to use
+    if request.password_mode == "auto":
+        new_password = generate_temporary_password()
+    else:
+        new_password = request.manual_password
+
+    # Update user password
+    user.hashed_password = get_password_hash(new_password)
+    user.force_password_reset = True
+    db.commit()
+
+    # Send email if requested
+    email_sent = False
+    if request.send_email:
+        email_sent = send_password_reset_email(
+            admin_name=user.full_name,
+            admin_email=user.email,
+            agency_name=agency.name,
+            new_password=new_password
+        )
+
+    # Build response
+    if request.send_email:
+        if email_sent:
+            return ChangePasswordResponse(
+                success=True,
+                message=f"Password changed and email sent to {user.email}",
+                new_password=None
+            )
+        else:
+            return ChangePasswordResponse(
+                success=False,
+                message="Password changed but failed to send email. Please share the password manually.",
+                new_password=new_password
+            )
+    else:
+        return ChangePasswordResponse(
+            success=True,
+            message="Password changed successfully",
+            new_password=new_password
         )
 
 
