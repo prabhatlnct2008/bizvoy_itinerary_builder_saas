@@ -56,7 +56,7 @@ class ConfirmationService:
         Returns:
             Dictionary with confirmation response
         """
-        from app.models.gamification import (
+        from app.models import (
             ItineraryCartItem,
             FitStatus,
             CartItemStatus,
@@ -292,7 +292,7 @@ class ConfirmationService:
         Returns:
             Dictionary with confirmation summary
         """
-        from app.models.gamification import (
+        from app.models import (
             PersonalizationSession,
             ItineraryCartItem,
             CartItemStatus

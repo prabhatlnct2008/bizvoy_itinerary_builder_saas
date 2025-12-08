@@ -41,7 +41,7 @@ class RevealBuilder:
         Returns:
             Dictionary with reveal response data
         """
-        from app.models.gamification import InteractionAction
+        from app.models import InteractionAction
 
         # Build fitted items list
         fitted_items = [

@@ -100,7 +100,7 @@ class FitEngine:
         Returns:
             FitResult with fitted and missed items
         """
-        from app.models.gamification import ItineraryCartItem, CartItemStatus, FitStatus
+        from app.models import ItineraryCartItem, CartItemStatus, FitStatus
 
         # Step 1: Get available windows for each day
         available_windows = self.get_available_windows(itinerary)

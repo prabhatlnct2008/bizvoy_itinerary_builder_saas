@@ -7,17 +7,17 @@ import enum
 
 
 class CartItemStatus(str, enum.Enum):
-    pending = "pending"
-    fitted = "fitted"
-    missed = "missed"
-    confirmed = "confirmed"
-    rejected = "rejected"
+    PENDING = "PENDING"
+    FITTED = "FITTED"
+    MISSED = "MISSED"
+    CONFIRMED = "CONFIRMED"
+    REJECTED = "REJECTED"
 
 
 class FitStatus(str, enum.Enum):
-    pending = "pending"
-    fit = "fit"
-    miss = "miss"
+    PENDING = "PENDING"
+    FITTED = "FITTED"
+    MISSED = "MISSED"
 
 
 class TimeSlot(str, enum.Enum):
@@ -39,11 +39,11 @@ class ItineraryCartItem(Base):
     quoted_price = Column(Numeric(10, 2), nullable=True)
     currency_code = Column(String(10), default="USD", nullable=False)
     time_slot = Column(SQLEnum(TimeSlot), nullable=True)
-    fit_status = Column(SQLEnum(FitStatus), default=FitStatus.pending, nullable=False)
+    fit_status = Column(SQLEnum(FitStatus), default=FitStatus.PENDING, nullable=False)
     fit_reason = Column(Text, nullable=True)  # Why it fits
     miss_reason = Column(Text, nullable=True)  # Why it doesn't fit
     swap_suggestion_activity_id = Column(String(36), ForeignKey("activities.id", ondelete="SET NULL"), nullable=True)
-    status = Column(SQLEnum(CartItemStatus), default=CartItemStatus.pending, nullable=False, index=True)
+    status = Column(SQLEnum(CartItemStatus), default=CartItemStatus.PENDING, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

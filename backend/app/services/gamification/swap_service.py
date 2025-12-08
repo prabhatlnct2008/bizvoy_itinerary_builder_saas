@@ -51,7 +51,7 @@ class SwapService:
         Returns:
             Tuple of (is_valid, error_message)
         """
-        from app.models.gamification import FitStatus, CartItemStatus
+        from app.models import FitStatus, CartItemStatus
 
         # Get both cart items
         missed_item = self.db.query(
@@ -118,7 +118,7 @@ class SwapService:
         Returns:
             Updated reveal response or error
         """
-        from app.models.gamification import (
+        from app.models import (
             ItineraryCartItem,
             FitStatus,
             CartItemStatus
