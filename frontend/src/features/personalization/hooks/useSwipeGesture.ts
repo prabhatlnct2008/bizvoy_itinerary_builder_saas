@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react';
 import { useMotionValue, useTransform } from 'framer-motion';
 
 interface SwipeGestureOptions {
-  onSwipeLeft?: () => void;
-  onSwipeRight?: () => void;
+  onSwipeLeft?: (velocity?: number) => void;
+  onSwipeRight?: (velocity?: number) => void;
   threshold?: number;
 }
 
@@ -38,19 +38,19 @@ export const useSwipeGesture = ({
     (_event: any, info: { offset: { x: number; y: number }; velocity: { x: number } }) => {
       setIsDragging(false);
 
-      const swipeVelocity = info.velocity.x;
+      const swipeVelocity = Math.abs(info.velocity.x);
       const offsetX = info.offset.x;
 
       // Calculate swipe based on distance or velocity
-      const shouldSwipe = Math.abs(offsetX) > threshold || Math.abs(swipeVelocity) > 500;
+      const shouldSwipe = Math.abs(offsetX) > threshold || swipeVelocity > 500;
 
       if (shouldSwipe) {
         if (offsetX > 0) {
           // Swipe right (LIKE)
-          onSwipeRight?.();
+          onSwipeRight?.(swipeVelocity);
         } else {
           // Swipe left (PASS)
-          onSwipeLeft?.();
+          onSwipeLeft?.(swipeVelocity);
         }
       } else {
         // Snap back to center

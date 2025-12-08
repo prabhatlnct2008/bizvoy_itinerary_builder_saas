@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
+import json
 from app.db.session import get_db
 from app.core.deps import get_current_user, get_current_agency_id, require_permission
 from app.models.user import User
@@ -17,6 +18,7 @@ from app.schemas.activity import (
     ImageUpdateRequest
 )
 from app.utils.file_storage import file_storage
+from app.services.gamification.readiness_calculator import ReadinessCalculator
 
 router = APIRouter()
 
@@ -112,6 +114,13 @@ def create_activity(
     )
 
     db.add(activity)
+    db.commit()
+    db.refresh(activity)
+
+    # Calculate gamification readiness score
+    score, issues = ReadinessCalculator.calculate_score(activity)
+    activity.gamification_readiness_score = score
+    activity.gamification_readiness_issues = json.dumps(issues) if issues else None
     db.commit()
     db.refresh(activity)
 
@@ -224,6 +233,13 @@ def update_activity(
     db.commit()
     db.refresh(activity)
 
+    # Recalculate gamification readiness score after update
+    score, issues = ReadinessCalculator.calculate_score(activity)
+    activity.gamification_readiness_score = score
+    activity.gamification_readiness_issues = json.dumps(issues) if issues else None
+    db.commit()
+    db.refresh(activity)
+
     return activity
 
 
@@ -309,6 +325,15 @@ async def upload_activity_images(
         db.add(activity_image)
         uploaded_images.append(activity_image)
 
+    db.commit()
+
+    # Refresh activity to get updated images
+    db.refresh(activity)
+
+    # Recalculate gamification readiness score after adding images
+    score, issues = ReadinessCalculator.calculate_score(activity)
+    activity.gamification_readiness_score = score
+    activity.gamification_readiness_issues = json.dumps(issues) if issues else None
     db.commit()
 
     # Refresh and return
@@ -433,6 +458,13 @@ def delete_activity_image(
 
     # Delete record
     db.delete(image)
+    db.commit()
+
+    # Recalculate gamification readiness score after deleting image
+    db.refresh(activity)
+    score, issues = ReadinessCalculator.calculate_score(activity)
+    activity.gamification_readiness_score = score
+    activity.gamification_readiness_issues = json.dumps(issues) if issues else None
     db.commit()
 
     return None

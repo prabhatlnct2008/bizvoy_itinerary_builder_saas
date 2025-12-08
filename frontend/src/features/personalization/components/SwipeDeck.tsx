@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, X, Bookmark } from 'lucide-react';
 import { DeckCard } from '../../../types/personalization';
@@ -6,10 +6,16 @@ import { SwipeCard } from './SwipeCard';
 import { ProgressBar } from './ProgressBar';
 import { useHaptics } from '../hooks/useHaptics';
 import { useDeckPrefetch } from '../hooks/useDeckPrefetch';
+import { analyticsService } from '../services/analyticsService';
 
 interface SwipeDeckProps {
   deck: DeckCard[];
-  onSwipe: (cardId: string, action: 'LIKE' | 'PASS' | 'SAVE') => void;
+  onSwipe: (
+    cardId: string,
+    action: 'LIKE' | 'PASS' | 'SAVE',
+    interactionType: 'swipe' | 'button',
+    swipeVelocity?: number
+  ) => void;
   onComplete: () => void;
 }
 
@@ -17,6 +23,7 @@ export const SwipeDeck = ({ deck, onSwipe, onComplete }: SwipeDeckProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const { swipe } = useHaptics();
+  const lastSwipeVelocity = useRef<number>(0);
 
   // Prefetch next 2 card images
   useDeckPrefetch(deck, currentIndex);
@@ -27,14 +34,15 @@ export const SwipeDeck = ({ deck, onSwipe, onComplete }: SwipeDeckProps) => {
     }
   }, [currentIndex, deck.length, onComplete]);
 
-  const handleSwipe = (action: 'LIKE' | 'PASS' | 'SAVE') => {
+  const handleSwipe = (action: 'LIKE' | 'PASS' | 'SAVE', interactionType: 'swipe' | 'button', velocity?: number) => {
     if (isAnimating || currentIndex >= deck.length) return;
 
     const currentCard = deck[currentIndex];
     setIsAnimating(true);
     swipe();
 
-    onSwipe(currentCard.activity_id, action);
+    // Pass interaction type and velocity to parent
+    onSwipe(currentCard.activity_id, action, interactionType, velocity);
 
     setTimeout(() => {
       setCurrentIndex((prev) => prev + 1);
@@ -43,7 +51,11 @@ export const SwipeDeck = ({ deck, onSwipe, onComplete }: SwipeDeckProps) => {
   };
 
   const handleButtonClick = (action: 'LIKE' | 'PASS' | 'SAVE') => {
-    handleSwipe(action);
+    handleSwipe(action, 'button');
+  };
+
+  const handleGestureSwipe = (action: 'LIKE' | 'PASS' | 'SAVE', velocity?: number) => {
+    handleSwipe(action, 'swipe', velocity);
   };
 
   if (currentIndex >= deck.length) {
@@ -90,8 +102,8 @@ export const SwipeDeck = ({ deck, onSwipe, onComplete }: SwipeDeckProps) => {
               >
                 <SwipeCard
                   card={card}
-                  onSwipeLeft={() => handleSwipe('PASS')}
-                  onSwipeRight={() => handleSwipe('LIKE')}
+                  onSwipeLeft={(velocity) => handleGestureSwipe('PASS', velocity)}
+                  onSwipeRight={(velocity) => handleGestureSwipe('LIKE', velocity)}
                   isTopCard={isTopCard}
                 />
               </motion.div>

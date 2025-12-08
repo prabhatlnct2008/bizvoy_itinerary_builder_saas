@@ -8,8 +8,8 @@ import { cardVariants } from '../animations/cardAnimations';
 
 interface SwipeCardProps {
   card: DeckCard;
-  onSwipeLeft: () => void;
-  onSwipeRight: () => void;
+  onSwipeLeft: (velocity?: number) => void;
+  onSwipeRight: (velocity?: number) => void;
   isTopCard: boolean;
 }
 

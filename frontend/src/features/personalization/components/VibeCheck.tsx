@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { AgencyVibe } from '../../../types/personalization';
 import { VibeBubble } from './VibeBubble';
+import { analyticsService } from '../services/analyticsService';
 
 interface VibeCheckProps {
   vibes: AgencyVibe[];
@@ -16,13 +17,17 @@ export const VibeCheck = ({ vibes, destination, onContinue }: VibeCheckProps) =>
     setSelectedVibes((prev) => {
       if (prev.includes(vibeKey)) {
         // Deselect
-        return prev.filter((v) => v !== vibeKey);
+        const newVibes = prev.filter((v) => v !== vibeKey);
+        analyticsService.trackVibeDeselect(vibeKey, newVibes);
+        return newVibes;
       } else {
         // Select (max 3)
         if (prev.length >= 3) {
           return prev;
         }
-        return [...prev, vibeKey];
+        const newVibes = [...prev, vibeKey];
+        analyticsService.trackVibeSelect(vibeKey, newVibes);
+        return newVibes;
       }
     });
   };

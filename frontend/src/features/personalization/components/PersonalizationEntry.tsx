@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
+import { analyticsService } from '../services/analyticsService';
 
 interface PersonalizationEntryProps {
   token: string;
@@ -10,6 +11,8 @@ export const PersonalizationEntry = ({ token }: PersonalizationEntryProps) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
+    // Track CTA click
+    analyticsService.trackEntryClick(token);
     navigate(`/itinerary/${token}/personalize`);
   };
 

@@ -1,17 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { VibeCheck } from '../components/VibeCheck';
 import { SwipeDeck } from '../components/SwipeDeck';
 import { MagicCrunch } from '../components/MagicCrunch';
 import { RevealTimeline } from '../components/RevealTimeline';
+import { EmptyDeckFallback } from '../components/EmptyDeckFallback';
 import { usePersonalization } from '../hooks/usePersonalization';
 import { useDeviceId } from '../hooks/useDeviceId';
-import { getPersonalizationStatus } from '../../../api/personalization';
+import { getPersonalizationStatus, resumeSession } from '../../../api/personalization';
+import { analyticsService } from '../services/analyticsService';
 
 export const PersonalizationFlow = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
+  const [emptyDeckError, setEmptyDeckError] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
 
   const { deviceId, loading: deviceIdLoading } = useDeviceId();
   const {
@@ -44,20 +48,40 @@ export const PersonalizationFlow = () => {
           return;
         }
 
-        // Could implement session resume here
-        // if (status.can_resume && status.session_id) {
-        //   await resumeSession(token!, deviceId!);
-        // }
+        // Session recovery - resume if user has an active session
+        if (status.can_resume && status.session_id && deviceId) {
+          try {
+            setIsResuming(true);
+            const resumeResponse = await resumeSession(token!, deviceId);
+
+            // Track session resume
+            analyticsService.trackSessionResume(
+              resumeResponse.session_id,
+              0, // We'll get actual cards viewed after loading deck
+              resumeResponse.deck_size
+            );
+
+            // Load the deck to continue where they left off
+            await loadDeck(resumeResponse.session_id);
+            goToStep('deck');
+            toast.info('Resuming your previous session');
+          } catch (resumeError) {
+            console.error('Failed to resume session:', resumeError);
+            // Continue with fresh start if resume fails
+          } finally {
+            setIsResuming(false);
+          }
+        }
       } catch (error) {
         console.error('Failed to check personalization status:', error);
         toast.error('Failed to load personalization');
       }
     };
 
-    if (token && !deviceIdLoading) {
+    if (token && !deviceIdLoading && deviceId) {
       checkStatus();
     }
-  }, [token, deviceIdLoading, navigate]);
+  }, [token, deviceIdLoading, deviceId, navigate, loadDeck, goToStep]);
 
   // Handle vibe check completion
   const handleVibeCheckComplete = async (selectedVibes: string[]) => {
@@ -67,11 +91,13 @@ export const PersonalizationFlow = () => {
     }
 
     try {
+      setEmptyDeckError(false);
       const sessionResponse = await startSession(deviceId, selectedVibes);
       const deckResponse = await loadDeck(sessionResponse.session_id);
 
       if (deckResponse.cards.length === 0) {
-        toast.error('No activities available for personalization');
+        // Show empty deck fallback instead of just a toast
+        setEmptyDeckError(true);
         return;
       }
     } catch (error) {
@@ -80,8 +106,24 @@ export const PersonalizationFlow = () => {
     }
   };
 
+  // Handle going back to vibes from empty deck
+  const handleBackToVibes = () => {
+    setEmptyDeckError(false);
+    goToStep('vibe-check');
+  };
+
+  // Handle going back to itinerary from empty deck
+  const handleBackToItinerary = () => {
+    navigate(`/itinerary/${token}`);
+  };
+
   // Handle swipe action
-  const handleSwipe = async (cardId: string, action: 'LIKE' | 'PASS' | 'SAVE') => {
+  const handleSwipe = async (
+    cardId: string,
+    action: 'LIKE' | 'PASS' | 'SAVE',
+    interactionType: 'swipe' | 'button' = 'swipe',
+    swipeVelocity?: number
+  ) => {
     if (!state.sessionId) return;
 
     try {
@@ -90,11 +132,11 @@ export const PersonalizationFlow = () => {
         activity_id: cardId,
         action,
         card_position: state.currentCardIndex,
-        seconds_viewed: 5, // You could track actual viewing time
-        swipe_velocity: 0,
+        seconds_viewed: 0, // The hook will calculate this
+        swipe_velocity: swipeVelocity || 0,
       };
 
-      await recordSwipe(swipeData);
+      await recordSwipe(swipeData, interactionType);
     } catch (error) {
       console.error('Failed to record swipe:', error);
       // Don't show error to user, continue with flow
@@ -149,6 +191,28 @@ export const PersonalizationFlow = () => {
       <div className="min-h-screen bg-game-bg flex items-center justify-center">
         <div className="text-white text-lg">Initializing...</div>
       </div>
+    );
+  }
+
+  // Show resuming state
+  if (isResuming) {
+    return (
+      <div className="min-h-screen bg-game-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-white text-lg mb-2">Resuming your session...</div>
+          <div className="text-gray-400 text-sm">Picking up where you left off</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty deck fallback
+  if (emptyDeckError) {
+    return (
+      <EmptyDeckFallback
+        onBackToVibes={handleBackToVibes}
+        onBackToItinerary={handleBackToItinerary}
+      />
     );
   }
 
