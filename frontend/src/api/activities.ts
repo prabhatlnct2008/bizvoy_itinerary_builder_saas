@@ -5,6 +5,7 @@ import {
   ActivityUpdate,
   ActivitySearchRequest,
   ActivityImage,
+  ImageUpdateRequest,
   MessageResponse,
 } from '../types';
 
@@ -86,6 +87,12 @@ export const activitiesApi = {
   // Delete activity image
   async deleteImage(activityId: string, imageId: string): Promise<MessageResponse> {
     const response = await client.delete(`/api/v1/activities/${activityId}/images/${imageId}`);
+    return response.data;
+  },
+
+  // Update activity image (set hero, display order)
+  async updateImage(activityId: string, imageId: string, data: ImageUpdateRequest): Promise<ActivityImage> {
+    const response = await client.put(`/api/v1/activities/${activityId}/images/${imageId}`, data);
     return response.data;
   },
 };

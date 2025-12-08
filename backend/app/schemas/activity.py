@@ -127,6 +127,9 @@ class ActivityDetailResponse(BaseModel):
     highlights: Optional[List[str]]
     tags: Optional[List[str]]
 
+    # Gamification fields
+    vibe_tags: Optional[List[str]] = None
+
     is_active: bool
     internal_notes: Optional[str]
 

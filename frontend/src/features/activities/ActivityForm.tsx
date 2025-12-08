@@ -9,8 +9,20 @@ import Chip from '../../components/ui/Chip';
 import { usePermissions } from '../../hooks/usePermissions';
 import activitiesApi from '../../api/activities';
 import activityTypesApi from '../../api/activityTypes';
+import { getAgencyVibes, updateActivityGamification } from '../../api/gamification';
 import { ActivityType, ActivityCreate, ActivityUpdate, ActivityImage } from '../../types';
-import { Star, Clock, Users, DollarSign, Plus, X, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Star, Clock, Users, DollarSign, Plus, X, Upload, Trash2, Image as ImageIcon, Sparkles } from 'lucide-react';
+
+interface AgencyVibe {
+  id: string;
+  key: string;
+  display_name: string;
+  emoji: string;
+  color: string;
+  enabled: boolean;
+  is_custom: boolean;
+  order: number;
+}
 
 const ActivityForm: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +39,8 @@ const ActivityForm: React.FC = () => {
   const [images, setImages] = useState<ActivityImage[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [newHighlight, setNewHighlight] = useState('');
+  const [agencyVibes, setAgencyVibes] = useState<AgencyVibe[]>([]);
+  const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -49,6 +63,7 @@ const ActivityForm: React.FC = () => {
 
   useEffect(() => {
     fetchActivityTypes();
+    fetchVibes();
     if (id) {
       fetchActivity(id);
     }
@@ -60,6 +75,17 @@ const ActivityForm: React.FC = () => {
       setActivityTypes(data);
     } catch (error: any) {
       toast.error('Failed to load activity types');
+    }
+  };
+
+  const fetchVibes = async () => {
+    try {
+      const vibes = await getAgencyVibes();
+      // Only show enabled vibes
+      setAgencyVibes((vibes as AgencyVibe[]).filter((v) => v.enabled));
+    } catch (error: any) {
+      // Silently fail - vibes are optional
+      console.error('Failed to load vibes:', error);
     }
   };
 
@@ -111,6 +137,18 @@ const ActivityForm: React.FC = () => {
         is_active: data.is_active ?? true,
         internal_notes: data.internal_notes || '',
       });
+
+      // Load vibe_tags
+      if (data.vibe_tags) {
+        try {
+          const parsedVibeTags = typeof data.vibe_tags === 'string'
+            ? JSON.parse(data.vibe_tags)
+            : data.vibe_tags;
+          setSelectedVibes(parsedVibeTags);
+        } catch {
+          setSelectedVibes([]);
+        }
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to load activity');
       navigate('/activities');
@@ -198,6 +236,14 @@ const ActivityForm: React.FC = () => {
     });
   };
 
+  const handleToggleVibe = (vibeKey: string) => {
+    setSelectedVibes((prev) =>
+      prev.includes(vibeKey)
+        ? prev.filter((k) => k !== vibeKey)
+        : [...prev, vibeKey]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -239,13 +285,31 @@ const ActivityForm: React.FC = () => {
         internal_notes: formData.internal_notes || undefined,
       };
 
+      let activityId = id;
+
       if (isEdit && id) {
         await activitiesApi.updateActivity(id, data as ActivityUpdate);
-        toast.success('Activity updated successfully');
       } else {
         const created = await activitiesApi.createActivity(data as ActivityCreate);
-        toast.success('Activity created successfully');
-        navigate(`/activities/${created.id}`);
+        activityId = created.id;
+      }
+
+      // Save vibe_tags via gamification API
+      if (activityId) {
+        try {
+          await updateActivityGamification(activityId, {
+            vibe_tags: selectedVibes,
+          });
+        } catch (error: any) {
+          console.error('Failed to save vibe tags:', error);
+          // Don't fail the whole save if vibe tags fail
+        }
+      }
+
+      toast.success(isEdit ? 'Activity updated successfully' : 'Activity created successfully');
+
+      if (!isEdit && activityId) {
+        navigate(`/activities/${activityId}`);
         return;
       }
 
@@ -739,7 +803,50 @@ const ActivityForm: React.FC = () => {
             </div>
           </div>
 
-          {/* 8. Internal Notes */}
+          {/* 8. Vibes (for Personalization) */}
+          {agencyVibes.length > 0 && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary-600" />
+                Vibes (Personalization)
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Select vibes that match this activity. Activities are shown to travelers based on their selected vibes during personalization.
+              </p>
+
+              <div className="flex flex-wrap gap-3">
+                {agencyVibes.map((vibe) => {
+                  const isSelected = selectedVibes.includes(vibe.key);
+                  return (
+                    <button
+                      key={vibe.id}
+                      type="button"
+                      onClick={() => handleToggleVibe(vibe.key)}
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 transition-all ${
+                        isSelected
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-lg">{vibe.emoji}</span>
+                      <span className="font-medium">{vibe.display_name}</span>
+                      {isSelected && (
+                        <X className="w-4 h-4 ml-1" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedVibes.length === 0 && (
+                <p className="mt-3 text-sm text-amber-600">
+                  No vibes selected. This activity won't appear in personalization decks.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* 9. Internal Notes */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">
               Internal Notes
