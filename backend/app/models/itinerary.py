@@ -33,6 +33,15 @@ class Itinerary(Base):
     total_price = Column(Numeric(10, 2), nullable=True)
     special_notes = Column(Text, nullable=True)
     created_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    # Gamification fields
+    personalization_enabled = Column(Integer, default=0, nullable=False)
+    personalization_policy = Column(String(50), default="flexible", nullable=True)
+    personalization_lock_policy = Column(String(50), default="respect_locks", nullable=True)
+    personalization_completed = Column(Integer, default=0, nullable=False)
+    personalization_completed_at = Column(DateTime, nullable=True)
+    personalization_session_id = Column(String(36), nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -44,6 +53,12 @@ class Itinerary(Base):
     share_links = relationship("ShareLink", back_populates="itinerary", cascade="all, delete-orphan")
     pdf_exports = relationship("PDFExport", back_populates="itinerary", cascade="all, delete-orphan")
     pricing = relationship("ItineraryPricing", back_populates="itinerary", uselist=False, cascade="all, delete-orphan")
+    personalization_sessions = relationship("PersonalizationSession", back_populates="itinerary", cascade="all, delete-orphan")
+
+    # Gamification relationships
+    personalization_sessions = relationship("PersonalizationSession", back_populates="itinerary", cascade="all, delete-orphan")
+    deck_interactions = relationship("UserDeckInteraction", back_populates="itinerary", cascade="all, delete-orphan")
+    cart_items = relationship("ItineraryCartItem", back_populates="itinerary", cascade="all, delete-orphan")
 
 
 class ItineraryDay(Base):
@@ -75,6 +90,13 @@ class ItineraryDayActivity(Base):
     time_slot = Column(String(50), nullable=True)
     custom_notes = Column(Text, nullable=True)
     custom_price = Column(Numeric(10, 2), nullable=True)
+
+    # Gamification fields
+    start_time = Column(String(10), nullable=True)  # e.g., "09:00"
+    end_time = Column(String(10), nullable=True)  # e.g., "12:00"
+    is_locked_by_agency = Column(Integer, default=0, nullable=False)  # 0=can swap, 1=locked
+    source_cart_item_id = Column(String(36), nullable=True)  # Reference to cart item if added via personalization
+    added_by_personalization = Column(Integer, default=0, nullable=False)  # 1 if added by gamification
 
     # Relationships
     itinerary_day = relationship("ItineraryDay", back_populates="activities")

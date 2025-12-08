@@ -34,3 +34,5 @@ class Agency(Base):
     templates = relationship("Template", back_populates="agency", cascade="all, delete-orphan")
     itineraries = relationship("Itinerary", back_populates="agency", cascade="all, delete-orphan")
     company_profile = relationship("CompanyProfile", back_populates="agency", uselist=False, cascade="all, delete-orphan")
+    vibes = relationship("AgencyVibe", back_populates="agency", cascade="all, delete-orphan")
+    personalization_settings = relationship("AgencyPersonalizationSettings", back_populates="agency", uselist=False, cascade="all, delete-orphan")
