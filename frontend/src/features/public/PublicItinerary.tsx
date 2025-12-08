@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import shareApi from '../../api/share';
 import { useWebSocket } from '../../hooks/useWebSocket';
@@ -309,10 +309,20 @@ const PublicItinerary: React.FC = () => {
         )}
 
         {/* ══════════════════════════════════════════════════════════════
-            PERSONALIZATION ENTRY
+            MAKE THIS TRIP YOURS SECTION - per spec
             ══════════════════════════════════════════════════════════════ */}
         {itinerary.personalization_enabled && !itinerary.personalization_completed && token && (
-          <section>
+          <section className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 md:p-8 border border-slate-200">
+            {/* Section Header */}
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Make this trip yours</h2>
+              <p className="text-slate-600 max-w-lg mx-auto">
+                Personalize your itinerary by swiping through curated experiences.
+                It only takes 60 seconds to create your perfect trip.
+              </p>
+            </div>
+
+            {/* Personalization Entry CTA */}
             <PersonalizationEntry token={token} />
           </section>
         )}
@@ -356,6 +366,8 @@ const PublicItinerary: React.FC = () => {
                 baseUrl={baseUrl}
                 formatDuration={formatDuration}
                 formatDateFull={formatDateFull}
+                showPersonalizationLink={itinerary.personalization_enabled && !itinerary.personalization_completed}
+                personalizationToken={token}
               />
             ))}
           </div>
@@ -532,6 +544,9 @@ interface DayCardProps {
   baseUrl: string;
   formatDuration: (value: number | null, unit: string | null) => string | null;
   formatDateFull: (dateStr: string) => string;
+  // Personalization props
+  showPersonalizationLink?: boolean;
+  personalizationToken?: string;
 }
 
 const DayCard: React.FC<DayCardProps> = ({
@@ -542,8 +557,11 @@ const DayCard: React.FC<DayCardProps> = ({
   toggleActivity,
   baseUrl,
   formatDuration,
-  formatDateFull
+  formatDateFull,
+  showPersonalizationLink = false,
+  personalizationToken
 }) => {
+  const navigate = useNavigate();
   // Get preview images for avatar stack
   const previewImages = day.activities
     .flatMap(a => a.images || [])
@@ -638,6 +656,19 @@ const DayCard: React.FC<DayCardProps> = ({
                 />
               ))}
             </div>
+          )}
+
+          {/* Optional inline personalization entry - per spec */}
+          {showPersonalizationLink && personalizationToken && (
+            <button
+              onClick={() => navigate(`/itinerary/${personalizationToken}/personalize`)}
+              className="mt-4 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 hover:from-emerald-100 hover:to-teal-100 transition-colors group"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-medium text-emerald-700">
+                Add experiences you'll love
+              </span>
+            </button>
           )}
         </div>
       )}

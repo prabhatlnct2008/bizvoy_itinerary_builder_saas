@@ -159,3 +159,7 @@ class PublicItineraryResponse(BaseModel):
     # Share link metadata
     live_updates_enabled: bool
     share_link: ShareLinkResponse
+
+    # Personalization fields
+    personalization_enabled: bool = False
+    personalization_completed: bool = False

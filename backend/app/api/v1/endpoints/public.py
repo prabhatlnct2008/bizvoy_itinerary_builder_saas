@@ -257,6 +257,13 @@ def get_public_itinerary(
         created_at=share_link.created_at
     )
 
+    # Check if personalization is enabled for this itinerary
+    settings = SettingsService.get_settings(db, itinerary.agency_id)
+    personalization_enabled = bool(
+        settings and settings.is_enabled and itinerary.personalization_enabled
+    )
+    personalization_completed = bool(itinerary.personalization_completed)
+
     return PublicItineraryResponse(
         id=itinerary.id,
         trip_name=itinerary.trip_name,
@@ -274,7 +281,9 @@ def get_public_itinerary(
         company_profile=company_profile_data,
         pricing=pricing_data,
         live_updates_enabled=share_link.live_updates_enabled,
-        share_link=share_link_response
+        share_link=share_link_response,
+        personalization_enabled=personalization_enabled,
+        personalization_completed=personalization_completed
     )
 
 
