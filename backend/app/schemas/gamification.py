@@ -12,6 +12,8 @@ class PersonalizationPolicy(str):
     flexible = "flexible"
     additive = "additive"
     strict = "strict"
+    balanced = "balanced"
+    aggressive = "aggressive"
 
 
 class SessionStatus(str):

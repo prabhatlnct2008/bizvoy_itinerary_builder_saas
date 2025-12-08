@@ -11,6 +11,8 @@ class PersonalizationPolicy(str, enum.Enum):
     flexible = "flexible"  # Can add/swap activities freely
     additive = "additive"  # Can only add, not swap
     strict = "strict"  # Cannot modify template activities
+    balanced = "balanced"  # Balanced approach between flexibility and constraints
+    aggressive = "aggressive"  # More aggressive personalization suggestions
 
 
 class AgencyPersonalizationSettings(Base):
