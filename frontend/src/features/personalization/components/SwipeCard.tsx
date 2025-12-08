@@ -141,11 +141,11 @@ export const SwipeCard = ({ card, onSwipeLeft, onSwipeRight, isTopCard }: SwipeC
             {/* Social Proof Row */}
             <div className="flex items-center flex-wrap gap-3 mb-4">
               {/* Rating with yellow stars */}
-              {card.rating && card.rating > 0 && (
+              {card.rating && Number(card.rating) > 0 && (
                 <div className="flex items-center gap-1.5 backdrop-blur-sm bg-black/30 px-3 py-1.5 rounded-full">
                   <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                   <span className="text-white font-bold text-base">
-                    {card.rating.toFixed(1)}
+                    {Number(card.rating).toFixed(1)}
                   </span>
                   {card.review_count > 0 && (
                     <span className="text-white/70 text-sm">

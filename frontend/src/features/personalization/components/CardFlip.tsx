@@ -74,10 +74,10 @@ export const CardFlip = ({ card, children }: CardFlipProps) => {
             <div className="text-white space-y-5">
               {/* Quick info row */}
               <div className="flex flex-wrap gap-3">
-                {card.rating && card.rating > 0 && (
+                {card.rating && Number(card.rating) > 0 && (
                   <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium">{card.rating.toFixed(1)}</span>
+                    <span className="text-sm font-medium">{Number(card.rating).toFixed(1)}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">
