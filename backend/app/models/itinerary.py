@@ -45,6 +45,11 @@ class Itinerary(Base):
     pdf_exports = relationship("PDFExport", back_populates="itinerary", cascade="all, delete-orphan")
     pricing = relationship("ItineraryPricing", back_populates="itinerary", uselist=False, cascade="all, delete-orphan")
 
+    # Gamification relationships
+    personalization_sessions = relationship("PersonalizationSession", back_populates="itinerary", cascade="all, delete-orphan")
+    deck_interactions = relationship("UserDeckInteraction", back_populates="itinerary", cascade="all, delete-orphan")
+    cart_items = relationship("ItineraryCartItem", back_populates="itinerary", cascade="all, delete-orphan")
+
 
 class ItineraryDay(Base):
     __tablename__ = "itinerary_days"

@@ -14,6 +14,17 @@ from app.models.itinerary_pricing import ItineraryPricing
 from app.models.share import ShareLink, PDFExport
 from app.models.company_profile import CompanyProfile
 
+# Gamification models
+from app.models.gamification import (
+    PersonalizationSession,
+    SessionStatus,
+    UserDeckInteraction,
+    InteractionAction,
+    ItineraryCartItem,
+    CartItemStatus,
+    FitStatus,
+)
+
 __all__ = [
     "Agency",
     "User",
@@ -34,4 +45,12 @@ __all__ = [
     "ShareLink",
     "PDFExport",
     "CompanyProfile",
+    # Gamification models
+    "PersonalizationSession",
+    "SessionStatus",
+    "UserDeckInteraction",
+    "InteractionAction",
+    "ItineraryCartItem",
+    "CartItemStatus",
+    "FitStatus",
 ]

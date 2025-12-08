@@ -69,5 +69,8 @@ class Activity(Base):
     template_day_activities = relationship("TemplateDayActivity", back_populates="activity")
     itinerary_day_activities = relationship("ItineraryDayActivity", back_populates="activity")
 
+    # Gamification relationships
+    deck_interactions = relationship("UserDeckInteraction", back_populates="activity", cascade="all, delete-orphan")
+
     def __repr__(self):
         return f"<Activity(id={self.id}, name={self.name}, agency_id={self.agency_id})>"
