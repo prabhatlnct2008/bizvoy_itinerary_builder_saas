@@ -1,10 +1,12 @@
 """
 Public API endpoints (no authentication required)
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from datetime import datetime
+from typing import Optional, List
 import json
+import uuid
 
 from app.core.deps import get_db
 from app.schemas.share import (
@@ -17,10 +19,35 @@ from app.schemas.share import (
     TripOverview,
     ShareLinkResponse
 )
+from app.schemas.gamification import (
+    StartSessionRequest,
+    SessionResponse,
+    PersonalizationStatusResponse,
+    DeckResponse,
+    DeckCard,
+    SwipeRequest,
+    SwipeResponse,
+    RevealResponse,
+    FittedItem,
+    MissedItem,
+    ConfirmRequest,
+    ConfirmResponse,
+    SwapRequest,
+    SwapResponse,
+    AgencyVibeResponse,
+)
 from app.models.share import ShareLink
-from app.models.itinerary import Itinerary
+from app.models.itinerary import Itinerary, ItineraryDay, ItineraryDayActivity
 from app.models.company_profile import CompanyProfile
+from app.models.personalization_session import PersonalizationSession, SessionStatus
+from app.models.itinerary_cart_item import ItineraryCartItem, FitStatus, CartItemStatus
+from app.models.activity import Activity
+from app.services.gamification.vibe_service import VibeService
+from app.services.gamification.settings_service import SettingsService
+from app.services.gamification.deck_builder import DeckBuilder
+from app.services.gamification.interaction_recorder import InteractionRecorder
 from app.utils.file_storage import file_storage
+from decimal import Decimal
 
 router = APIRouter()
 
@@ -249,3 +276,393 @@ def get_public_itinerary(
         live_updates_enabled=share_link.live_updates_enabled,
         share_link=share_link_response
     )
+
+
+# ============================================================
+# PUBLIC PERSONALIZATION ENDPOINTS
+# ============================================================
+
+def get_share_link_or_404(token: str, db: Session) -> tuple:
+    """Helper to get share link and itinerary"""
+    share_link = db.query(ShareLink).filter(
+        ShareLink.token == token,
+        ShareLink.is_active == True
+    ).first()
+
+    if not share_link:
+        raise HTTPException(status_code=404, detail="Itinerary not found or link expired")
+
+    if share_link.expires_at and share_link.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=410, detail="Share link has expired")
+
+    itinerary = db.query(Itinerary).filter(Itinerary.id == share_link.itinerary_id).first()
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+
+    return share_link, itinerary
+
+
+@router.get("/itinerary/{token}/personalization/status", response_model=PersonalizationStatusResponse)
+def get_personalization_status(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """Check if personalization is available for this itinerary"""
+    share_link, itinerary = get_share_link_or_404(token, db)
+
+    # Check if personalization is enabled for the agency
+    settings = SettingsService.get_settings(db, itinerary.agency_id)
+    is_enabled = settings and settings.is_enabled and itinerary.personalization_enabled
+
+    # Check for active session
+    active_session = None
+    if is_enabled:
+        active_session = db.query(PersonalizationSession).filter(
+            PersonalizationSession.itinerary_id == itinerary.id,
+            PersonalizationSession.status == SessionStatus.active
+        ).first()
+
+    # Get available vibes
+    vibes = []
+    if is_enabled:
+        vibes = VibeService.get_enabled_vibes(db, itinerary.agency_id)
+
+    return PersonalizationStatusResponse(
+        enabled=is_enabled,
+        has_active_session=active_session is not None,
+        session=SessionResponse.model_validate(active_session) if active_session else None,
+        available_vibes=[AgencyVibeResponse.model_validate(v) for v in vibes],
+        policy=settings.personalization_policy.value if settings else "flexible"
+    )
+
+
+@router.post("/itinerary/{token}/personalization/start", response_model=SessionResponse)
+def start_personalization_session(
+    token: str,
+    request: StartSessionRequest,
+    db: Session = Depends(get_db),
+    user_agent: Optional[str] = Header(None)
+):
+    """Start a new personalization session"""
+    share_link, itinerary = get_share_link_or_404(token, db)
+
+    # Check if personalization is enabled
+    settings = SettingsService.get_settings(db, itinerary.agency_id)
+    if not settings or not settings.is_enabled or not itinerary.personalization_enabled:
+        raise HTTPException(status_code=403, detail="Personalization not enabled for this itinerary")
+
+    # Check for existing active session
+    existing = db.query(PersonalizationSession).filter(
+        PersonalizationSession.itinerary_id == itinerary.id,
+        PersonalizationSession.status == SessionStatus.active
+    ).first()
+
+    if existing:
+        return SessionResponse.model_validate(existing)
+
+    # Create new session
+    session = PersonalizationSession(
+        id=str(uuid.uuid4()),
+        itinerary_id=itinerary.id,
+        share_link_id=share_link.id,
+        device_id=request.device_id,
+        selected_vibes=json.dumps(request.selected_vibes) if request.selected_vibes else None,
+        deck_size=settings.default_deck_size,
+        user_agent=user_agent,
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+
+    return SessionResponse.model_validate(session)
+
+
+@router.get("/itinerary/{token}/personalization/deck", response_model=DeckResponse)
+def get_personalization_deck(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """Get the personalized deck of activities"""
+    share_link, itinerary = get_share_link_or_404(token, db)
+
+    # Get active session
+    session = db.query(PersonalizationSession).filter(
+        PersonalizationSession.itinerary_id == itinerary.id,
+        PersonalizationSession.status == SessionStatus.active
+    ).first()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="No active personalization session")
+
+    # Get settings
+    settings = SettingsService.get_settings(db, itinerary.agency_id)
+    if not settings:
+        raise HTTPException(status_code=404, detail="Settings not found")
+
+    # Build deck
+    deck_builder = DeckBuilder(db)
+    activities = deck_builder.build_deck(session, settings)
+
+    # Convert to cards
+    cards = []
+    for idx, activity in enumerate(activities):
+        hero_image_url = None
+        if activity.images:
+            hero_img = next((img for img in activity.images if img.is_hero), activity.images[0])
+            hero_image_url = file_storage.get_file_url(hero_img.file_path)
+
+        highlights = parse_highlights(activity.highlights)
+        vibe_tags = parse_highlights(activity.vibe_tags)
+
+        cards.append(DeckCard(
+            activity_id=activity.id,
+            name=activity.name,
+            category_label=activity.category_label,
+            location_display=activity.location_display,
+            short_description=activity.short_description,
+            client_description=activity.client_description,
+            price_display=activity.cost_display,
+            price_numeric=activity.price_numeric,
+            currency_code=activity.currency_code,
+            rating=activity.review_rating or activity.rating,
+            review_count=activity.review_count or 0,
+            marketing_badge=activity.marketing_badge,
+            vibe_tags=vibe_tags,
+            optimal_time_of_day=activity.optimal_time_of_day,
+            hero_image_url=hero_image_url,
+            highlights=highlights,
+            gamification_readiness_score=activity.gamification_readiness_score or Decimal("0"),
+            card_position=idx
+        ))
+
+    cards_remaining = len(cards) - session.cards_viewed
+
+    return DeckResponse(
+        session_id=session.id,
+        cards=cards,
+        total_cards=len(cards),
+        cards_remaining=max(0, cards_remaining)
+    )
+
+
+@router.post("/itinerary/{token}/personalization/swipe", response_model=SwipeResponse)
+def swipe_activity(
+    token: str,
+    swipe_request: SwipeRequest,
+    db: Session = Depends(get_db)
+):
+    """Record a swipe action"""
+    share_link, itinerary = get_share_link_or_404(token, db)
+
+    # Get active session
+    session = db.query(PersonalizationSession).filter(
+        PersonalizationSession.itinerary_id == itinerary.id,
+        PersonalizationSession.status == SessionStatus.active
+    ).first()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="No active personalization session")
+
+    # Record the interaction
+    recorder = InteractionRecorder(db)
+    recorder.record_swipe(session, swipe_request)
+
+    # Get updated stats
+    cards_remaining = session.deck_size - session.cards_viewed
+
+    return SwipeResponse(
+        success=True,
+        message=f"Swipe recorded: {swipe_request.action}",
+        cards_remaining=max(0, cards_remaining),
+        cards_liked=session.cards_liked
+    )
+
+
+@router.post("/itinerary/{token}/personalization/complete", response_model=RevealResponse)
+def complete_personalization(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """Complete personalization and reveal fitted/missed activities"""
+    share_link, itinerary = get_share_link_or_404(token, db)
+
+    # Get active session
+    session = db.query(PersonalizationSession).filter(
+        PersonalizationSession.itinerary_id == itinerary.id,
+        PersonalizationSession.status == SessionStatus.active
+    ).first()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="No active personalization session")
+
+    # Get cart items
+    cart_items = db.query(ItineraryCartItem).filter(
+        ItineraryCartItem.session_id == session.id
+    ).all()
+
+    # Simple fitting logic: try to fit activities into available days
+    days = db.query(ItineraryDay).filter(
+        ItineraryDay.itinerary_id == itinerary.id
+    ).order_by(ItineraryDay.day_number).all()
+
+    fitted = []
+    missed = []
+
+    for cart_item in cart_items:
+        # Simple logic: fit into first available day
+        # In a real implementation, this would use more sophisticated scheduling
+        if days:
+            target_day = days[0]  # Simple: just use first day
+            cart_item.day_id = target_day.id
+            cart_item.fit_status = FitStatus.fit
+            cart_item.fit_reason = "Fits into available schedule"
+            cart_item.status = CartItemStatus.fitted
+
+            activity = db.query(Activity).filter(Activity.id == cart_item.activity_id).first()
+            fitted.append(FittedItem(
+                cart_item_id=cart_item.id,
+                activity_id=cart_item.activity_id,
+                activity_name=activity.name if activity else "Unknown",
+                day_number=target_day.day_number,
+                day_date=target_day.actual_date.isoformat(),
+                time_slot=cart_item.time_slot.value if cart_item.time_slot else None,
+                fit_reason=cart_item.fit_reason,
+                quoted_price=cart_item.quoted_price,
+                currency_code=cart_item.currency_code
+            ))
+        else:
+            cart_item.fit_status = FitStatus.miss
+            cart_item.miss_reason = "No available days in itinerary"
+            cart_item.status = CartItemStatus.missed
+
+            activity = db.query(Activity).filter(Activity.id == cart_item.activity_id).first()
+            missed.append(MissedItem(
+                cart_item_id=cart_item.id,
+                activity_id=cart_item.activity_id,
+                activity_name=activity.name if activity else "Unknown",
+                miss_reason=cart_item.miss_reason,
+                swap_suggestion_activity_id=None,
+                swap_suggestion_name=None
+            ))
+
+    # Mark session as completed
+    recorder = InteractionRecorder(db)
+    recorder.complete_session(session)
+
+    db.commit()
+
+    return RevealResponse(
+        session_id=session.id,
+        fitted_items=fitted,
+        missed_items=missed,
+        total_liked=session.cards_liked,
+        total_fitted=len(fitted),
+        total_missed=len(missed),
+        message=f"Personalization complete! {len(fitted)} activities fitted."
+    )
+
+
+@router.post("/itinerary/{token}/personalization/confirm", response_model=ConfirmResponse)
+def confirm_personalization(
+    token: str,
+    confirm_request: ConfirmRequest,
+    db: Session = Depends(get_db)
+):
+    """Confirm selected activities and add them to the itinerary"""
+    share_link, itinerary = get_share_link_or_404(token, db)
+
+    # Get cart items
+    cart_items = db.query(ItineraryCartItem).filter(
+        ItineraryCartItem.id.in_(confirm_request.cart_item_ids),
+        ItineraryCartItem.itinerary_id == itinerary.id
+    ).all()
+
+    if not cart_items:
+        raise HTTPException(status_code=404, detail="No cart items found")
+
+    added_count = 0
+    for cart_item in cart_items:
+        if cart_item.day_id and cart_item.fit_status == FitStatus.fit:
+            # Get next display order
+            existing_activities = db.query(ItineraryDayActivity).filter(
+                ItineraryDayActivity.itinerary_day_id == cart_item.day_id
+            ).count()
+
+            # Add to itinerary
+            itinerary_activity = ItineraryDayActivity(
+                id=str(uuid.uuid4()),
+                itinerary_day_id=cart_item.day_id,
+                activity_id=cart_item.activity_id,
+                display_order=existing_activities,
+                source_cart_item_id=cart_item.id,
+                added_by_personalization=1
+            )
+            db.add(itinerary_activity)
+
+            # Update cart item status
+            cart_item.status = CartItemStatus.confirmed
+            added_count += 1
+
+    db.commit()
+
+    return ConfirmResponse(
+        success=True,
+        message=f"Successfully added {added_count} activities to itinerary",
+        added_count=added_count,
+        itinerary_id=itinerary.id
+    )
+
+
+@router.post("/itinerary/{token}/personalization/swap", response_model=SwapResponse)
+def swap_activity(
+    token: str,
+    swap_request: SwapRequest,
+    db: Session = Depends(get_db)
+):
+    """Swap a cart item with a different activity"""
+    share_link, itinerary = get_share_link_or_404(token, db)
+
+    # Get cart item
+    cart_item = db.query(ItineraryCartItem).filter(
+        ItineraryCartItem.id == swap_request.cart_item_id,
+        ItineraryCartItem.itinerary_id == itinerary.id
+    ).first()
+
+    if not cart_item:
+        raise HTTPException(status_code=404, detail="Cart item not found")
+
+    # Update cart item
+    old_activity_id = cart_item.activity_id
+    cart_item.activity_id = swap_request.new_activity_id
+    cart_item.fit_status = FitStatus.pending
+    cart_item.fit_reason = "Swapped by user"
+
+    db.commit()
+    db.refresh(cart_item)
+
+    return SwapResponse(
+        success=True,
+        message=f"Activity swapped successfully",
+        new_cart_item_id=cart_item.id,
+        fit_status=cart_item.fit_status.value,
+        fit_reason=cart_item.fit_reason
+    )
+
+
+@router.get("/itinerary/{token}/personalization/resume", response_model=SessionResponse)
+def resume_personalization(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """Resume an existing personalization session"""
+    share_link, itinerary = get_share_link_or_404(token, db)
+
+    # Get most recent session (active or completed)
+    session = db.query(PersonalizationSession).filter(
+        PersonalizationSession.itinerary_id == itinerary.id
+    ).order_by(PersonalizationSession.started_at.desc()).first()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="No personalization session found")
+
+    return SessionResponse.model_validate(session)

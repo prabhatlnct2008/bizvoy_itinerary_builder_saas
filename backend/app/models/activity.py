@@ -51,6 +51,20 @@ class Activity(Base):
     highlights = Column(JSON, nullable=True)  # Array of strings: ["Meet & Greet", "Welcome Drink"]
     tags = Column(JSON, nullable=True)  # Array of strings: ["Family-friendly", "Luxury"]
 
+    # Gamification fields
+    price_numeric = Column(Numeric(10, 2), nullable=True)  # Parsed price for filtering
+    currency_code = Column(String(10), default="USD", nullable=True)
+    marketing_badge = Column(String(50), nullable=True)  # e.g., "Popular", "New", "Limited"
+    review_count = Column(Integer, default=0, nullable=False)
+    review_rating = Column(Numeric(3, 2), nullable=True)  # 0.00 to 5.00
+    optimal_time_of_day = Column(String(50), nullable=True)  # e.g., "morning", "evening"
+    blocked_days_of_week = Column(JSON, nullable=True)  # Array of day numbers [0=Sunday, 6=Saturday]
+    latitude = Column(Numeric(10, 7), nullable=True)
+    longitude = Column(Numeric(10, 7), nullable=True)
+    vibe_tags = Column(JSON, nullable=True)  # Array of vibe_keys: ["adventure", "luxury"]
+    gamification_readiness_score = Column(Numeric(3, 2), default=0, nullable=False)  # 0.00 to 1.00
+    gamification_readiness_issues = Column(JSON, nullable=True)  # Array of issue strings
+
     # Status
     is_active = Column(Boolean, default=True, nullable=False, index=True)
 

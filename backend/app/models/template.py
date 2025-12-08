@@ -63,6 +63,11 @@ class TemplateDayActivity(Base):
     time_slot = Column(String(50), nullable=True)
     custom_notes = Column(Text, nullable=True)
 
+    # Gamification fields
+    start_time = Column(String(10), nullable=True)  # e.g., "09:00"
+    end_time = Column(String(10), nullable=True)  # e.g., "12:00"
+    is_locked_by_agency = Column(Integer, default=1, nullable=False)  # 1=locked, 0=can be swapped
+
     # Relationships
     template_day = relationship("TemplateDay", back_populates="activities")
     activity = relationship("Activity", back_populates="template_day_activities")

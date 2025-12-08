@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     auth, users, roles, activity_types, activities,
     templates, itineraries, share, public, websocket,
-    company_profile, dashboard, admin
+    company_profile, dashboard, admin, gamification
 )
 
 api_router = APIRouter()
@@ -34,6 +34,9 @@ api_router.include_router(share.router, prefix="/itineraries", tags=["share"])
 
 # Company Profile endpoints
 api_router.include_router(company_profile.router, prefix="/company-profile", tags=["company-profile"])
+
+# Gamification endpoints
+api_router.include_router(gamification.router, tags=["gamification"])
 
 # Public endpoints (no auth required)
 api_router.include_router(public.router, prefix="/public", tags=["public"])
