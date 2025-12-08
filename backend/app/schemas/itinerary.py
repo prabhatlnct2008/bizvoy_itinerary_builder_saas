@@ -68,6 +68,10 @@ class ItineraryBase(BaseModel):
 class ItineraryCreate(ItineraryBase):
     template_id: Optional[str] = None
     days: List[ItineraryDayCreate] = []
+    # Personalization settings
+    personalization_enabled: Optional[bool] = False
+    personalization_policy: Optional[str] = "flexible"
+    personalization_lock_policy: Optional[str] = "respect_locks"
 
 
 class ItineraryUpdate(BaseModel):
@@ -84,6 +88,10 @@ class ItineraryUpdate(BaseModel):
     total_price: Optional[Decimal] = None
     special_notes: Optional[str] = None
     days: Optional[List[ItineraryDayCreate]] = None
+    # Personalization settings
+    personalization_enabled: Optional[bool] = None
+    personalization_policy: Optional[str] = None
+    personalization_lock_policy: Optional[str] = None
 
 
 class ItineraryResponse(ItineraryBase):
@@ -95,6 +103,11 @@ class ItineraryResponse(ItineraryBase):
     created_by: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    # Personalization settings
+    personalization_enabled: bool = False
+    personalization_policy: Optional[str] = "flexible"
+    personalization_lock_policy: Optional[str] = "respect_locks"
+    personalization_completed: bool = False
 
     class Config:
         from_attributes = True

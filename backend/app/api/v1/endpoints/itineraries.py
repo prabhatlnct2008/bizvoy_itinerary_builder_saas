@@ -64,7 +64,11 @@ def create_itinerary(
                 num_children=data.num_children,
                 special_notes=data.special_notes,
                 created_by=current_user.id,
-                db=db
+                db=db,
+                # Personalization settings
+                personalization_enabled=data.personalization_enabled or False,
+                personalization_policy=data.personalization_policy or "flexible",
+                personalization_lock_policy=data.personalization_lock_policy or "respect_locks"
             )
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
@@ -82,7 +86,11 @@ def create_itinerary(
             num_adults=data.num_adults,
             num_children=data.num_children,
             special_notes=data.special_notes,
-            created_by=current_user.id
+            created_by=current_user.id,
+            # Personalization settings
+            personalization_enabled=1 if data.personalization_enabled else 0,
+            personalization_policy=data.personalization_policy or "flexible",
+            personalization_lock_policy=data.personalization_lock_policy or "respect_locks"
         )
         db.add(itinerary)
         db.flush()
@@ -156,6 +164,9 @@ def update_itinerary(
     # Update basic fields
     update_data = data.model_dump(exclude_unset=True, exclude={'days'})
     for field, value in update_data.items():
+        # Convert boolean to int for personalization_enabled (DB uses INTEGER)
+        if field == 'personalization_enabled' and value is not None:
+            value = 1 if value else 0
         setattr(itinerary, field, value)
 
     # Update days if provided
