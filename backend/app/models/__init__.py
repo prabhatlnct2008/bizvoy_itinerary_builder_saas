@@ -49,7 +49,7 @@ __all__ = [
     "ShareLink",
     "PDFExport",
     "CompanyProfile",
-    # Gamification
+    # Gamification models
     "AgencyVibe",
     "AgencyPersonalizationSettings",
     "PersonalizationPolicy",
