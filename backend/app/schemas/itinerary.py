@@ -84,6 +84,7 @@ class ItineraryUpdate(BaseModel):
     total_price: Optional[Decimal] = None
     special_notes: Optional[str] = None
     days: Optional[List[ItineraryDayCreate]] = None
+    personalization_enabled: Optional[bool] = None
 
 
 class ItineraryResponse(ItineraryBase):
@@ -95,6 +96,7 @@ class ItineraryResponse(ItineraryBase):
     created_by: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    personalization_enabled: bool = False
 
     class Config:
         from_attributes = True

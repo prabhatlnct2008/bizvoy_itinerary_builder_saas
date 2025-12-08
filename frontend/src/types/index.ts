@@ -346,6 +346,7 @@ export interface Itinerary {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  personalization_enabled?: boolean;
 }
 
 export interface ItineraryDetail extends Itinerary {
@@ -400,6 +401,7 @@ export interface ItineraryUpdate {
   total_price?: number | null;
   special_notes?: string | null;
   days?: ItineraryDayCreate[];
+  personalization_enabled?: boolean;
 }
 
 // Share types

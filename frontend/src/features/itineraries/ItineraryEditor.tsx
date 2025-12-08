@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
@@ -41,6 +42,8 @@ const ItineraryEditor: React.FC = () => {
 
   // Metadata editing
   const [status, setStatus] = useState<string>('draft');
+  const [personalizationEnabled, setPersonalizationEnabled] = useState(false);
+  const [showPersonalizationSection, setShowPersonalizationSection] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -55,6 +58,7 @@ const ItineraryEditor: React.FC = () => {
       const data = await itinerariesApi.getItinerary(id!);
       setItinerary(data);
       setStatus(data.status);
+      setPersonalizationEnabled(data.personalization_enabled || false);
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to load itinerary');
       navigate('/itineraries');
@@ -81,6 +85,7 @@ const ItineraryEditor: React.FC = () => {
       const updateData: ItineraryUpdate = {
         status: status as any,
         days,
+        personalization_enabled: personalizationEnabled,
       };
 
       await itinerariesApi.updateItinerary(currentItinerary.id, updateData);
@@ -207,6 +212,70 @@ const ItineraryEditor: React.FC = () => {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* Personalization Section */}
+      <div className="mb-6 bg-white rounded-lg shadow">
+        <button
+          onClick={() => setShowPersonalizationSection(!showPersonalizationSection)}
+          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-primary-500" />
+            <div className="text-left">
+              <div className="font-medium text-primary">Personalization Settings</div>
+              <div className="text-sm text-secondary">
+                {personalizationEnabled
+                  ? 'Enabled - Travelers can customize this itinerary'
+                  : 'Disabled - Enable to allow travelers to personalize'}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {personalizationEnabled && (
+              <Chip label="Enabled" variant="success" />
+            )}
+            {showPersonalizationSection ? (
+              <ChevronUp className="w-5 h-5 text-muted" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-muted" />
+            )}
+          </div>
+        </button>
+
+        {showPersonalizationSection && (
+          <div className="border-t border-border p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="font-medium text-text-primary">Enable Personalization</div>
+                <div className="text-sm text-text-secondary">
+                  Allow travelers to discover and add activities using the swipe-based discovery engine
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={personalizationEnabled}
+                  onChange={(e) => setPersonalizationEnabled(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            {personalizationEnabled && (
+              <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-sm text-primary-800">
+                <p className="font-medium mb-1">How it works:</p>
+                <ul className="list-disc list-inside space-y-1 text-primary-700">
+                  <li>Travelers will see a "Personalize Your Trip" button on the shared itinerary</li>
+                  <li>They select their travel vibes (up to 3)</li>
+                  <li>They swipe through activity cards to like or pass</li>
+                  <li>Liked activities are automatically fitted into the itinerary</li>
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Day-wise Editor */}
