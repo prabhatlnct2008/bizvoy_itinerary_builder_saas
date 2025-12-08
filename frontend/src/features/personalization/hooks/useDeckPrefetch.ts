@@ -13,8 +13,8 @@ export const useDeckPrefetch = (deck: DeckCard[], currentIndex: number) => {
 
     for (let i = 1; i <= prefetchCount; i++) {
       const nextIndex = currentIndex + i;
-      if (nextIndex < deck.length) {
-        imagesToPrefetch.push(deck[nextIndex].image_url);
+      if (nextIndex < deck.length && deck[nextIndex].hero_image_url) {
+        imagesToPrefetch.push(deck[nextIndex].hero_image_url);
       }
     }
 
