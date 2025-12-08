@@ -179,7 +179,7 @@ export const getPersonalizationSettings = async () => {
   if (USE_MOCK_DATA) {
     return new Promise((resolve) => setTimeout(() => resolve(MOCK_SETTINGS), 500));
   }
-  const response = await apiClient.get('/agency/personalization/settings');
+  const response = await apiClient.get('/api/v1/agency/personalization/settings');
   return mapSettingsFromBackend(response.data);
 };
 
@@ -187,7 +187,7 @@ export const updatePersonalizationSettings = async (settings: any) => {
   if (USE_MOCK_DATA) {
     return new Promise((resolve) => setTimeout(() => resolve(settings), 500));
   }
-  const response = await apiClient.put('/agency/personalization/settings', mapSettingsToBackend(settings));
+  const response = await apiClient.put('/api/v1/agency/personalization/settings', mapSettingsToBackend(settings));
   return mapSettingsFromBackend(response.data);
 };
 
@@ -230,7 +230,7 @@ export const getAgencyVibes = async () => {
   if (USE_MOCK_DATA) {
     return new Promise((resolve) => setTimeout(() => resolve(MOCK_VIBES), 500));
   }
-  const response = await apiClient.get('/agency/personalization/vibes');
+  const response = await apiClient.get('/api/v1/agency/personalization/vibes');
   return response.data.map(mapVibeFromBackend);
 };
 
@@ -245,7 +245,7 @@ export const createVibe = async (vibe: any) => {
     };
     return new Promise((resolve) => setTimeout(() => resolve(newVibe), 500));
   }
-  const response = await apiClient.post('/agency/personalization/vibes', mapVibeToBackendCreate(vibe));
+  const response = await apiClient.post('/api/v1/agency/personalization/vibes', mapVibeToBackendCreate(vibe));
   return mapVibeFromBackend(response.data);
 };
 
@@ -253,7 +253,7 @@ export const updateVibe = async (vibeId: string, vibe: any) => {
   if (USE_MOCK_DATA) {
     return new Promise((resolve) => setTimeout(() => resolve(vibe), 500));
   }
-  const response = await apiClient.put(`/agency/personalization/vibes/${vibeId}`, mapVibeToBackendUpdate(vibe));
+  const response = await apiClient.put(`/api/v1/agency/personalization/vibes/${vibeId}`, mapVibeToBackendUpdate(vibe));
   return mapVibeFromBackend(response.data);
 };
 
@@ -261,7 +261,7 @@ export const deleteVibe = async (vibeId: string) => {
   if (USE_MOCK_DATA) {
     return new Promise((resolve) => setTimeout(() => resolve({}), 500));
   }
-  const response = await apiClient.delete(`/agency/personalization/vibes/${vibeId}`);
+  const response = await apiClient.delete(`/api/v1/agency/personalization/vibes/${vibeId}`);
   return response.data;
 };
 
@@ -269,7 +269,7 @@ export const reorderVibes = async (vibeIds: string[]) => {
   if (USE_MOCK_DATA) {
     return new Promise((resolve) => setTimeout(() => resolve({}), 500));
   }
-  const response = await apiClient.post('/agency/personalization/vibes/reorder', {
+  const response = await apiClient.post('/api/v1/agency/personalization/vibes/reorder', {
     vibe_ids: vibeIds,
   });
   return response.data;
@@ -289,7 +289,7 @@ export const updateActivityGamification = async (
     );
   }
   const response = await apiClient.put(
-    `/activities/${activityId}/gamification`,
+    `/api/v1/activities/${activityId}/gamification`,
     gamificationData
   );
   return response.data;
@@ -310,7 +310,7 @@ export const validateActivityGamification = async (activityId: string) => {
     );
   }
   const response = await apiClient.post(
-    `/activities/${activityId}/gamification/validate`
+    `/api/v1/activities/${activityId}/gamification/validate`
   );
   return response.data;
 };
@@ -325,7 +325,7 @@ export const getGamificationStatus = async () => {
       setTimeout(() => resolve(MOCK_GAMIFICATION_STATUS), 500)
     );
   }
-  const response = await apiClient.get('/agency/activities/gamification-status');
+  const response = await apiClient.get('/api/v1/agency/activities/gamification-status');
   return response.data;
 };
 
@@ -343,7 +343,7 @@ export const getItineraryAnalytics = async (itineraryId: string) => {
     );
   }
   const response = await apiClient.get(
-    `/agency/analytics/itinerary/${itineraryId}`
+    `/api/v1/agency/analytics/itinerary/${itineraryId}`
   );
   return response.data;
 };
@@ -354,6 +354,6 @@ export const getAgencyAnalytics = async () => {
       setTimeout(() => resolve(MOCK_AGENCY_ANALYTICS), 500)
     );
   }
-  const response = await apiClient.get('/agency/analytics');
+  const response = await apiClient.get('/api/v1/agency/analytics');
   return response.data;
 };
