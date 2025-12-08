@@ -18,7 +18,11 @@ class TemplateService:
         num_children: int,
         special_notes: Optional[str],
         created_by: str,
-        db: Session
+        db: Session,
+        # Personalization settings
+        personalization_enabled: bool = False,
+        personalization_policy: str = "flexible",
+        personalization_lock_policy: str = "respect_locks"
     ) -> Itinerary:
         """
         Create an itinerary from a template
@@ -63,7 +67,11 @@ class TemplateService:
             status=ItineraryStatus.draft,
             total_price=template.approximate_price,
             special_notes=special_notes,
-            created_by=created_by
+            created_by=created_by,
+            # Personalization settings
+            personalization_enabled=1 if personalization_enabled else 0,
+            personalization_policy=personalization_policy,
+            personalization_lock_policy=personalization_lock_policy
         )
         db.add(itinerary)
         db.flush()
