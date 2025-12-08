@@ -29,6 +29,14 @@ export default {
         },
         error: '#EF4444',
         info: '#3B82F6',
+        game: {
+          bg: '#1a1a1a',
+          card: '#2d2d2d',
+          'accent-green': '#00E676',
+          'accent-coral': '#FF4081',
+          discard: '#FF5252',
+          save: '#FFC107',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'SF Pro', 'Inter var', 'Nunito', 'Roboto', 'sans-serif'],
@@ -47,6 +55,30 @@ export default {
       },
       boxShadow: {
         'card': '0 10px 15px -10px rgba(0,0,0,0.1)',
+      },
+      keyframes: {
+        'pulse-glow': {
+          '0%, 100%': {
+            opacity: '1',
+            boxShadow: '0 0 20px rgba(0, 230, 118, 0.5)',
+          },
+          '50%': {
+            opacity: '0.8',
+            boxShadow: '0 0 40px rgba(0, 230, 118, 0.8)',
+          },
+        },
+        'float': {
+          '0%, 100%': {
+            transform: 'translateY(0px)',
+          },
+          '50%': {
+            transform: 'translateY(-10px)',
+          },
+        },
+      },
+      animation: {
+        'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+        'float': 'float 3s ease-in-out infinite',
       },
     },
   },
