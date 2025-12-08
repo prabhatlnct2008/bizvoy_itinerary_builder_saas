@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import shareApi from '../../api/share';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { PublicItineraryResponse, PublicItineraryDay, PublicActivity } from '../../types';
+import { PersonalizationEntry } from '../personalization/components/PersonalizationEntry';
 import {
   Calendar,
   MapPin,
@@ -303,6 +304,28 @@ const PublicItinerary: React.FC = () => {
                   <p className="text-sm text-slate-500">Transfers</p>
                 </div>
               )}
+            </div>
+          </section>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            PERSONALIZATION ENTRY
+            ══════════════════════════════════════════════════════════════ */}
+        {itinerary.personalization_enabled && !itinerary.personalization_completed && token && (
+          <section>
+            <PersonalizationEntry token={token} />
+          </section>
+        )}
+
+        {/* Personalized Badge */}
+        {itinerary.personalization_completed && (
+          <section>
+            <div className="bg-gradient-to-r from-game-accent-green to-game-accent-coral rounded-xl p-6 text-center">
+              <div className="flex items-center justify-center gap-2 text-white">
+                <Sparkles className="w-6 h-6" />
+                <span className="text-lg font-bold">This trip has been personalized for you!</span>
+                <Sparkles className="w-6 h-6" />
+              </div>
             </div>
           </section>
         )}

@@ -11,6 +11,9 @@ import {
   Building,
   Building2,
   LayoutDashboard,
+  Settings,
+  BarChart3,
+  Gamepad2,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -30,6 +33,13 @@ const navItems: NavItem[] = [
   { name: 'Users', path: '/users', icon: Users },
   { name: 'Roles', path: '/roles', icon: Shield },
   { name: 'Company Settings', path: '/settings', icon: Building },
+];
+
+const gamificationNavItems: NavItem[] = [
+  { name: 'Personalization', path: '/settings/personalization', icon: Gamepad2 },
+  { name: 'Activity Readiness', path: '/settings/readiness', icon: BarChart3 },
+  { name: 'Manage Vibes', path: '/settings/vibes', icon: Sparkles },
+  { name: 'Analytics', path: '/analytics/personalization', icon: BarChart3 },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -87,6 +97,32 @@ const Sidebar: React.FC = () => {
               </p>
             </div>
             {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-primary-50 text-primary-600'
+                        : 'text-text-secondary hover:bg-gray-50 hover:text-text-primary'
+                    }`
+                  }
+                >
+                  <Icon className="mr-3 h-5 w-5" />
+                  {item.name}
+                </NavLink>
+              );
+            })}
+
+            {/* Gamification Section */}
+            <div className="pt-6 pb-1">
+              <p className="px-4 text-xs font-semibold text-text-muted uppercase tracking-wider">
+                Discovery Engine
+              </p>
+            </div>
+            {gamificationNavItems.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink

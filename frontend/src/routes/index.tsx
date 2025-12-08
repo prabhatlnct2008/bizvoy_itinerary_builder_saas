@@ -8,6 +8,7 @@ import ActivityForm from '../features/activities/ActivityForm';
 import ActivityTypesList from '../features/activities/ActivityTypesList';
 import TemplateList from '../features/templates/TemplateList';
 import TemplateBuilder from '../features/templates/TemplateBuilder';
+import { PersonalizationFlow } from '../features/personalization/pages/PersonalizationFlow';
 
 // Placeholder components (will be implemented in later phases)
 const Dashboard = () => <div className="p-8"><h1 className="text-2xl font-bold">Dashboard</h1><p>Welcome to Travel SaaS!</p></div>;
