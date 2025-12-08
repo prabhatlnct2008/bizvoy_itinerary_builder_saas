@@ -26,6 +26,9 @@ export const PersonalizationFlow = () => {
     goToStep,
   } = usePersonalization(token!);
 
+  // Vibe/status data for the vibe check step
+  const [vibesData, setVibesData] = React.useState<any>(null);
+
   // Load personalization status on mount
   useEffect(() => {
     const checkStatus = async () => {
@@ -58,6 +61,22 @@ export const PersonalizationFlow = () => {
       checkStatus();
     }
   }, [token, deviceIdLoading, navigate]);
+
+  // Load vibes/status for the vibe check
+  React.useEffect(() => {
+    const loadVibes = async () => {
+      try {
+        const status = await getPersonalizationStatus(token!);
+        setVibesData(status);
+      } catch (error) {
+        console.error('Failed to load vibes:', error);
+      }
+    };
+
+    if (token) {
+      loadVibes();
+    }
+  }, [token]);
 
   // Handle vibe check completion
   const handleVibeCheckComplete = async (selectedVibes: string[]) => {
@@ -151,24 +170,6 @@ export const PersonalizationFlow = () => {
       </div>
     );
   }
-
-  // Get personalization status from initial load
-  const [vibesData, setVibesData] = React.useState<any>(null);
-
-  React.useEffect(() => {
-    const loadVibes = async () => {
-      try {
-        const status = await getPersonalizationStatus(token!);
-        setVibesData(status);
-      } catch (error) {
-        console.error('Failed to load vibes:', error);
-      }
-    };
-
-    if (token) {
-      loadVibes();
-    }
-  }, [token]);
 
   // Render current step
   switch (state.currentStep) {

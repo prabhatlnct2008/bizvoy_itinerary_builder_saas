@@ -335,6 +335,17 @@ def get_personalization_status(
     vibes = []
     if is_enabled:
         vibes = VibeService.get_enabled_vibes(db, itinerary.agency_id)
+        # Auto-seed global vibes if an agency has none configured yet
+        if not vibes:
+            VibeService.seed_global_vibes(db, itinerary.agency_id)
+            vibes = VibeService.get_enabled_vibes(db, itinerary.agency_id)
+
+    # Normalize selected_vibes for active session if stored as JSON string
+    if active_session and isinstance(active_session.selected_vibes, str):
+        try:
+            active_session.selected_vibes = json.loads(active_session.selected_vibes)
+        except json.JSONDecodeError:
+            active_session.selected_vibes = None
 
     return PersonalizationStatusResponse(
         enabled=is_enabled,
@@ -367,6 +378,12 @@ def start_personalization_session(
     ).first()
 
     if existing:
+        # Normalize selected_vibes if stored as JSON string
+        if isinstance(existing.selected_vibes, str):
+            try:
+                existing.selected_vibes = json.loads(existing.selected_vibes)
+            except json.JSONDecodeError:
+                existing.selected_vibes = None
         return SessionResponse.model_validate(existing)
 
     # Create new session
@@ -375,7 +392,7 @@ def start_personalization_session(
         itinerary_id=itinerary.id,
         share_link_id=share_link.id,
         device_id=request.device_id,
-        selected_vibes=json.dumps(request.selected_vibes) if request.selected_vibes else None,
+        selected_vibes=request.selected_vibes or None,
         deck_size=settings.default_deck_size,
         user_agent=user_agent,
     )
