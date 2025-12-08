@@ -18,6 +18,7 @@ import ItineraryWizard from '../features/itineraries/ItineraryWizard';
 import ItineraryEditor from '../features/itineraries/ItineraryEditor';
 import PublicItinerary from '../features/public/PublicItinerary';
 import CompanySettings from '../features/settings/CompanySettings';
+import { PersonalizationFlow } from '../features/personalization/pages/PersonalizationFlow';
 // Admin Pages
 import AdminDashboard from '../features/admin/AdminDashboard';
 import AgenciesList from '../features/admin/AgenciesList';
@@ -78,6 +79,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/itinerary/:token" element={<PublicItinerary />} />
+        <Route path="/itinerary/:token/personalize" element={<PersonalizationFlow />} />
 
         {/* Protected Routes */}
         <Route
