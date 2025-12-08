@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Zap } from 'lucide-react';
 import { analyticsService } from '../services/analyticsService';
 
 interface PersonalizationEntryProps {
@@ -18,6 +18,14 @@ export const PersonalizationEntry = ({ token }: PersonalizationEntryProps) => {
 
   return (
     <div className="my-8">
+      {/* Quick Personalization Badge */}
+      <div className="flex items-center justify-center gap-2 mb-4">
+        <Zap className="w-4 h-4 text-amber-500" />
+        <span className="text-sm font-medium text-slate-600">
+          This trip supports quick personalization
+        </span>
+      </div>
+
       <motion.button
         onClick={handleClick}
         className="relative w-full py-6 px-8 rounded-xl overflow-hidden bg-gradient-to-r from-game-accent-green to-game-accent-coral text-white font-semibold text-lg shadow-lg"
@@ -55,7 +63,7 @@ export const PersonalizationEntry = ({ token }: PersonalizationEntryProps) => {
         <div className="relative flex items-center justify-center gap-3">
           <Sparkles className="w-6 h-6" />
           <div className="text-center">
-            <div className="text-xl font-bold">Personalize Your Trip</div>
+            <div className="text-xl font-bold">Personalize Trip</div>
             <div className="text-sm font-normal opacity-90 mt-1">
               20 quick choices • ~60 seconds
             </div>

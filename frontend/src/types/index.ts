@@ -531,6 +531,8 @@ export interface PublicItineraryResponse {
   pricing: PublicPricing | null;
   live_updates_enabled: boolean;
   share_link: ShareLink;
+  personalization_enabled: boolean;
+  personalization_completed: boolean;
 }
 
 // API Response types

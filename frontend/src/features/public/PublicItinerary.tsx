@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import shareApi from '../../api/share';
 import { useWebSocket } from '../../hooks/useWebSocket';
@@ -24,7 +24,8 @@ import {
   Shield,
   Hotel,
   Camera,
-  Plane
+  Plane,
+  Heart
 } from 'lucide-react';
 
 const PublicItinerary: React.FC = () => {
@@ -309,10 +310,20 @@ const PublicItinerary: React.FC = () => {
         )}
 
         {/* ══════════════════════════════════════════════════════════════
-            PERSONALIZATION ENTRY
+            MAKE THIS TRIP YOURS SECTION
             ══════════════════════════════════════════════════════════════ */}
         {itinerary.personalization_enabled && !itinerary.personalization_completed && token && (
-          <section>
+          <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-100">
+            {/* Section Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Make this trip yours</h2>
+                <p className="text-sm text-slate-500">Add activities that match your interests</p>
+              </div>
+            </div>
             <PersonalizationEntry token={token} />
           </section>
         )}
@@ -356,6 +367,8 @@ const PublicItinerary: React.FC = () => {
                 baseUrl={baseUrl}
                 formatDuration={formatDuration}
                 formatDateFull={formatDateFull}
+                personalizationEnabled={itinerary.personalization_enabled && !itinerary.personalization_completed}
+                token={token}
               />
             ))}
           </div>
@@ -532,6 +545,8 @@ interface DayCardProps {
   baseUrl: string;
   formatDuration: (value: number | null, unit: string | null) => string | null;
   formatDateFull: (dateStr: string) => string;
+  personalizationEnabled?: boolean;
+  token?: string;
 }
 
 const DayCard: React.FC<DayCardProps> = ({
@@ -542,7 +557,9 @@ const DayCard: React.FC<DayCardProps> = ({
   toggleActivity,
   baseUrl,
   formatDuration,
-  formatDateFull
+  formatDateFull,
+  personalizationEnabled,
+  token
 }) => {
   // Get preview images for avatar stack
   const previewImages = day.activities
@@ -634,10 +651,27 @@ const DayCard: React.FC<DayCardProps> = ({
                   onToggle={() => toggleActivity(activity.id)}
                   baseUrl={baseUrl}
                   formatDuration={formatDuration}
-                  isLast={idx === day.activities.length - 1}
+                  isLast={idx === day.activities.length - 1 && !personalizationEnabled}
                 />
               ))}
             </div>
+          )}
+
+          {/* Inline Personalization Entry Point */}
+          {personalizationEnabled && token && (
+            <Link
+              to={`/itinerary/${token}/personalize`}
+              className="mt-4 flex items-center gap-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200 hover:from-amber-100 hover:to-orange-100 transition-colors group"
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                <Heart className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-slate-800">Add experiences you'll love</p>
+                <p className="text-sm text-slate-500">Discover activities that match your interests</p>
+              </div>
+              <ChevronDown className="w-5 h-5 text-amber-500 -rotate-90" />
+            </Link>
           )}
         </div>
       )}
