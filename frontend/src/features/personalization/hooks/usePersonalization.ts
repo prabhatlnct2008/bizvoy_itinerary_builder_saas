@@ -146,12 +146,20 @@ export const usePersonalization = (token: string) => {
   }, [token]);
 
   // Confirm selections
-  const confirmSelections = useCallback(async (sessionId: string) => {
+  const confirmSelections = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await personalizationApi.confirmSelections(token, sessionId);
+      // Get cart item IDs from fitted items in reveal data
+      const fittedItems = state.revealData?.fitted_items || [];
+      const cartItemIds = fittedItems.map((item) => item.cart_item_id);
+
+      if (cartItemIds.length === 0) {
+        throw new Error('No fitted items to confirm');
+      }
+
+      const response = await personalizationApi.confirmSelections(token, cartItemIds);
 
       setState((prev) => ({
         ...prev,
@@ -165,7 +173,7 @@ export const usePersonalization = (token: string) => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, state.revealData]);
 
   // Swap an activity
   const swapActivity = useCallback(async (removeActivityId: string, addActivityId: string) => {

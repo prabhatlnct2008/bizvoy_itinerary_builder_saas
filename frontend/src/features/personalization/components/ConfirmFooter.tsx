@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 interface ConfirmFooterProps {
   totalAdded?: number | null;
@@ -22,7 +22,7 @@ export const ConfirmFooter = ({
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
         {/* Total */}
         <div>
-          <div className="text-gray-400 text-sm">Added to your trip</div>
+          <div className="text-gray-400 text-sm">Activities added to your trip</div>
           <div className="text-white text-2xl font-bold">
             {currency} {total.toFixed(2)}
           </div>
@@ -36,8 +36,8 @@ export const ConfirmFooter = ({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <span>{isLoading ? 'Processing...' : 'Confirm & Pay'}</span>
-          {!isLoading && <ArrowRight className="w-5 h-5" />}
+          <span>{isLoading ? 'Adding...' : 'Add to Itinerary'}</span>
+          {!isLoading && <Check className="w-5 h-5" />}
         </motion.button>
       </div>
     </div>
