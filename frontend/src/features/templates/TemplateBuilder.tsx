@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Save, ArrowLeft, CheckCircle, LibraryBig, Truck } from 'lucide-react';
+import { Save, ArrowLeft, CheckCircle, LibraryBig } from 'lucide-react';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
@@ -60,7 +60,6 @@ const TemplateBuilder: React.FC = () => {
   });
 
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState<'library' | 'logistics'>('library');
   const [activities, setActivities] = useState<ActivityDetail[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -153,17 +152,6 @@ const TemplateBuilder: React.FC = () => {
     addActivityToDay(selectedDayIndex, newActivity);
     setIsActivityModalOpen(false);
     toast.success(`Added ${activity.name} to Day ${days[selectedDayIndex].day_number}`);
-  };
-
-  const handleAddLogisticsItem = (item: TemplateDayActivityCreate) => {
-    // Ensure display_order is set correctly
-    const itemWithOrder: TemplateDayActivityCreate = {
-      ...item,
-      display_order: days[selectedDayIndex].activities.length,
-    };
-
-    addActivityToDay(selectedDayIndex, itemWithOrder);
-    toast.success(`Added "${item.custom_title}" to Day ${days[selectedDayIndex].day_number}`);
   };
 
   const validate = (): boolean => {
@@ -418,51 +406,14 @@ const TemplateBuilder: React.FC = () => {
       {/* Activity Selection Modal */}
       <Modal
         isOpen={isActivityModalOpen}
-        onClose={() => {
-          setIsActivityModalOpen(false);
-          setModalTab('library');
-        }}
-        title={`Add to Day ${currentDay?.day_number || ''}`}
+        onClose={() => setIsActivityModalOpen(false)}
+        title={`Add Activity to Day ${currentDay?.day_number || ''}`}
         size="lg"
       >
-        {/* Modal Tabs */}
-        <div className="flex border-b border-border mb-4 -mx-4 px-4">
-          <button
-            onClick={() => setModalTab('library')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              modalTab === 'library'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-muted hover:text-primary'
-            }`}
-          >
-            <LibraryBig className="w-4 h-4" />
-            Activity Library
-          </button>
-          <button
-            onClick={() => setModalTab('logistics')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              modalTab === 'logistics'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-muted hover:text-primary'
-            }`}
-          >
-            <Truck className="w-4 h-4" />
-            Logistics / Notes
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        {modalTab === 'library' ? (
-          <ActivityPicker
-            onSelectActivity={handleAddActivity}
-            selectedActivityIds={selectedActivityIds.filter((id): id is string => id !== undefined)}
-          />
-        ) : (
-          <LogisticsItemForm
-            onAddItem={handleAddLogisticsItem}
-            displayOrder={currentDay?.activities.length || 0}
-          />
-        )}
+        <ActivityPicker
+          onSelectActivity={handleAddActivity}
+          selectedActivityIds={selectedActivityIds.filter((id): id is string => id !== undefined)}
+        />
       </Modal>
     </div>
   );

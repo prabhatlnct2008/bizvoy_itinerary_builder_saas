@@ -24,6 +24,7 @@ const VibesManager: React.FC = () => {
   const [editingVibe, setEditingVibe] = useState<Vibe | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadVibes();
@@ -59,25 +60,29 @@ const VibesManager: React.FC = () => {
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
+    setDropTargetIndex(null);
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const newVibes = [...vibes];
-    const draggedVibe = newVibes[draggedIndex];
-    newVibes.splice(draggedIndex, 1);
-    newVibes.splice(index, 0, draggedVibe);
-
-    setVibes(newVibes);
-    setDraggedIndex(index);
+    // Only track the drop target visually - don't reorder yet
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDropTargetIndex(index);
+    }
   };
 
   const handleDragEnd = async () => {
-    if (draggedIndex !== null) {
+    // Perform the reorder only when drag ends
+    if (draggedIndex !== null && dropTargetIndex !== null && draggedIndex !== dropTargetIndex) {
+      const newVibes = [...vibes];
+      const draggedVibe = newVibes[draggedIndex];
+      newVibes.splice(draggedIndex, 1);
+      newVibes.splice(dropTargetIndex, 0, draggedVibe);
+
+      setVibes(newVibes);
+
       try {
-        const vibeIds = vibes.map((v) => v.id);
+        const vibeIds = newVibes.map((v) => v.id);
         await reorderVibes(vibeIds);
         toast.success('Vibe order updated');
       } catch (error) {
@@ -87,6 +92,7 @@ const VibesManager: React.FC = () => {
       }
     }
     setDraggedIndex(null);
+    setDropTargetIndex(null);
   };
 
   const handleAddVibe = () => {
@@ -146,6 +152,8 @@ const VibesManager: React.FC = () => {
                 onDragEnd={handleDragEnd}
                 className={`flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${
                   draggedIndex === index ? 'opacity-50' : ''
+                } ${
+                  dropTargetIndex === index ? 'ring-2 ring-primary-400 ring-offset-2' : ''
                 }`}
               >
                 {/* Drag Handle */}
