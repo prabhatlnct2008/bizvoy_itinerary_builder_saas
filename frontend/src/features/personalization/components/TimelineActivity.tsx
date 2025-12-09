@@ -6,7 +6,16 @@ interface TimelineActivityProps {
 }
 
 export const TimelineActivity = ({ item }: TimelineActivityProps) => {
-  const isLocked = item.is_locked;
+  // Backend payload is minimal; normalize for safe rendering
+  const isLocked = (item as any).is_locked || false;
+  const name = (item as any).name || item.activity_name || 'Activity';
+  const imageUrl = (item as any).image_url;
+  const start = (item as any).start_time;
+  const end = (item as any).end_time;
+  const timeSlot = item.time_slot || start || end ? `${start || ''}${start && end ? ' - ' : ''}${end || ''}` : 'Time TBD';
+  const fitReason = item.fit_reason || 'Added to your itinerary';
+  const price = (item as any).price_numeric ?? item.quoted_price;
+  const currency = item.currency_code || '';
 
   return (
     <div
@@ -17,18 +26,24 @@ export const TimelineActivity = ({ item }: TimelineActivityProps) => {
     >
       {/* Image */}
       <div className="flex-shrink-0">
-        <img
-          src={item.image_url}
-          alt={item.name}
-          className="w-20 h-20 rounded-lg object-cover"
-        />
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={name}
+            className="w-20 h-20 rounded-lg object-cover"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-lg bg-gray-700 flex items-center justify-center text-gray-400 text-xs">
+            No Image
+          </div>
+        )}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 mb-2">
           <h4 className="text-white font-semibold text-base leading-tight">
-            {item.name}
+            {name}
           </h4>
 
           {/* Icon */}
@@ -44,20 +59,18 @@ export const TimelineActivity = ({ item }: TimelineActivityProps) => {
         {/* Time */}
         <div className="flex items-center gap-2 text-gray-300 text-sm mb-2">
           <Clock className="w-4 h-4" />
-          <span>
-            {item.start_time} - {item.end_time} ({item.duration_display})
-          </span>
+          <span>{timeSlot}</span>
         </div>
 
         {/* Fit reason */}
         <div className="text-xs text-gray-400 mb-2">
-          {item.fit_reason}
+          {fitReason}
         </div>
 
         {/* Price */}
-        {!isLocked && (
+        {!isLocked && price != null && (
           <div className="text-game-accent-green font-semibold text-sm">
-            +{item.currency_code} {item.price_numeric.toFixed(2)}
+            +{currency} {Number(price).toFixed(2)}
           </div>
         )}
       </div>
