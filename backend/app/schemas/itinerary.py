@@ -1,25 +1,88 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, field_validator
+from typing import Optional, List, Any, Literal
 from datetime import datetime, date
 from decimal import Decimal
+import json
+
+
+# Item types for hybrid row pattern
+ItemTypeEnum = Literal["LIBRARY_ACTIVITY", "LOGISTICS", "NOTE"]
 
 
 class ItineraryDayActivityCreate(BaseModel):
-    activity_id: str
+    """Create an activity in an itinerary day - supports both library items and ad-hoc items"""
+    # For library items, activity_id is required; for ad-hoc items, it's null
+    activity_id: Optional[str] = None
+
+    # Item type determines rendering and validation
+    item_type: ItemTypeEnum = "LIBRARY_ACTIVITY"
+
+    # For ad-hoc items (LOGISTICS, NOTE)
+    custom_title: Optional[str] = None
+    custom_payload: Optional[dict] = None  # JSON blob for extra details
+    custom_icon: Optional[str] = None  # Icon hint (hotel, taxi, plane, etc.)
+
     display_order: int = 0
-    time_slot: Optional[str] = None
+    time_slot: Optional[str] = None  # morning, afternoon, evening
     custom_notes: Optional[str] = None
     custom_price: Optional[Decimal] = None
 
+    # Time fields
+    start_time: Optional[str] = None  # e.g., "09:00"
+    end_time: Optional[str] = None  # e.g., "12:00"
+    is_locked_by_agency: bool = False
+
 
 class ItineraryDayActivityResponse(BaseModel):
+    """Response for an activity in an itinerary day"""
     id: str
     itinerary_day_id: str
-    activity_id: str
+    activity_id: Optional[str] = None
+
+    # Item type and custom fields
+    item_type: str = "LIBRARY_ACTIVITY"
+    custom_title: Optional[str] = None
+    custom_payload: Optional[Any] = None
+    custom_icon: Optional[str] = None
+
     display_order: int
     time_slot: Optional[str] = None
     custom_notes: Optional[str] = None
     custom_price: Optional[Decimal] = None
+
+    # Time fields
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    is_locked_by_agency: bool = False
+    source_cart_item_id: Optional[str] = None
+    added_by_personalization: bool = False
+
+    @field_validator('custom_payload', mode='before')
+    @classmethod
+    def parse_custom_payload(cls, v):
+        """Parse custom_payload from JSON string if needed"""
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return None
+        return v
+
+    @field_validator('is_locked_by_agency', mode='before')
+    @classmethod
+    def parse_is_locked(cls, v):
+        """Convert integer to boolean"""
+        if isinstance(v, int):
+            return v == 1
+        return v
+
+    @field_validator('added_by_personalization', mode='before')
+    @classmethod
+    def parse_added_by(cls, v):
+        """Convert integer to boolean"""
+        if isinstance(v, int):
+            return v == 1
+        return v
 
     class Config:
         from_attributes = True

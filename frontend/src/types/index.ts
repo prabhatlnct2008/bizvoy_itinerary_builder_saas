@@ -226,6 +226,10 @@ export interface TemplateDayActivity {
   display_order: number;
   time_slot: string | null;
   custom_notes: string | null;
+  // Time fields
+  start_time: string | null;
+  end_time: string | null;
+  is_locked_by_agency: boolean;
 }
 
 export interface TemplateDay {
@@ -275,6 +279,10 @@ export interface TemplateDayActivityCreate {
   display_order: number;
   time_slot?: string | null;
   custom_notes?: string | null;
+  // Time fields
+  start_time?: string | null;
+  end_time?: string | null;
+  is_locked_by_agency?: boolean;
 }
 
 export interface TemplateDayCreate {
@@ -306,15 +314,30 @@ export interface TemplateUpdate {
   days?: TemplateDayCreate[];
 }
 
+// Item types for hybrid row pattern
+export type ItemType = 'LIBRARY_ACTIVITY' | 'LOGISTICS' | 'NOTE';
+
 // Itinerary types
 export interface ItineraryDayActivity {
   id: string;
   itinerary_day_id: string;
-  activity_id: string;
+  activity_id: string | null;  // Nullable for ad-hoc items (LOGISTICS, NOTE)
+  // Item type and custom fields for hybrid row pattern
+  item_type: ItemType;
+  custom_title: string | null;
+  custom_payload: Record<string, unknown> | null;  // JSON blob for extra details
+  custom_icon: string | null;  // Icon hint (hotel, taxi, plane, etc.)
   display_order: number;
   time_slot: string | null;
   custom_notes: string | null;
   custom_price: number | null;
+  // Time fields
+  start_time: string | null;  // e.g., "09:00"
+  end_time: string | null;    // e.g., "12:00"
+  is_locked_by_agency: boolean;
+  // Personalization tracking
+  source_cart_item_id: string | null;
+  added_by_personalization: boolean;
 }
 
 export interface ItineraryDay {
@@ -354,11 +377,22 @@ export interface ItineraryDetail extends Itinerary {
 
 // Request types for Itinerary
 export interface ItineraryDayActivityCreate {
-  activity_id: string;
+  // For library items, activity_id is required; for ad-hoc items, it's null
+  activity_id?: string | null;
+  // Item type determines rendering and validation
+  item_type?: ItemType;
+  // For ad-hoc items (LOGISTICS, NOTE)
+  custom_title?: string | null;
+  custom_payload?: Record<string, unknown> | null;
+  custom_icon?: string | null;
   display_order: number;
   time_slot?: string | null;
   custom_notes?: string | null;
   custom_price?: number | null;
+  // Time fields
+  start_time?: string | null;
+  end_time?: string | null;
+  is_locked_by_agency?: boolean;
 }
 
 export interface ItineraryDayCreate {
@@ -447,12 +481,24 @@ export interface PublicActivityImage {
 export interface PublicActivity {
   id: string;
   itinerary_day_id: string;
-  activity_id: string;
+  activity_id: string | null;  // Nullable for ad-hoc items
+  // Hybrid row pattern fields
+  item_type: ItemType;
+  custom_title: string | null;
+  custom_payload: Record<string, unknown> | null;
+  custom_icon: string | null;
   display_order: number;
   time_slot: string | null;
   custom_notes: string | null;
   custom_price: number | null;
-  // Activity details
+  // Time fields
+  start_time: string | null;
+  end_time: string | null;
+  is_locked_by_agency: boolean;
+  // Personalization tracking
+  source_cart_item_id: string | null;
+  added_by_personalization: boolean;
+  // Activity details (populated for LIBRARY_ACTIVITY items)
   name: string;
   activity_type_name: string | null;
   category_label: string | null;
