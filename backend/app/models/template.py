@@ -58,7 +58,15 @@ class TemplateDayActivity(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     template_day_id = Column(String, ForeignKey("template_days.id", ondelete="CASCADE"), nullable=False)
-    activity_id = Column(String, ForeignKey("activities.id", ondelete="RESTRICT"), nullable=False)
+    # activity_id is nullable to support ad-hoc items (LOGISTICS, NOTE)
+    activity_id = Column(String, ForeignKey("activities.id", ondelete="RESTRICT"), nullable=True)
+
+    # Hybrid row pattern fields for ad-hoc items
+    item_type = Column(String(20), default="LIBRARY_ACTIVITY", nullable=False)  # LIBRARY_ACTIVITY, LOGISTICS, NOTE
+    custom_title = Column(String(255), nullable=True)  # Title for ad-hoc items
+    custom_payload = Column(Text, nullable=True)  # JSON blob for extra details
+    custom_icon = Column(String(50), nullable=True)  # Icon hint (hotel, taxi, plane, etc.)
+
     display_order = Column(Integer, default=0, nullable=False)
     time_slot = Column(String(50), nullable=True)
     custom_notes = Column(Text, nullable=True)
@@ -71,7 +79,3 @@ class TemplateDayActivity(Base):
     # Relationships
     template_day = relationship("TemplateDay", back_populates="activities")
     activity = relationship("Activity", back_populates="template_day_activities")
-
-    __table_args__ = (
-        UniqueConstraint('template_day_id', 'activity_id', name='_template_day_activity_uc'),
-    )

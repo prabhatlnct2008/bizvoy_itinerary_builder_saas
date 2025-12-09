@@ -132,7 +132,8 @@ class ItineraryCreate(ItineraryBase):
     template_id: Optional[str] = None
     days: List[ItineraryDayCreate] = []
     # Personalization settings
-    personalization_enabled: Optional[bool] = False
+    # Default to None so the backend can auto-enable based on agency settings
+    personalization_enabled: Optional[bool] = None
     personalization_policy: Optional[str] = "flexible"
     personalization_lock_policy: Optional[str] = "respect_locks"
 

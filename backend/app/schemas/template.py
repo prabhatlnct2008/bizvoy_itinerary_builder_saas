@@ -21,20 +21,39 @@ class ActivityListItem(BaseModel):
 
 # Template Day Activity Schemas
 class TemplateDayActivityCreate(BaseModel):
-    activity_id: str
+    # activity_id is optional to support ad-hoc items (LOGISTICS, NOTE)
+    activity_id: Optional[str] = None
+    # Hybrid row pattern fields
+    item_type: Optional[str] = "LIBRARY_ACTIVITY"  # LIBRARY_ACTIVITY, LOGISTICS, NOTE
+    custom_title: Optional[str] = None  # Title for ad-hoc items
+    custom_payload: Optional[str] = None  # JSON string for extra details
+    custom_icon: Optional[str] = None  # Icon hint (hotel, taxi, plane, etc.)
     display_order: int = 0
     time_slot: Optional[str] = None
     custom_notes: Optional[str] = None
+    # Time fields
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    is_locked_by_agency: Optional[bool] = True
 
 
 class TemplateDayActivityResponse(BaseModel):
     id: str
     template_day_id: str
-    activity_id: str
+    activity_id: Optional[str] = None  # Nullable for ad-hoc items
     activity: Optional[ActivityListItem] = None
+    # Hybrid row pattern fields
+    item_type: str = "LIBRARY_ACTIVITY"
+    custom_title: Optional[str] = None
+    custom_payload: Optional[str] = None
+    custom_icon: Optional[str] = None
     display_order: int
     time_slot: Optional[str] = None
     custom_notes: Optional[str] = None
+    # Time fields
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    is_locked_by_agency: bool = True
 
     class Config:
         from_attributes = True

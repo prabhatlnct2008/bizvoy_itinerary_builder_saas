@@ -132,14 +132,21 @@ def create_template(
         db.add(day)
         db.flush()
 
-        # Create activities for this day
+        # Create activities for this day (supports both library and ad-hoc items)
         for activity_data in day_data.activities:
             activity = TemplateDayActivity(
                 template_day_id=day.id,
-                activity_id=activity_data.activity_id,
+                activity_id=activity_data.activity_id,  # Can be None for ad-hoc items
+                item_type=activity_data.item_type or "LIBRARY_ACTIVITY",
+                custom_title=activity_data.custom_title,
+                custom_payload=activity_data.custom_payload,
+                custom_icon=activity_data.custom_icon,
                 display_order=activity_data.display_order,
                 time_slot=activity_data.time_slot,
-                custom_notes=activity_data.custom_notes
+                custom_notes=activity_data.custom_notes,
+                start_time=activity_data.start_time,
+                end_time=activity_data.end_time,
+                is_locked_by_agency=1 if activity_data.is_locked_by_agency else 0
             )
             db.add(activity)
 
@@ -216,14 +223,21 @@ def update_template(
             db.add(day)
             db.flush()
 
-            # Create activities
+            # Create activities (supports both library and ad-hoc items)
             for activity_data in day_data.activities:
                 activity = TemplateDayActivity(
                     template_day_id=day.id,
-                    activity_id=activity_data.activity_id,
+                    activity_id=activity_data.activity_id,  # Can be None for ad-hoc items
+                    item_type=activity_data.item_type or "LIBRARY_ACTIVITY",
+                    custom_title=activity_data.custom_title,
+                    custom_payload=activity_data.custom_payload,
+                    custom_icon=activity_data.custom_icon,
                     display_order=activity_data.display_order,
                     time_slot=activity_data.time_slot,
-                    custom_notes=activity_data.custom_notes
+                    custom_notes=activity_data.custom_notes,
+                    start_time=activity_data.start_time,
+                    end_time=activity_data.end_time,
+                    is_locked_by_agency=1 if activity_data.is_locked_by_agency else 0
                 )
                 db.add(activity)
 
@@ -334,14 +348,21 @@ def copy_template(
         db.add(new_day)
         db.flush()
 
-        # Copy activities for this day
+        # Copy activities for this day (including ad-hoc items)
         for activity in sorted(day.activities, key=lambda a: a.display_order):
             new_activity = TemplateDayActivity(
                 template_day_id=new_day.id,
-                activity_id=activity.activity_id,
+                activity_id=activity.activity_id,  # Can be None for ad-hoc items
+                item_type=activity.item_type or "LIBRARY_ACTIVITY",
+                custom_title=activity.custom_title,
+                custom_payload=activity.custom_payload,
+                custom_icon=activity.custom_icon,
                 display_order=activity.display_order,
                 time_slot=activity.time_slot,
-                custom_notes=activity.custom_notes
+                custom_notes=activity.custom_notes,
+                start_time=activity.start_time,
+                end_time=activity.end_time,
+                is_locked_by_agency=activity.is_locked_by_agency
             )
             db.add(new_activity)
 
@@ -858,37 +879,65 @@ def _build_template_detail_response(template: Template, db: Session) -> Template
     for day in sorted(template.days, key=lambda d: d.day_number):
         activities = []
         for tda in sorted(day.activities, key=lambda a: a.display_order):
-            # Get activity with images
-            activity = db.query(Activity).options(
-                joinedload(Activity.activity_type),
-                joinedload(Activity.images)
-            ).filter(Activity.id == tda.activity_id).first()
+            item_type = getattr(tda, 'item_type', 'LIBRARY_ACTIVITY') or 'LIBRARY_ACTIVITY'
 
-            if activity:
-                # Find hero image
-                hero_image = next((img for img in activity.images if img.is_hero), None)
-                if not hero_image and activity.images:
-                    hero_image = activity.images[0]
+            # For library activities, fetch the activity details
+            if item_type == 'LIBRARY_ACTIVITY' and tda.activity_id:
+                activity = db.query(Activity).options(
+                    joinedload(Activity.activity_type),
+                    joinedload(Activity.images)
+                ).filter(Activity.id == tda.activity_id).first()
 
-                activity_item = ActivityListItem(
-                    id=activity.id,
-                    name=activity.name,
-                    activity_type_name=activity.activity_type.name if activity.activity_type else None,
-                    category_label=activity.category_label,
-                    location_display=activity.location_display,
-                    short_description=activity.short_description,
-                    hero_image_url=file_storage.get_file_url(hero_image.file_path) if hero_image else None,
-                    is_active=activity.is_active
-                )
+                if activity:
+                    # Find hero image
+                    hero_image = next((img for img in activity.images if img.is_hero), None)
+                    if not hero_image and activity.images:
+                        hero_image = activity.images[0]
 
+                    activity_item = ActivityListItem(
+                        id=activity.id,
+                        name=activity.name,
+                        activity_type_name=activity.activity_type.name if activity.activity_type else None,
+                        category_label=activity.category_label,
+                        location_display=activity.location_display,
+                        short_description=activity.short_description,
+                        hero_image_url=file_storage.get_file_url(hero_image.file_path) if hero_image else None,
+                        is_active=activity.is_active
+                    )
+
+                    activities.append(TemplateDayActivityResponse(
+                        id=tda.id,
+                        template_day_id=tda.template_day_id,
+                        activity_id=tda.activity_id,
+                        activity=activity_item,
+                        item_type=item_type,
+                        custom_title=tda.custom_title,
+                        custom_payload=tda.custom_payload,
+                        custom_icon=tda.custom_icon,
+                        display_order=tda.display_order,
+                        time_slot=tda.time_slot,
+                        custom_notes=tda.custom_notes,
+                        start_time=tda.start_time,
+                        end_time=tda.end_time,
+                        is_locked_by_agency=bool(tda.is_locked_by_agency)
+                    ))
+            else:
+                # Ad-hoc item (LOGISTICS, NOTE) - no linked Activity
                 activities.append(TemplateDayActivityResponse(
                     id=tda.id,
                     template_day_id=tda.template_day_id,
-                    activity_id=tda.activity_id,
-                    activity=activity_item,
+                    activity_id=None,
+                    activity=None,
+                    item_type=item_type,
+                    custom_title=tda.custom_title,
+                    custom_payload=tda.custom_payload,
+                    custom_icon=tda.custom_icon,
                     display_order=tda.display_order,
                     time_slot=tda.time_slot,
-                    custom_notes=tda.custom_notes
+                    custom_notes=tda.custom_notes,
+                    start_time=tda.start_time,
+                    end_time=tda.end_time,
+                    is_locked_by_agency=bool(tda.is_locked_by_agency)
                 ))
 
         days.append(TemplateDayDetailResponse(

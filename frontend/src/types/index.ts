@@ -222,7 +222,12 @@ export interface ActivitySearchRequest {
 export interface TemplateDayActivity {
   id: string;
   template_day_id: string;
-  activity_id: string;
+  activity_id: string | null;  // Nullable for ad-hoc items (LOGISTICS, NOTE)
+  // Hybrid row pattern fields
+  item_type: ItemType;
+  custom_title: string | null;
+  custom_payload: string | null;  // JSON string for extra details
+  custom_icon: string | null;
   display_order: number;
   time_slot: string | null;
   custom_notes: string | null;
@@ -275,7 +280,13 @@ export interface TemplateDetail extends Template {
 
 // Request types for Template
 export interface TemplateDayActivityCreate {
-  activity_id: string;
+  // activity_id is optional for ad-hoc items (LOGISTICS, NOTE)
+  activity_id?: string | null;
+  // Hybrid row pattern fields
+  item_type?: ItemType;
+  custom_title?: string | null;
+  custom_payload?: string | null;  // JSON string for extra details
+  custom_icon?: string | null;
   display_order: number;
   time_slot?: string | null;
   custom_notes?: string | null;

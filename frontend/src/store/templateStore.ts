@@ -47,9 +47,18 @@ export const useTemplateStore = create<TemplateState>((set) => ({
       notes: day.notes || null,
       activities: day.activities.map((act) => ({
         activity_id: act.activity_id,
+        // Hybrid row pattern fields
+        item_type: act.item_type || 'LIBRARY_ACTIVITY',
+        custom_title: act.custom_title || null,
+        custom_payload: act.custom_payload || null,
+        custom_icon: act.custom_icon || null,
         display_order: act.display_order,
         time_slot: act.time_slot,
         custom_notes: act.custom_notes,
+        // Time fields
+        start_time: act.start_time || null,
+        end_time: act.end_time || null,
+        is_locked_by_agency: act.is_locked_by_agency ?? true,
       })),
     }));
 
@@ -155,12 +164,15 @@ export const useTemplateStore = create<TemplateState>((set) => ({
   addActivityToDay: (dayIndex, activity) =>
     set((state) => {
       const newDays = [...state.days];
-      // Check if activity already exists
-      const exists = newDays[dayIndex].activities.some(
-        (act) => act.activity_id === activity.activity_id
-      );
-      if (exists) {
-        return state; // Don't add duplicate
+      // Only check for duplicates for library activities (those with activity_id)
+      // Ad-hoc items (LOGISTICS, NOTE) can be added multiple times
+      if (activity.activity_id) {
+        const exists = newDays[dayIndex].activities.some(
+          (act) => act.activity_id === activity.activity_id
+        );
+        if (exists) {
+          return state; // Don't add duplicate library activity
+        }
       }
       newDays[dayIndex].activities.push(activity);
       return { days: newDays, hasUnsavedChanges: true };
