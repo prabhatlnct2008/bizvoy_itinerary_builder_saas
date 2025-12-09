@@ -92,12 +92,19 @@ class TemplateService:
             db.add(itinerary_day)
             db.flush()
 
-            # Copy activities from template
+            # Copy activities from template (supports both library and ad-hoc items)
             for template_activity in template_day.activities:
+                # Preserve item_type from template (supports LOGISTICS, NOTE items)
+                item_type = getattr(template_activity, 'item_type', 'LIBRARY_ACTIVITY') or 'LIBRARY_ACTIVITY'
+
                 itinerary_activity = ItineraryDayActivity(
                     itinerary_day_id=itinerary_day.id,
-                    activity_id=template_activity.activity_id,
-                    item_type="LIBRARY_ACTIVITY",  # Template activities are always library items
+                    activity_id=template_activity.activity_id,  # Can be None for ad-hoc items
+                    item_type=item_type,
+                    # Copy custom fields for ad-hoc items
+                    custom_title=template_activity.custom_title,
+                    custom_payload=template_activity.custom_payload,
+                    custom_icon=template_activity.custom_icon,
                     display_order=template_activity.display_order,
                     time_slot=template_activity.time_slot,
                     custom_notes=template_activity.custom_notes,

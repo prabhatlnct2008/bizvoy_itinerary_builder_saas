@@ -17,6 +17,7 @@ from app.models.share import ShareLink
 from app.models.user import User
 from app.services.template_service import template_service
 from app.services.websocket_service import websocket_manager
+from app.services.gamification.settings_service import SettingsService
 
 router = APIRouter()
 
@@ -50,6 +51,15 @@ def create_itinerary(
     db: Session = Depends(get_db)
 ):
     """Create new itinerary from template or from scratch"""
+    # Determine personalization_enabled:
+    # - If explicitly set (True/False), use that value
+    # - If None (not provided), auto-enable if agency has personalization enabled
+    personalization_enabled = data.personalization_enabled
+    if personalization_enabled is None:
+        # Check agency settings to determine default
+        settings = SettingsService.get_settings(db, current_user.agency_id)
+        personalization_enabled = bool(settings and settings.is_enabled)
+
     if data.template_id:
         # Create from template
         try:
@@ -66,7 +76,7 @@ def create_itinerary(
                 created_by=current_user.id,
                 db=db,
                 # Personalization settings
-                personalization_enabled=data.personalization_enabled or False,
+                personalization_enabled=personalization_enabled,
                 personalization_policy=data.personalization_policy or "flexible",
                 personalization_lock_policy=data.personalization_lock_policy or "respect_locks"
             )
@@ -87,8 +97,8 @@ def create_itinerary(
             num_children=data.num_children,
             special_notes=data.special_notes,
             created_by=current_user.id,
-            # Personalization settings
-            personalization_enabled=1 if data.personalization_enabled else 0,
+            # Personalization settings (use auto-detected value)
+            personalization_enabled=1 if personalization_enabled else 0,
             personalization_policy=data.personalization_policy or "flexible",
             personalization_lock_policy=data.personalization_lock_policy or "respect_locks"
         )
