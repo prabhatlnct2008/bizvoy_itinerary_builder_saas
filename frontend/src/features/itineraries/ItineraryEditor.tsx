@@ -6,12 +6,14 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Chip from '../../components/ui/Chip';
 import ShareModal from './ShareModal';
+import LogisticsItemForm from './components/LogisticsItemForm';
 import itinerariesApi from '../../api/itineraries';
 import activitiesApi from '../../api/activities';
 import { useItineraryStore } from '../../store/itineraryStore';
 import {
   ItineraryUpdate,
   ActivityDetail,
+  ItineraryDayActivityCreate,
 } from '../../types';
 
 const ItineraryEditor: React.FC = () => {
@@ -24,6 +26,7 @@ const ItineraryEditor: React.FC = () => {
     hasUnsavedChanges,
     setItinerary,
     updateDay,
+    reorderDays,
     addActivityToDay,
     removeActivityFromDay,
     moveActivity,
@@ -33,6 +36,7 @@ const ItineraryEditor: React.FC = () => {
 
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [isLogisticsModalOpen, setIsLogisticsModalOpen] = useState(false);
   const [activities, setActivities] = useState<ActivityDetail[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +45,10 @@ const ItineraryEditor: React.FC = () => {
 
   // Metadata editing
   const [status, setStatus] = useState<string>('draft');
+
+  // Drag-drop state for day reordering
+  const [draggedDayIndex, setDraggedDayIndex] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -98,13 +106,60 @@ const ItineraryEditor: React.FC = () => {
   const handleAddActivity = (activity: ActivityDetail) => {
     addActivityToDay(currentDayIndex, {
       activity_id: activity.id,
+      item_type: 'LIBRARY_ACTIVITY',
       display_order: days[currentDayIndex].activities.length,
       time_slot: null,
       custom_notes: null,
       custom_price: activity.base_price || null,
+      start_time: null,
+      end_time: null,
     });
     setIsActivityModalOpen(false);
     toast.success('Activity added');
+  };
+
+  const handleAddLogisticsItem = (item: ItineraryDayActivityCreate) => {
+    addActivityToDay(currentDayIndex, item);
+    toast.success(`${item.item_type === 'LOGISTICS' ? 'Logistics item' : 'Note'} added`);
+  };
+
+  // Drag-drop handlers for day reordering
+  const handleDayDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedDayIndex(index);
+    setDropTargetIndex(null);
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+    }
+  };
+
+  const handleDayDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    // Only track the drop target visually - don't reorder yet
+    if (draggedDayIndex !== null && draggedDayIndex !== index) {
+      setDropTargetIndex(index);
+    }
+  };
+
+  const handleDayDragLeave = () => {
+    setDropTargetIndex(null);
+  };
+
+  const handleDayDragEnd = () => {
+    // Perform the reorder only when drag ends (on DROP)
+    if (draggedDayIndex !== null && dropTargetIndex !== null && draggedDayIndex !== dropTargetIndex) {
+      reorderDays(draggedDayIndex, dropTargetIndex);
+      // Update current day index to follow the moved day if it was selected
+      if (currentDayIndex === draggedDayIndex) {
+        setCurrentDayIndex(dropTargetIndex);
+      } else if (draggedDayIndex < currentDayIndex && dropTargetIndex >= currentDayIndex) {
+        setCurrentDayIndex(currentDayIndex - 1);
+      } else if (draggedDayIndex > currentDayIndex && dropTargetIndex <= currentDayIndex) {
+        setCurrentDayIndex(currentDayIndex + 1);
+      }
+      toast.success('Day order updated');
+    }
+    setDraggedDayIndex(null);
+    setDropTargetIndex(null);
   };
 
   if (isLoading) {
@@ -198,7 +253,6 @@ const ItineraryEditor: React.FC = () => {
             <Button variant="secondary" onClick={() => navigate('/itineraries')}>
               Close
             </Button>
-            {/* TODO: Add ShareModal when created */}
             <Button variant="secondary" onClick={() => setIsShareModalOpen(true)}>
               Share & Export
             </Button>
@@ -211,7 +265,7 @@ const ItineraryEditor: React.FC = () => {
 
       {/* Day-wise Editor */}
       <div className="bg-white rounded-lg shadow">
-        {/* Day Tabs */}
+        {/* Day Tabs - Draggable for reordering */}
         <div className="border-b border-border overflow-x-auto">
           <div className="flex">
             {days.map((day, index) => {
@@ -219,8 +273,17 @@ const ItineraryEditor: React.FC = () => {
               return (
                 <button
                   key={day.day_number}
+                  draggable
+                  onDragStart={(e) => handleDayDragStart(e, index)}
+                  onDragOver={(e) => handleDayDragOver(e, index)}
+                  onDragLeave={handleDayDragLeave}
+                  onDragEnd={handleDayDragEnd}
                   onClick={() => setCurrentDayIndex(index)}
-                  className={`px-6 py-4 font-medium whitespace-nowrap transition-colors ${
+                  className={`px-6 py-4 font-medium whitespace-nowrap transition-all cursor-move ${
+                    draggedDayIndex === index ? 'opacity-50 scale-95' : ''
+                  } ${
+                    dropTargetIndex === index ? 'ring-2 ring-primary-400 ring-offset-1' : ''
+                  } ${
                     currentDayIndex === index
                       ? 'border-b-2 border-primary-600 text-primary-600 bg-primary-50'
                       : 'text-secondary hover:text-primary hover:bg-gray-50'
@@ -264,9 +327,14 @@ const ItineraryEditor: React.FC = () => {
           <div className="space-y-3">
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-semibold text-primary">Activities</h3>
-              <Button size="sm" onClick={() => setIsActivityModalOpen(true)}>
-                + Add Activity
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" onClick={() => setIsLogisticsModalOpen(true)}>
+                  + Add Logistics/Note
+                </Button>
+                <Button size="sm" onClick={() => setIsActivityModalOpen(true)}>
+                  + Add Activity
+                </Button>
+              </div>
             </div>
 
             {currentDay.activities.length === 0 ? (
@@ -276,13 +344,27 @@ const ItineraryEditor: React.FC = () => {
             ) : (
               <div className="space-y-3">
                 {currentDay.activities.map((act, actIndex) => {
-                  const activity = activities.find((a) => a.id === act.activity_id);
-                  if (!activity) return null;
+                  // Handle different item types
+                  const isLibraryActivity = act.item_type === 'LIBRARY_ACTIVITY';
+                  const isLogistics = act.item_type === 'LOGISTICS';
+                  const isNote = act.item_type === 'NOTE';
+
+                  const activity = isLibraryActivity ? activities.find((a) => a.id === act.activity_id) : null;
+
+                  // Skip if it's a library activity but we can't find the activity details
+                  if (isLibraryActivity && !activity) return null;
+
+                  // Determine background color based on item type
+                  const bgColor = isLogistics
+                    ? 'bg-amber-50 border-amber-200'
+                    : isNote
+                    ? 'bg-blue-50 border-blue-200'
+                    : 'bg-gray-50 border-border';
 
                   return (
                     <div
                       key={actIndex}
-                      className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-border"
+                      className={`flex items-start gap-3 p-4 rounded-lg border ${bgColor}`}
                     >
                       {/* Move Buttons */}
                       <div className="flex flex-col gap-1 mt-1">
@@ -306,22 +388,71 @@ const ItineraryEditor: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* Activity Info */}
+                      {/* Item Info */}
                       <div className="flex-1 space-y-2">
-                        <div>
-                          <p className="font-medium text-primary">{activity.name}</p>
-                          <p className="text-sm text-muted">{activity.location}</p>
+                        <div className="flex items-start gap-2">
+                          {/* Icon for logistics/notes */}
+                          {(isLogistics || isNote) && act.custom_icon && (
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              isLogistics ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
+                            }`}>
+                              <span className="text-sm">{
+                                act.custom_icon === 'hotel' ? '🏨' :
+                                act.custom_icon === 'taxi' ? '🚕' :
+                                act.custom_icon === 'plane' ? '✈️' :
+                                act.custom_icon === 'train' ? '🚂' :
+                                act.custom_icon === 'bus' ? '🚌' :
+                                act.custom_icon === 'ship' ? '🚢' :
+                                act.custom_icon === 'meal' ? '🍽️' :
+                                act.custom_icon === 'coffee' ? '☕' :
+                                act.custom_icon === 'note' ? '📝' :
+                                '📌'
+                              }</span>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-primary">
+                                {isLibraryActivity ? activity?.name : act.custom_title}
+                              </p>
+                              {isLogistics && (
+                                <span className="px-2 py-0.5 text-xs bg-amber-200 text-amber-800 rounded">
+                                  Logistics
+                                </span>
+                              )}
+                              {isNote && (
+                                <span className="px-2 py-0.5 text-xs bg-blue-200 text-blue-800 rounded">
+                                  Note
+                                </span>
+                              )}
+                            </div>
+                            {isLibraryActivity && activity?.location && (
+                              <p className="text-sm text-muted">{activity.location}</p>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Time Slot */}
-                        <Input
-                          placeholder="Time (e.g., 09:00 AM or Morning)"
-                          value={act.time_slot || ''}
-                          onChange={(e) =>
-                            updateActivity(currentDayIndex, actIndex, { time_slot: e.target.value })
-                          }
-                          className="text-sm"
-                        />
+                        {/* Time Fields */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            type="time"
+                            placeholder="Start time"
+                            value={act.start_time || ''}
+                            onChange={(e) =>
+                              updateActivity(currentDayIndex, actIndex, { start_time: e.target.value || null })
+                            }
+                            className="text-sm"
+                          />
+                          <Input
+                            type="time"
+                            placeholder="End time"
+                            value={act.end_time || ''}
+                            onChange={(e) =>
+                              updateActivity(currentDayIndex, actIndex, { end_time: e.target.value || null })
+                            }
+                            className="text-sm"
+                          />
+                        </div>
 
                         {/* Custom Notes */}
                         <textarea
@@ -331,21 +462,23 @@ const ItineraryEditor: React.FC = () => {
                           }
                           className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
                           rows={2}
-                          placeholder="Custom notes for this activity..."
+                          placeholder={`${isLogistics ? 'Logistics' : isNote ? 'Note' : 'Activity'} details...`}
                         />
 
-                        {/* Custom Price */}
-                        <Input
-                          type="number"
-                          placeholder="Custom price"
-                          value={act.custom_price || ''}
-                          onChange={(e) =>
-                            updateActivity(currentDayIndex, actIndex, {
-                              custom_price: parseFloat(e.target.value) || null,
-                            })
-                          }
-                          className="text-sm w-40"
-                        />
+                        {/* Custom Price (only for library activities) */}
+                        {isLibraryActivity && (
+                          <Input
+                            type="number"
+                            placeholder="Custom price"
+                            value={act.custom_price || ''}
+                            onChange={(e) =>
+                              updateActivity(currentDayIndex, actIndex, {
+                                custom_price: parseFloat(e.target.value) || null,
+                              })
+                            }
+                            className="text-sm w-40"
+                          />
+                        )}
                       </div>
 
                       {/* Remove Button */}
@@ -408,6 +541,19 @@ const ItineraryEditor: React.FC = () => {
         onClose={() => setIsShareModalOpen(false)}
         itineraryId={currentItinerary.id}
       />
+
+      {/* Logistics/Notes Modal */}
+      <Modal
+        isOpen={isLogisticsModalOpen}
+        onClose={() => setIsLogisticsModalOpen(false)}
+        title="Add Logistics or Note"
+        size="lg"
+      >
+        <LogisticsItemForm
+          onAddItem={handleAddLogisticsItem}
+          displayOrder={currentDay.activities.length}
+        />
+      </Modal>
     </div>
   );
 };

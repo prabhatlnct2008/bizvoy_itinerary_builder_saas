@@ -10,6 +10,7 @@ interface ItineraryState {
   setItinerary: (itinerary: ItineraryDetail) => void;
   setDays: (days: ItineraryDayCreate[]) => void;
   updateDay: (dayIndex: number, updates: Partial<ItineraryDayCreate>) => void;
+  reorderDays: (startIndex: number, endIndex: number) => void;
   addActivityToDay: (dayIndex: number, activity: ItineraryDayActivityCreate) => void;
   removeActivityFromDay: (dayIndex: number, activityIndex: number) => void;
   moveActivity: (dayIndex: number, activityIndex: number, direction: 'up' | 'down') => void;
@@ -52,6 +53,33 @@ export const useItineraryStore = create<ItineraryState>((set) => ({
       const newDays = [...state.days];
       newDays[dayIndex] = { ...newDays[dayIndex], ...updates };
       return { days: newDays, hasUnsavedChanges: true };
+    }),
+
+  reorderDays: (startIndex, endIndex) =>
+    set((state) => {
+      const newDays = [...state.days];
+      const [removed] = newDays.splice(startIndex, 1);
+      newDays.splice(endIndex, 0, removed);
+
+      // Get start_date from currentItinerary to recalculate actual_date
+      const startDate = state.currentItinerary?.start_date;
+
+      // Renumber days and recalculate actual_date
+      newDays.forEach((day, idx) => {
+        day.day_number = idx + 1;
+
+        // Recalculate actual_date based on the new order
+        if (startDate) {
+          const baseDate = new Date(startDate);
+          baseDate.setDate(baseDate.getDate() + idx);
+          day.actual_date = baseDate.toISOString().split('T')[0];
+        }
+      });
+
+      return {
+        days: newDays,
+        hasUnsavedChanges: true,
+      };
     }),
 
   addActivityToDay: (dayIndex, activity) =>
