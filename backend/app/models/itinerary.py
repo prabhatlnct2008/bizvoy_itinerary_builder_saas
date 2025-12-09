@@ -80,20 +80,40 @@ class ItineraryDay(Base):
     )
 
 
+class ItemType(str, enum.Enum):
+    """Type of item in the itinerary timeline"""
+    library_activity = "LIBRARY_ACTIVITY"  # Linked to activities table
+    logistics = "LOGISTICS"  # Ad-hoc item (taxi, transfer, check-in)
+    note = "NOTE"  # Free-form note/reminder
+
+
 class ItineraryDayActivity(Base):
     __tablename__ = "itinerary_day_activities"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     itinerary_day_id = Column(String, ForeignKey("itinerary_days.id", ondelete="CASCADE"), nullable=False)
-    activity_id = Column(String, ForeignKey("activities.id", ondelete="RESTRICT"), nullable=False)
+
+    # Hybrid Row Pattern: activity_id is nullable for ad-hoc items
+    activity_id = Column(String, ForeignKey("activities.id", ondelete="RESTRICT"), nullable=True)
+
+    # Item type determines how to render and what data to use
+    item_type = Column(String(30), default="LIBRARY_ACTIVITY", nullable=False)
+
+    # Custom fields for ad-hoc items (LOGISTICS, NOTE)
+    custom_title = Column(String(255), nullable=True)  # Title for logistics/notes
+    custom_payload = Column(Text, nullable=True)  # JSON blob for extra details (hotel name, taxi number, etc.)
+    custom_icon = Column(String(50), nullable=True)  # Icon hint for rendering (hotel, taxi, plane, etc.)
+
     display_order = Column(Integer, default=0, nullable=False)
-    time_slot = Column(String(50), nullable=True)
+    time_slot = Column(String(50), nullable=True)  # morning, afternoon, evening
     custom_notes = Column(Text, nullable=True)
     custom_price = Column(Numeric(10, 2), nullable=True)
 
-    # Gamification fields
+    # Time fields
     start_time = Column(String(10), nullable=True)  # e.g., "09:00"
     end_time = Column(String(10), nullable=True)  # e.g., "12:00"
+
+    # Lock and source tracking
     is_locked_by_agency = Column(Integer, default=0, nullable=False)  # 0=can swap, 1=locked
     source_cart_item_id = Column(String(36), nullable=True)  # Reference to cart item if added via personalization
     added_by_personalization = Column(Integer, default=0, nullable=False)  # 1 if added by gamification
@@ -101,7 +121,3 @@ class ItineraryDayActivity(Base):
     # Relationships
     itinerary_day = relationship("ItineraryDay", back_populates="activities")
     activity = relationship("Activity", back_populates="itinerary_day_activities")
-
-    __table_args__ = (
-        UniqueConstraint('itinerary_day_id', 'activity_id', name='_itinerary_day_activity_uc'),
-    )

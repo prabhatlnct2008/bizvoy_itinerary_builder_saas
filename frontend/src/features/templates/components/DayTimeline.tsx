@@ -33,24 +33,39 @@ const DayTimeline: React.FC<DayTimelineProps> = ({
   onRenameDay,
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
 
-  const handleDragStart = (index: number) => {
+  const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
+    setDropTargetIndex(null);
+    // Set drag image opacity
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+    }
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
+    // Only track the drop target visually - don't reorder yet
     if (draggedIndex !== null && draggedIndex !== index) {
-      onReorderDays(draggedIndex, index);
-      setDraggedIndex(index);
+      setDropTargetIndex(index);
     }
   };
 
+  const handleDragLeave = () => {
+    setDropTargetIndex(null);
+  };
+
   const handleDragEnd = () => {
+    // Perform the reorder only when drag ends
+    if (draggedIndex !== null && dropTargetIndex !== null && draggedIndex !== dropTargetIndex) {
+      onReorderDays(draggedIndex, dropTargetIndex);
+    }
     setDraggedIndex(null);
+    setDropTargetIndex(null);
   };
 
   const handleMoveUp = (index: number, e: React.MouseEvent) => {
@@ -113,11 +128,14 @@ const DayTimeline: React.FC<DayTimelineProps> = ({
           <div
             key={`day-${index}`}
             draggable
-            onDragStart={() => handleDragStart(index)}
+            onDragStart={(e) => handleDragStart(e, index)}
             onDragOver={(e) => handleDragOver(e, index)}
+            onDragLeave={handleDragLeave}
             onDragEnd={handleDragEnd}
             className={`relative group transition-all ${
-              draggedIndex === index ? 'opacity-50' : ''
+              draggedIndex === index ? 'opacity-50 scale-95' : ''
+            } ${
+              dropTargetIndex === index ? 'ring-2 ring-primary-400 ring-offset-2' : ''
             }`}
           >
             <div

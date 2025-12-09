@@ -54,13 +54,29 @@ class PublicActivityImage(BaseModel):
 class PublicActivity(BaseModel):
     id: str
     itinerary_day_id: str
-    activity_id: str
+    activity_id: Optional[str] = None  # Nullable for ad-hoc items
+
+    # Hybrid row pattern fields
+    item_type: str = "LIBRARY_ACTIVITY"
+    custom_title: Optional[str] = None
+    custom_payload: Optional[dict] = None  # JSON blob for extra details
+    custom_icon: Optional[str] = None
+
     display_order: int
     time_slot: Optional[str] = None
     custom_notes: Optional[str] = None
     custom_price: Optional[float] = None
 
-    # Activity details
+    # Time fields
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    is_locked_by_agency: bool = False
+
+    # Personalization tracking
+    source_cart_item_id: Optional[str] = None
+    added_by_personalization: bool = False
+
+    # Activity details (populated for LIBRARY_ACTIVITY items)
     name: str
     activity_type_name: Optional[str] = None
     category_label: Optional[str] = None
