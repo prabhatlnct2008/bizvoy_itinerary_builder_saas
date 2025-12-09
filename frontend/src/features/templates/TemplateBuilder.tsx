@@ -18,7 +18,6 @@ import {
 import DayTimeline from './components/DayTimeline';
 import DayActivityList from './components/DayActivityList';
 import ActivityPicker from './components/ActivityPicker';
-import LogisticsItemForm from './components/LogisticsItemForm';
 
 const TemplateBuilder: React.FC = () => {
   const { id } = useParams<{ id: string }>();
