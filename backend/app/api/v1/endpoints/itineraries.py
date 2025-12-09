@@ -107,15 +107,22 @@ def create_itinerary(
             db.add(day)
             db.flush()
 
-            # Create activities
+            # Create activities (supports LIBRARY_ACTIVITY, LOGISTICS, NOTE)
             for activity_data in day_data.activities:
                 activity = ItineraryDayActivity(
                     itinerary_day_id=day.id,
-                    activity_id=activity_data.activity_id,
+                    activity_id=activity_data.activity_id,  # Can be None for LOGISTICS/NOTE
+                    item_type=activity_data.item_type or "LIBRARY_ACTIVITY",
+                    custom_title=activity_data.custom_title,
+                    custom_payload=activity_data.custom_payload,
+                    custom_icon=activity_data.custom_icon,
                     display_order=activity_data.display_order,
                     time_slot=activity_data.time_slot,
                     custom_notes=activity_data.custom_notes,
-                    custom_price=activity_data.custom_price
+                    custom_price=activity_data.custom_price,
+                    start_time=activity_data.start_time,
+                    end_time=activity_data.end_time,
+                    is_locked_by_agency=1 if activity_data.is_locked_by_agency else 0
                 )
                 db.add(activity)
 
@@ -186,15 +193,22 @@ def update_itinerary(
             db.add(day)
             db.flush()
 
-            # Create activities
+            # Create activities (supports LIBRARY_ACTIVITY, LOGISTICS, NOTE)
             for activity_data in day_data.activities:
                 activity = ItineraryDayActivity(
                     itinerary_day_id=day.id,
-                    activity_id=activity_data.activity_id,
+                    activity_id=activity_data.activity_id,  # Can be None for LOGISTICS/NOTE
+                    item_type=activity_data.item_type or "LIBRARY_ACTIVITY",
+                    custom_title=activity_data.custom_title,
+                    custom_payload=activity_data.custom_payload,
+                    custom_icon=activity_data.custom_icon,
                     display_order=activity_data.display_order,
                     time_slot=activity_data.time_slot,
                     custom_notes=activity_data.custom_notes,
-                    custom_price=activity_data.custom_price
+                    custom_price=activity_data.custom_price,
+                    start_time=activity_data.start_time,
+                    end_time=activity_data.end_time,
+                    is_locked_by_agency=1 if activity_data.is_locked_by_agency else 0
                 )
                 db.add(activity)
 
@@ -278,26 +292,59 @@ def _build_public_itinerary_payload(itinerary: Itinerary, share_link: ShareLink)
     for day in itinerary.days:
         activities_data = []
         for activity_item in day.activities:
-            activity = activity_item.activity
-            activities_data.append({
-                "id": activity_item.id,
-                "itinerary_day_id": activity_item.itinerary_day_id,
-                "activity_id": activity_item.activity_id,
-                "display_order": activity_item.display_order,
-                "time_slot": activity_item.time_slot,
-                "custom_notes": activity_item.custom_notes,
-                "custom_price": float(activity_item.custom_price) if activity_item.custom_price is not None else None,
-                "name": activity.name,
-                "type": activity.activity_type.name if activity.activity_type else None,
-                "location": activity.location_display,
-                "short_description": activity.short_description,
-                "highlights": activity.highlights,
-                "images": [{
-                    "url": f"/uploads/{img.file_path}",
-                    "file_path": f"/uploads/{img.file_path}",
-                    "is_hero": img.is_hero
-                } for img in activity.images]
-            })
+            activity = activity_item.activity  # May be None for LOGISTICS/NOTE
+            item_type = getattr(activity_item, 'item_type', 'LIBRARY_ACTIVITY') or 'LIBRARY_ACTIVITY'
+
+            if activity:
+                # LIBRARY_ACTIVITY - has linked Activity record
+                activities_data.append({
+                    "id": activity_item.id,
+                    "itinerary_day_id": activity_item.itinerary_day_id,
+                    "activity_id": activity_item.activity_id,
+                    "item_type": item_type,
+                    "custom_title": activity_item.custom_title,
+                    "custom_icon": activity_item.custom_icon,
+                    "display_order": activity_item.display_order,
+                    "time_slot": activity_item.time_slot,
+                    "start_time": activity_item.start_time,
+                    "end_time": activity_item.end_time,
+                    "custom_notes": activity_item.custom_notes,
+                    "custom_price": float(activity_item.custom_price) if activity_item.custom_price is not None else None,
+                    "is_locked_by_agency": bool(activity_item.is_locked_by_agency),
+                    "name": activity.name,
+                    "type": activity.activity_type.name if activity.activity_type else None,
+                    "location": activity.location_display,
+                    "short_description": activity.short_description,
+                    "highlights": activity.highlights,
+                    "images": [{
+                        "url": f"/uploads/{img.file_path}",
+                        "file_path": f"/uploads/{img.file_path}",
+                        "is_hero": img.is_hero
+                    } for img in activity.images]
+                })
+            else:
+                # LOGISTICS/NOTE - ad-hoc item without Activity record
+                activities_data.append({
+                    "id": activity_item.id,
+                    "itinerary_day_id": activity_item.itinerary_day_id,
+                    "activity_id": None,
+                    "item_type": item_type,
+                    "custom_title": activity_item.custom_title,
+                    "custom_icon": activity_item.custom_icon,
+                    "display_order": activity_item.display_order,
+                    "time_slot": activity_item.time_slot,
+                    "start_time": activity_item.start_time,
+                    "end_time": activity_item.end_time,
+                    "custom_notes": activity_item.custom_notes,
+                    "custom_price": float(activity_item.custom_price) if activity_item.custom_price is not None else None,
+                    "is_locked_by_agency": bool(activity_item.is_locked_by_agency),
+                    "name": activity_item.custom_title or f"{item_type.title()} Item",
+                    "type": item_type,
+                    "location": None,
+                    "short_description": activity_item.custom_notes,
+                    "highlights": None,
+                    "images": []
+                })
 
         days_data.append({
             "id": day.id,

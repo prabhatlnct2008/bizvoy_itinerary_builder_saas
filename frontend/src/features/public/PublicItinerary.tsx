@@ -24,8 +24,16 @@ import {
   Shield,
   Hotel,
   Camera,
-  Plane
+  Plane,
+  Train,
+  Bus,
+  Ship,
+  Coffee,
+  FileText,
+  Briefcase,
+  StickyNote
 } from 'lucide-react';
+import { ItemType } from '../../types';
 
 const PublicItinerary: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -679,6 +687,36 @@ const DayCard: React.FC<DayCardProps> = ({
 /* ══════════════════════════════════════════════════════════════════════════
    ACTIVITY CARD COMPONENT
    ══════════════════════════════════════════════════════════════════════════ */
+
+// Icon mapping for logistics items
+const LOGISTICS_ICONS: Record<string, React.ElementType> = {
+  hotel: Hotel,
+  taxi: Car,
+  car: Car,
+  plane: Plane,
+  flight: Plane,
+  note: FileText,
+  coffee: Coffee,
+  meal: Utensils,
+  dining: Utensils,
+  ship: Ship,
+  cruise: Ship,
+  train: Train,
+  bus: Bus,
+  transfer: Bus,
+  business: Briefcase,
+};
+
+const getLogisticsIcon = (iconHint?: string | null, itemType?: ItemType): React.ElementType => {
+  if (iconHint) {
+    const key = iconHint.toLowerCase();
+    if (LOGISTICS_ICONS[key]) return LOGISTICS_ICONS[key];
+  }
+  // Default based on item type
+  if (itemType === 'NOTE') return StickyNote;
+  return Car; // Default for LOGISTICS
+};
+
 interface ActivityCardProps {
   activity: PublicActivity;
   isExpanded: boolean;
@@ -696,13 +734,33 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   formatDuration,
   isLast
 }) => {
+  const itemType: ItemType = (activity.item_type as ItemType) || 'LIBRARY_ACTIVITY';
+  const isAdHocItem = itemType === 'LOGISTICS' || itemType === 'NOTE';
+
   const duration = formatDuration(activity.default_duration_value, activity.default_duration_unit);
   const heroImage = activity.images?.find(img => img.is_hero || img.is_primary) || activity.images?.[0];
   const otherImages = activity.images?.filter(img => img !== heroImage).slice(0, 2) || [];
 
+  // Get time display - prefer start_time/end_time over time_slot
+  const getTimeDisplay = () => {
+    if (activity.start_time && activity.end_time) {
+      return `${activity.start_time} - ${activity.end_time}`;
+    }
+    if (activity.start_time) {
+      return activity.start_time;
+    }
+    return activity.time_slot || '—';
+  };
+
   // Category styling
   const getCategoryStyle = (category: string | null) => {
     const cat = category?.toLowerCase() || '';
+    if (cat.includes('logistics')) {
+      return 'bg-amber-100 text-amber-700';
+    }
+    if (cat.includes('note')) {
+      return 'bg-blue-100 text-blue-700';
+    }
     if (cat.includes('transfer') || cat.includes('transport')) {
       return 'bg-slate-100 text-slate-600';
     }
@@ -724,6 +782,79 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     return 'bg-slate-100 text-slate-600';
   };
 
+  // Render Logistics/Note item (simplified card)
+  if (isAdHocItem) {
+    const IconComponent = getLogisticsIcon(activity.custom_icon, itemType);
+
+    return (
+      <div className="flex gap-4 mb-4">
+        {/* Timeline Column */}
+        <div className="flex flex-col items-center w-16 flex-shrink-0">
+          {/* Time Circle */}
+          <div className="w-14 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+            <span className="text-xs font-medium text-slate-600">
+              {getTimeDisplay()}
+            </span>
+          </div>
+          {/* Connector Line */}
+          {!isLast && (
+            <div className="flex-1 w-px bg-slate-200 mt-2" style={{ minHeight: '60px' }}></div>
+          )}
+        </div>
+
+        {/* Logistics/Note Content - Simpler Card */}
+        <div className={`flex-1 rounded-xl border shadow-sm overflow-hidden ${
+          itemType === 'LOGISTICS'
+            ? 'bg-amber-50 border-amber-200'
+            : 'bg-blue-50 border-blue-200'
+        }`}>
+          <div className="p-4 flex items-center gap-4">
+            {/* Icon */}
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+              itemType === 'LOGISTICS'
+                ? 'bg-amber-100 text-amber-600'
+                : 'bg-blue-100 text-blue-600'
+            }`}>
+              <IconComponent className="w-6 h-6" />
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              {/* Type Badge */}
+              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mb-1 ${
+                itemType === 'LOGISTICS'
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {itemType === 'LOGISTICS' ? 'Logistics' : 'Note'}
+              </span>
+
+              {/* Title */}
+              <h4 className="text-slate-900 font-semibold">
+                {activity.custom_title || activity.name}
+              </h4>
+
+              {/* Notes/Details */}
+              {activity.custom_notes && (
+                <p className="text-sm text-slate-600 mt-1">
+                  {activity.custom_notes}
+                </p>
+              )}
+            </div>
+
+            {/* Lock indicator if agency-locked */}
+            {activity.is_locked_by_agency && (
+              <div className="flex-shrink-0">
+                <Shield className="w-4 h-4 text-slate-400" />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Library Activity (full card)
   return (
     <div className="flex gap-4 mb-4">
       {/* Timeline Column */}
@@ -731,7 +862,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
         {/* Time Circle */}
         <div className="w-14 h-8 rounded-full bg-slate-100 flex items-center justify-center">
           <span className="text-xs font-medium text-slate-600">
-            {activity.time_slot || '—'}
+            {getTimeDisplay()}
           </span>
         </div>
         {/* Connector Line */}
@@ -764,6 +895,13 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
             {activity.category_label && (
               <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mb-1 ${getCategoryStyle(activity.category_label)}`}>
                 {activity.category_label.toLowerCase()}
+              </span>
+            )}
+
+            {/* Personalization Badge */}
+            {activity.added_by_personalization && (
+              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium mb-1 ml-1 bg-emerald-100 text-emerald-700">
+                personalized
               </span>
             )}
 
