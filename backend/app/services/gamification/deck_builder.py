@@ -2,14 +2,14 @@
 Deck Builder Service
 Builds personalized activity decks based on vibes and constraints.
 """
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from app.models.activity import Activity
 from app.models.personalization_session import PersonalizationSession
 from app.models.user_deck_interaction import UserDeckInteraction
 from app.models.agency_personalization_settings import AgencyPersonalizationSettings
-from app.models.itinerary import Itinerary
+from app.models.itinerary import Itinerary, ItineraryDayActivity
 from decimal import Decimal
 import json
 import random
@@ -80,6 +80,10 @@ class DeckBuilder:
         viewed_ids = self._get_viewed_activity_ids(session.id)
         candidates = [a for a in candidates if a.id not in viewed_ids]
 
+        # Exclude activities already in the itinerary
+        existing_ids = self._get_itinerary_activity_ids(itinerary.id)
+        candidates = [a for a in candidates if a.id not in existing_ids]
+
         # Score and sort activities
         scored_activities = [
             (activity, self._score_activity(activity, selected_vibes, itinerary))
@@ -149,12 +153,33 @@ class DeckBuilder:
                 filtered.append(activity)
         return filtered if filtered else activities  # Fallback to all if none match
 
-    def _get_viewed_activity_ids(self, session_id: str) -> set:
+    def _get_viewed_activity_ids(self, session_id: str) -> Set[str]:
         """Get IDs of activities already viewed in this session"""
         interactions = self.db.query(UserDeckInteraction).filter(
             UserDeckInteraction.session_id == session_id
         ).all()
         return {i.activity_id for i in interactions}
+
+    def _get_itinerary_activity_ids(self, itinerary_id: str) -> Set[str]:
+        """Get IDs of activities already in the itinerary (to exclude from deck)"""
+        from app.models.itinerary import ItineraryDay
+
+        # Get all day IDs for this itinerary
+        day_ids = self.db.query(ItineraryDay.id).filter(
+            ItineraryDay.itinerary_id == itinerary_id
+        ).all()
+        day_ids = [d[0] for d in day_ids]
+
+        if not day_ids:
+            return set()
+
+        # Get all activity_ids from those days (only LIBRARY_ACTIVITY items have activity_id)
+        activities = self.db.query(ItineraryDayActivity.activity_id).filter(
+            ItineraryDayActivity.itinerary_day_id.in_(day_ids),
+            ItineraryDayActivity.activity_id != None
+        ).all()
+
+        return {a[0] for a in activities if a[0]}
 
     def _ensure_variety(
         self,

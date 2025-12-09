@@ -189,6 +189,7 @@ class ConfirmationService:
         itinerary_activity = ItineraryDayActivity(
             itinerary_day_id=day.id,
             activity_id=activity.id,
+            item_type='LIBRARY_ACTIVITY',  # Personalization adds library activities
             display_order=max_order + 1,
             time_slot=cart_item.time_slot,
             custom_notes=None,
@@ -203,7 +204,7 @@ class ConfirmationService:
 
         # Not locked by agency (user can modify)
         if hasattr(itinerary_activity, 'is_locked_by_agency'):
-            itinerary_activity.is_locked_by_agency = False
+            itinerary_activity.is_locked_by_agency = 0  # Use 0 for SQLite compatibility
 
         return itinerary_activity
 

@@ -317,25 +317,8 @@ const PublicItinerary: React.FC = () => {
         )}
 
         {/* ══════════════════════════════════════════════════════════════
-            MAKE THIS TRIP YOURS SECTION - per spec
+            PERSONALIZED BADGE (shown when personalization was done)
             ══════════════════════════════════════════════════════════════ */}
-        {itinerary.personalization_enabled && !itinerary.personalization_completed && token && (
-          <section className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 md:p-8 border border-slate-200">
-            {/* Section Header */}
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Make this trip yours</h2>
-              <p className="text-slate-600 max-w-lg mx-auto">
-                Personalize your itinerary by swiping through curated experiences.
-                It only takes 60 seconds to create your perfect trip.
-              </p>
-            </div>
-
-            {/* Personalization Entry CTA */}
-            <PersonalizationEntry token={token} />
-          </section>
-        )}
-
-        {/* Personalized Badge */}
         {itinerary.personalization_completed && (
           <section>
             <div className="bg-gradient-to-r from-game-accent-green to-game-accent-coral rounded-xl p-6 text-center">
@@ -345,6 +328,29 @@ const PublicItinerary: React.FC = () => {
                 <Sparkles className="w-6 h-6" />
               </div>
             </div>
+          </section>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            MAKE THIS TRIP YOURS SECTION - always show when enabled
+            (deck will filter out activities already in itinerary)
+            ══════════════════════════════════════════════════════════════ */}
+        {itinerary.personalization_enabled && token && (
+          <section className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 md:p-8 border border-slate-200">
+            {/* Section Header */}
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                {itinerary.personalization_completed ? 'Add more experiences' : 'Make this trip yours'}
+              </h2>
+              <p className="text-slate-600 max-w-lg mx-auto">
+                {itinerary.personalization_completed
+                  ? 'Discover more activities to add to your personalized itinerary.'
+                  : 'Personalize your itinerary by swiping through curated experiences. It only takes 60 seconds to create your perfect trip.'}
+              </p>
+            </div>
+
+            {/* Personalization Entry CTA */}
+            <PersonalizationEntry token={token} />
           </section>
         )}
 
@@ -707,13 +713,30 @@ const LOGISTICS_ICONS: Record<string, React.ElementType> = {
   business: Briefcase,
 };
 
+// Extended icon mapping for custom activities
+const CUSTOM_ACTIVITY_ICONS: Record<string, React.ElementType> = {
+  ...LOGISTICS_ICONS,
+  compass: Camera,
+  mountain: Camera,
+  waves: Camera,
+  landmark: Camera,
+  camera: Camera,
+  utensils: Utensils,
+  shopping: Camera,
+  music: Camera,
+  bike: Camera,
+  palmtree: Camera,
+};
+
 const getLogisticsIcon = (iconHint?: string | null, itemType?: ItemType): React.ElementType => {
   if (iconHint) {
     const key = iconHint.toLowerCase();
     if (LOGISTICS_ICONS[key]) return LOGISTICS_ICONS[key];
+    if (CUSTOM_ACTIVITY_ICONS[key]) return CUSTOM_ACTIVITY_ICONS[key];
   }
   // Default based on item type
   if (itemType === 'NOTE') return StickyNote;
+  if (itemType === 'CUSTOM_ACTIVITY') return Camera;
   return Car; // Default for LOGISTICS
 };
 
@@ -735,7 +758,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   isLast
 }) => {
   const itemType: ItemType = (activity.item_type as ItemType) || 'LIBRARY_ACTIVITY';
-  const isAdHocItem = itemType === 'LOGISTICS' || itemType === 'NOTE';
+  const isAdHocItem = itemType === 'LOGISTICS' || itemType === 'NOTE' || itemType === 'CUSTOM_ACTIVITY';
 
   const duration = formatDuration(activity.default_duration_value, activity.default_duration_unit);
   const heroImage = activity.images?.find(img => img.is_hero || img.is_primary) || activity.images?.[0];
@@ -802,18 +825,22 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           )}
         </div>
 
-        {/* Logistics/Note Content - Simpler Card */}
+        {/* Logistics/Note/Custom Activity Content - Simpler Card */}
         <div className={`flex-1 rounded-xl border shadow-sm overflow-hidden ${
           itemType === 'LOGISTICS'
             ? 'bg-amber-50 border-amber-200'
-            : 'bg-blue-50 border-blue-200'
+            : itemType === 'NOTE'
+            ? 'bg-blue-50 border-blue-200'
+            : 'bg-emerald-50 border-emerald-200'
         }`}>
           <div className="p-4 flex items-center gap-4">
             {/* Icon */}
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
               itemType === 'LOGISTICS'
                 ? 'bg-amber-100 text-amber-600'
-                : 'bg-blue-100 text-blue-600'
+                : itemType === 'NOTE'
+                ? 'bg-blue-100 text-blue-600'
+                : 'bg-emerald-100 text-emerald-600'
             }`}>
               <IconComponent className="w-6 h-6" />
             </div>
@@ -824,9 +851,11 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
               <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mb-1 ${
                 itemType === 'LOGISTICS'
                   ? 'bg-amber-100 text-amber-700'
-                  : 'bg-blue-100 text-blue-700'
+                  : itemType === 'NOTE'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-emerald-100 text-emerald-700'
               }`}>
-                {itemType === 'LOGISTICS' ? 'Logistics' : 'Note'}
+                {itemType === 'LOGISTICS' ? 'Logistics' : itemType === 'NOTE' ? 'Note' : 'Custom Activity'}
               </span>
 
               {/* Title */}
