@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   PersonalizationState,
   PersonalizationStep,
@@ -26,6 +26,7 @@ export const usePersonalization = (token: string) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const completingRef = useRef(false);
 
   // Set device ID
   const setDeviceId = useCallback((deviceId: string) => {
@@ -44,16 +45,18 @@ export const usePersonalization = (token: string) => {
       setError(null);
 
       const response = await personalizationApi.startSession(token, selectedVibes, deviceId);
+      const newSessionId = (response as any).session_id ?? (response as any).id;
 
+      completingRef.current = false; // reset completion guard for new session
       setState((prev) => ({
         ...prev,
-        sessionId: response.session_id,
+        sessionId: newSessionId,
         selectedVibes,
         deviceId,
         currentStep: 'deck',
       }));
 
-      return response;
+      return { ...response, session_id: newSessionId };
     } catch (err) {
       setError(err as Error);
       throw err;
@@ -88,6 +91,7 @@ export const usePersonalization = (token: string) => {
   // Record a swipe
   const recordSwipe = useCallback(async (swipeData: SwipeRequest) => {
     try {
+      console.log('[Personalization] recordSwipe payload', swipeData, 'currentIndex', state.currentCardIndex, 'deckLen', state.deck.length);
       const response = await personalizationApi.recordSwipe(token, swipeData);
 
       setState((prev) => ({
@@ -105,6 +109,12 @@ export const usePersonalization = (token: string) => {
 
   // Complete personalization and get reveal data
   const completePersonalization = useCallback(async (sessionId: string) => {
+    if (completingRef.current) {
+      console.log('[Personalization] Complete already in progress, skipping');
+      return;
+    }
+
+    completingRef.current = true;
     try {
       setLoading(true);
       setError(null);
@@ -112,7 +122,12 @@ export const usePersonalization = (token: string) => {
       // Transition to loading screen
       setState((prev) => ({ ...prev, currentStep: 'loading' }));
 
+      // Debug: trace complete call
+      console.log('[Personalization] Completing session', sessionId);
+
       const revealData = await personalizationApi.completePersonalization(token, sessionId);
+
+      console.log('[Personalization] Complete returned reveal data', revealData);
 
       setState((prev) => ({
         ...prev,
@@ -126,6 +141,7 @@ export const usePersonalization = (token: string) => {
       throw err;
     } finally {
       setLoading(false);
+      completingRef.current = false;
     }
   }, [token]);
 

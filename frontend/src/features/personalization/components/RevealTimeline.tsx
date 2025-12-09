@@ -27,13 +27,19 @@ export const RevealTimeline = ({
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [isSwapping, setIsSwapping] = useState(false);
 
+  // Normalize optional fields to avoid crashes on minimal payloads
+  const fittedItems = revealData.fitted_items || [];
+  const missedItems = revealData.missed_items || [];
+  const savedItems = (revealData as any).saved_items || [];
+  const paymentInfo = (revealData as any).payment_info || null;
+
   // Trigger confetti on mount
   useEffect(() => {
     triggerCelebrationConfetti();
   }, []);
 
   // Group fitted items by day
-  const groupedByDay = revealData.fitted_items.reduce((acc, item) => {
+  const groupedByDay = fittedItems.reduce((acc, item) => {
     const dayNum = item.day_number;
     if (!acc[dayNum]) {
       acc[dayNum] = {
@@ -85,7 +91,7 @@ export const RevealTimeline = ({
             Your Trip is Ready!
           </h1>
           <p className="text-white text-lg opacity-90">
-            We've added {revealData.fitted_items.length} personalized activities
+            We've added {fittedItems.length} personalized activities
           </p>
         </motion.div>
       </div>
@@ -111,13 +117,13 @@ export const RevealTimeline = ({
         </motion.div>
 
         {/* Saved for Later */}
-        {revealData.saved_items.length > 0 && (
+        {savedItems.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
           >
-            <SavedForLater savedItems={revealData.saved_items} />
+            <SavedForLater savedItems={savedItems} />
           </motion.div>
         )}
 
@@ -127,13 +133,13 @@ export const RevealTimeline = ({
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7, duration: 0.6 }}
         >
-          <PaymentInfo paymentInfo={revealData.payment_info} />
+          <PaymentInfo paymentInfo={paymentInfo} />
         </motion.div>
       </div>
 
       {/* Missed Connections (Bottom Sheet) */}
       <MissedConnections
-        missedItems={revealData.missed_items}
+        missedItems={missedItems}
         onSwapClick={handleSwapClick}
       />
 

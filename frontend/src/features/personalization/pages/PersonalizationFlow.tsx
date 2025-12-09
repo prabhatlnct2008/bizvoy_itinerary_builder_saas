@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { VibeCheck } from '../components/VibeCheck';
@@ -87,7 +87,8 @@ export const PersonalizationFlow = () => {
 
     try {
       const sessionResponse = await startSession(deviceId, selectedVibes);
-      const deckResponse = await loadDeck(sessionResponse.session_id);
+      const sessionId = (sessionResponse as any).session_id || (sessionResponse as any).id;
+      const deckResponse = await loadDeck(sessionId);
 
       if (deckResponse.cards.length === 0) {
         toast.error('No activities available for personalization');
@@ -122,7 +123,17 @@ export const PersonalizationFlow = () => {
 
   // Handle deck completion
   const handleDeckComplete = async () => {
-    if (!state.sessionId) return;
+    console.log('[PersonalizationFlow] handleDeckComplete start', {
+      sessionId: state.sessionId,
+      deckLength: state.deck.length,
+      currentIndex: state.currentCardIndex,
+      step: state.currentStep,
+    });
+
+    if (!state.sessionId) {
+      console.warn('[PersonalizationFlow] No sessionId, skipping complete');
+      return;
+    }
 
     try {
       await completePersonalization(state.sessionId);

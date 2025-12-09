@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, X, Bookmark } from 'lucide-react';
 import { DeckCard } from '../../../types/personalization';
@@ -17,9 +17,16 @@ export const SwipeDeck = ({ deck, onSwipe, onComplete }: SwipeDeckProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const { swipe } = useHaptics();
+  const completedRef = useRef(false);
 
   // Prefetch next 2 card images
   useDeckPrefetch(deck, currentIndex);
+
+  // Reset completion guard when deck changes
+  useEffect(() => {
+    completedRef.current = false;
+    setCurrentIndex(0);
+  }, [deck]);
 
   useEffect(() => {
     if (currentIndex >= deck.length) {
@@ -31,13 +38,22 @@ export const SwipeDeck = ({ deck, onSwipe, onComplete }: SwipeDeckProps) => {
     if (isAnimating || currentIndex >= deck.length) return;
 
     const currentCard = deck[currentIndex];
+    console.log('[SwipeDeck] swipe', action, 'at index', currentIndex, 'of', deck.length);
     setIsAnimating(true);
     swipe();
 
     onSwipe(currentCard.activity_id, action);
 
     setTimeout(() => {
-      setCurrentIndex((prev) => prev + 1);
+      setCurrentIndex((prev) => {
+        const nextIndex = prev + 1;
+        if (nextIndex >= deck.length && !completedRef.current) {
+          console.log('[SwipeDeck] reached end of deck, firing onComplete');
+          completedRef.current = true;
+          onComplete();
+        }
+        return nextIndex;
+      });
       setIsAnimating(false);
     }, 300);
   };

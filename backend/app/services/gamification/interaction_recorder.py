@@ -39,7 +39,8 @@ class InteractionRecorder:
             "pass": InteractionAction.pass_,
             "save": InteractionAction.save,
         }
-        action = action_map.get(swipe_data.action, InteractionAction.pass_)
+        action_key = str(swipe_data.action or "").lower()
+        action = action_map.get(action_key, InteractionAction.pass_)
 
         # Create interaction record
         interaction = UserDeckInteraction(

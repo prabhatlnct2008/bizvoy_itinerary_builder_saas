@@ -2,8 +2,8 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
 interface ConfirmFooterProps {
-  totalAdded: number;
-  currencyCode: string;
+  totalAdded?: number | null;
+  currencyCode?: string | null;
   onConfirm: () => void;
   isLoading?: boolean;
 }
@@ -14,6 +14,9 @@ export const ConfirmFooter = ({
   onConfirm,
   isLoading = false,
 }: ConfirmFooterProps) => {
+  const total = typeof totalAdded === 'number' ? totalAdded : 0;
+  const currency = currencyCode || '';
+
   return (
     <div className="sticky bottom-0 left-0 right-0 bg-game-card border-t-2 border-game-accent-green p-4 shadow-2xl">
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
@@ -21,7 +24,7 @@ export const ConfirmFooter = ({
         <div>
           <div className="text-gray-400 text-sm">Added to your trip</div>
           <div className="text-white text-2xl font-bold">
-            {currencyCode} {totalAdded.toFixed(2)}
+            {currency} {total.toFixed(2)}
           </div>
         </div>
 
