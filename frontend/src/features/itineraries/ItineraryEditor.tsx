@@ -7,6 +7,7 @@ import Modal from '../../components/ui/Modal';
 import Chip from '../../components/ui/Chip';
 import ShareModal from './ShareModal';
 import LogisticsItemForm from './components/LogisticsItemForm';
+import CustomActivityForm from './components/CustomActivityForm';
 import itinerariesApi from '../../api/itineraries';
 import activitiesApi from '../../api/activities';
 import { useItineraryStore } from '../../store/itineraryStore';
@@ -37,6 +38,7 @@ const ItineraryEditor: React.FC = () => {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [isLogisticsModalOpen, setIsLogisticsModalOpen] = useState(false);
+  const [isCustomActivityModalOpen, setIsCustomActivityModalOpen] = useState(false);
   const [activities, setActivities] = useState<ActivityDetail[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -121,6 +123,12 @@ const ItineraryEditor: React.FC = () => {
   const handleAddLogisticsItem = (item: ItineraryDayActivityCreate) => {
     addActivityToDay(currentDayIndex, item);
     toast.success(`${item.item_type === 'LOGISTICS' ? 'Logistics item' : 'Note'} added`);
+  };
+
+  const handleAddCustomActivity = (item: ItineraryDayActivityCreate) => {
+    addActivityToDay(currentDayIndex, item);
+    setIsCustomActivityModalOpen(false);
+    toast.success('Custom activity added');
   };
 
   // Drag-drop handlers for day reordering
@@ -329,10 +337,13 @@ const ItineraryEditor: React.FC = () => {
               <h3 className="font-semibold text-primary">Activities</h3>
               <div className="flex gap-2">
                 <Button size="sm" variant="secondary" onClick={() => setIsLogisticsModalOpen(true)}>
-                  + Add Logistics/Note
+                  + Logistics/Note
+                </Button>
+                <Button size="sm" variant="secondary" className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100" onClick={() => setIsCustomActivityModalOpen(true)}>
+                  + Custom Activity
                 </Button>
                 <Button size="sm" onClick={() => setIsActivityModalOpen(true)}>
-                  + Add Activity
+                  + Library Activity
                 </Button>
               </div>
             </div>
@@ -348,6 +359,7 @@ const ItineraryEditor: React.FC = () => {
                   const isLibraryActivity = act.item_type === 'LIBRARY_ACTIVITY';
                   const isLogistics = act.item_type === 'LOGISTICS';
                   const isNote = act.item_type === 'NOTE';
+                  const isCustomActivity = act.item_type === 'CUSTOM_ACTIVITY';
 
                   const activity = isLibraryActivity ? activities.find((a) => a.id === act.activity_id) : null;
 
@@ -359,6 +371,8 @@ const ItineraryEditor: React.FC = () => {
                     ? 'bg-amber-50 border-amber-200'
                     : isNote
                     ? 'bg-blue-50 border-blue-200'
+                    : isCustomActivity
+                    ? 'bg-green-50 border-green-200'
                     : 'bg-gray-50 border-border';
 
                   return (
@@ -391,10 +405,12 @@ const ItineraryEditor: React.FC = () => {
                       {/* Item Info */}
                       <div className="flex-1 space-y-2">
                         <div className="flex items-start gap-2">
-                          {/* Icon for logistics/notes */}
-                          {(isLogistics || isNote) && act.custom_icon && (
+                          {/* Icon for logistics/notes/custom activities */}
+                          {(isLogistics || isNote || isCustomActivity) && act.custom_icon && (
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              isLogistics ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
+                              isLogistics ? 'bg-amber-100 text-amber-600' :
+                              isNote ? 'bg-blue-100 text-blue-600' :
+                              'bg-green-100 text-green-600'
                             }`}>
                               <span className="text-sm">{
                                 act.custom_icon === 'hotel' ? '🏨' :
@@ -406,6 +422,16 @@ const ItineraryEditor: React.FC = () => {
                                 act.custom_icon === 'meal' ? '🍽️' :
                                 act.custom_icon === 'coffee' ? '☕' :
                                 act.custom_icon === 'note' ? '📝' :
+                                act.custom_icon === 'compass' ? '🧭' :
+                                act.custom_icon === 'mountain' ? '🏔️' :
+                                act.custom_icon === 'waves' ? '🌊' :
+                                act.custom_icon === 'landmark' ? '🏛️' :
+                                act.custom_icon === 'camera' ? '📷' :
+                                act.custom_icon === 'utensils' ? '🍽️' :
+                                act.custom_icon === 'shopping' ? '🛍️' :
+                                act.custom_icon === 'music' ? '🎵' :
+                                act.custom_icon === 'bike' ? '🚴' :
+                                act.custom_icon === 'palmtree' ? '🌴' :
                                 '📌'
                               }</span>
                             </div>
@@ -425,9 +451,17 @@ const ItineraryEditor: React.FC = () => {
                                   Note
                                 </span>
                               )}
+                              {isCustomActivity && (
+                                <span className="px-2 py-0.5 text-xs bg-green-200 text-green-800 rounded">
+                                  Custom
+                                </span>
+                              )}
                             </div>
                             {isLibraryActivity && activity?.location && (
                               <p className="text-sm text-muted">{activity.location}</p>
+                            )}
+                            {isCustomActivity && act.custom_payload && (act.custom_payload as any).location && (
+                              <p className="text-sm text-muted">{(act.custom_payload as any).location}</p>
                             )}
                           </div>
                         </div>
@@ -465,8 +499,8 @@ const ItineraryEditor: React.FC = () => {
                           placeholder={`${isLogistics ? 'Logistics' : isNote ? 'Note' : 'Activity'} details...`}
                         />
 
-                        {/* Custom Price (only for library activities) */}
-                        {isLibraryActivity && (
+                        {/* Custom Price (for library activities and custom activities) */}
+                        {(isLibraryActivity || isCustomActivity) && (
                           <Input
                             type="number"
                             placeholder="Custom price"
@@ -552,6 +586,20 @@ const ItineraryEditor: React.FC = () => {
         <LogisticsItemForm
           onAddItem={handleAddLogisticsItem}
           displayOrder={currentDay.activities.length}
+        />
+      </Modal>
+
+      {/* Custom Activity Modal */}
+      <Modal
+        isOpen={isCustomActivityModalOpen}
+        onClose={() => setIsCustomActivityModalOpen(false)}
+        title="Add Custom Activity"
+        size="lg"
+      >
+        <CustomActivityForm
+          onAddActivity={handleAddCustomActivity}
+          displayOrder={currentDay.activities.length}
+          onClose={() => setIsCustomActivityModalOpen(false)}
         />
       </Modal>
     </div>
