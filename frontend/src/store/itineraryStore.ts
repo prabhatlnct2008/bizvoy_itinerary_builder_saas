@@ -36,10 +36,17 @@ export const useItineraryStore = create<ItineraryState>((set) => ({
       notes: day.notes || null,
       activities: day.activities.map((act) => ({
         activity_id: act.activity_id,
+        item_type: act.item_type || 'LIBRARY_ACTIVITY',
+        custom_title: act.custom_title || null,
+        custom_icon: act.custom_icon || null,
+        custom_payload: act.custom_payload || null,
         display_order: act.display_order,
         time_slot: act.time_slot,
         custom_notes: act.custom_notes,
         custom_price: act.custom_price,
+        start_time: act.start_time || null,
+        end_time: act.end_time || null,
+        is_locked_by_agency: act.is_locked_by_agency || false,
       })),
     }));
 
