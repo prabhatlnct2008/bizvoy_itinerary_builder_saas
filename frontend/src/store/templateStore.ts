@@ -134,9 +134,15 @@ export const useTemplateStore = create<TemplateState>((set) => ({
       const newDays = [...state.days];
       const [removed] = newDays.splice(startIndex, 1);
       newDays.splice(endIndex, 0, removed);
-      // Renumber days
+      // Renumber days and update default titles
       newDays.forEach((day, idx) => {
-        day.day_number = idx + 1;
+        const oldDayNumber = day.day_number;
+        const newDayNumber = idx + 1;
+        day.day_number = newDayNumber;
+        // Update title if it matches the default pattern "Day X" or is empty
+        if (!day.title || day.title === `Day ${oldDayNumber}` || /^Day \d+$/.test(day.title)) {
+          day.title = `Day ${newDayNumber}`;
+        }
       });
       // Update selected index to follow the moved day if it was selected
       let newSelectedIndex = state.selectedDayIndex;

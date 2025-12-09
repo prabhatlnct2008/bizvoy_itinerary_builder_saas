@@ -326,7 +326,7 @@ export interface TemplateUpdate {
 }
 
 // Item types for hybrid row pattern
-export type ItemType = 'LIBRARY_ACTIVITY' | 'LOGISTICS' | 'NOTE';
+export type ItemType = 'LIBRARY_ACTIVITY' | 'LOGISTICS' | 'NOTE' | 'CUSTOM_ACTIVITY';
 
 // Itinerary types
 export interface ItineraryDayActivity {

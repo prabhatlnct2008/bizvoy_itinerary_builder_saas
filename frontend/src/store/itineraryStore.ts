@@ -71,9 +71,16 @@ export const useItineraryStore = create<ItineraryState>((set) => ({
       // Get start_date from currentItinerary to recalculate actual_date
       const startDate = state.currentItinerary?.start_date;
 
-      // Renumber days and recalculate actual_date
+      // Renumber days, update default titles, and recalculate actual_date
       newDays.forEach((day, idx) => {
-        day.day_number = idx + 1;
+        const oldDayNumber = day.day_number;
+        const newDayNumber = idx + 1;
+        day.day_number = newDayNumber;
+
+        // Update title if it matches the default pattern "Day X" or is empty
+        if (!day.title || day.title === `Day ${oldDayNumber}` || /^Day \d+$/.test(day.title)) {
+          day.title = `Day ${newDayNumber}`;
+        }
 
         // Recalculate actual_date based on the new order
         if (startDate) {
