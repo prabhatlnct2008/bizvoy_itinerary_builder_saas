@@ -142,10 +142,8 @@ export const PersonalizationFlow = () => {
 
   // Handle confirmation
   const handleConfirm = async () => {
-    if (!state.sessionId) return;
-
     try {
-      const response = await confirmSelections(state.sessionId);
+      const response = await confirmSelections();
       toast.success(response.message);
 
       // Navigate back to trip view

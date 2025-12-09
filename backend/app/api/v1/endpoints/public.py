@@ -664,7 +664,7 @@ def confirm_personalization(
 
     added_count = 0
     for cart_item in cart_items:
-        if cart_item.day_id and cart_item.fit_status == FitStatus.fit:
+        if cart_item.day_id and cart_item.fit_status == FitStatus.FITTED:
             # Get next display order
             existing_activities = db.query(ItineraryDayActivity).filter(
                 ItineraryDayActivity.itinerary_day_id == cart_item.day_id
@@ -675,6 +675,7 @@ def confirm_personalization(
                 id=str(uuid.uuid4()),
                 itinerary_day_id=cart_item.day_id,
                 activity_id=cart_item.activity_id,
+                item_type='LIBRARY_ACTIVITY',
                 display_order=existing_activities,
                 source_cart_item_id=cart_item.id,
                 added_by_personalization=1
@@ -684,6 +685,10 @@ def confirm_personalization(
             # Update cart item status
             cart_item.status = CartItemStatus.confirmed
             added_count += 1
+
+    # Mark itinerary as personalization completed
+    if added_count > 0:
+        itinerary.personalization_completed = True
 
     db.commit()
 
