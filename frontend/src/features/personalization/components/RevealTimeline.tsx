@@ -7,7 +7,6 @@ import { MissedConnections } from './MissedConnections';
 import { SwapModal } from './SwapModal';
 import { SavedForLater } from './SavedForLater';
 import { ConfirmFooter } from './ConfirmFooter';
-import { PaymentInfo } from './PaymentInfo';
 import { triggerCelebrationConfetti } from '../animations/confetti';
 
 interface RevealTimelineProps {
@@ -31,7 +30,6 @@ export const RevealTimeline = ({
   const fittedItems = revealData.fitted_items || [];
   const missedItems = revealData.missed_items || [];
   const savedItems = (revealData as any).saved_items || [];
-  const paymentInfo = (revealData as any).payment_info || null;
 
   // Trigger confetti on mount
   useEffect(() => {
@@ -126,15 +124,6 @@ export const RevealTimeline = ({
             <SavedForLater savedItems={savedItems} />
           </motion.div>
         )}
-
-        {/* Payment Info */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7, duration: 0.6 }}
-        >
-          <PaymentInfo paymentInfo={paymentInfo} />
-        </motion.div>
       </div>
 
       {/* Missed Connections (Bottom Sheet) */}

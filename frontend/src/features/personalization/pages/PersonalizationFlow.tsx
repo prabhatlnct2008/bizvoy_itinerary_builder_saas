@@ -41,11 +41,8 @@ export const PersonalizationFlow = () => {
           return;
         }
 
-        if (status.completed) {
-          toast.info('You have already personalized this trip');
-          navigate(`/itinerary/${token}`);
-          return;
-        }
+        // Don't redirect if completed - allow re-personalization to add more activities
+        // The deck will exclude activities already in the itinerary
 
         // Could implement session resume here
         // if (status.can_resume && status.session_id) {
