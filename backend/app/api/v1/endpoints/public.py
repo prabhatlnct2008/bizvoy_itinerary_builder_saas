@@ -596,9 +596,9 @@ def complete_personalization(
         if days:
             target_day = days[0]  # Simple: just use first day
             cart_item.day_id = target_day.id
-            cart_item.fit_status = FitStatus.fit
+            cart_item.fit_status = FitStatus.FITTED
             cart_item.fit_reason = "Fits into available schedule"
-            cart_item.status = CartItemStatus.fitted
+            cart_item.status = CartItemStatus.FITTED
 
             activity = db.query(Activity).filter(Activity.id == cart_item.activity_id).first()
             fitted.append(FittedItem(
@@ -613,9 +613,9 @@ def complete_personalization(
                 currency_code=cart_item.currency_code
             ))
         else:
-            cart_item.fit_status = FitStatus.miss
+            cart_item.fit_status = FitStatus.MISSED
             cart_item.miss_reason = "No available days in itinerary"
-            cart_item.status = CartItemStatus.missed
+            cart_item.status = CartItemStatus.MISSED
 
             activity = db.query(Activity).filter(Activity.id == cart_item.activity_id).first()
             missed.append(MissedItem(
@@ -683,7 +683,7 @@ def confirm_personalization(
             db.add(itinerary_activity)
 
             # Update cart item status
-            cart_item.status = CartItemStatus.confirmed
+            cart_item.status = CartItemStatus.CONFIRMED
             added_count += 1
 
     # Mark itinerary as personalization completed

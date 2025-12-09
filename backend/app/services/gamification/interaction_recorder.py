@@ -113,7 +113,7 @@ class InteractionRecorder:
             session_id=session.id,
             itinerary_id=session.itinerary_id,
             activity_id=activity_id,
-            status=CartItemStatus.pending,
+            status=CartItemStatus.PENDING,
         )
         self.db.add(cart_item)
 
