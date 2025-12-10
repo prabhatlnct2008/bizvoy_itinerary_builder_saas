@@ -15,6 +15,13 @@ interface ItineraryState {
   removeActivityFromDay: (dayIndex: number, activityIndex: number) => void;
   moveActivity: (dayIndex: number, activityIndex: number, direction: 'up' | 'down') => void;
   reorderActivities: (dayIndex: number, startIndex: number, endIndex: number) => void;
+  /** Move an activity from one day to another */
+  moveActivityBetweenDays: (
+    fromDayIndex: number,
+    activityIndex: number,
+    toDayIndex: number,
+    toActivityIndex?: number
+  ) => void;
   updateActivity: (
     dayIndex: number,
     activityIndex: number,
@@ -131,6 +138,50 @@ export const useItineraryStore = create<ItineraryState>((set) => ({
         act.display_order = idx;
       });
       newDays[dayIndex].activities = activities;
+      return { days: newDays, hasUnsavedChanges: true };
+    }),
+
+  moveActivityBetweenDays: (fromDayIndex, activityIndex, toDayIndex, toActivityIndex) =>
+    set((state) => {
+      // Don't do anything if moving to the same day at the same position
+      if (fromDayIndex === toDayIndex) {
+        // Use reorderActivities logic instead
+        if (toActivityIndex !== undefined && activityIndex !== toActivityIndex) {
+          const newDays = [...state.days];
+          const activities = [...newDays[fromDayIndex].activities];
+          const [removed] = activities.splice(activityIndex, 1);
+          activities.splice(toActivityIndex, 0, removed);
+          activities.forEach((act, idx) => {
+            act.display_order = idx;
+          });
+          newDays[fromDayIndex].activities = activities;
+          return { days: newDays, hasUnsavedChanges: true };
+        }
+        return state;
+      }
+
+      const newDays = [...state.days];
+
+      // Remove activity from source day
+      const [movedActivity] = newDays[fromDayIndex].activities.splice(activityIndex, 1);
+
+      // Reset time_slot when moving between days (as per user requirement)
+      movedActivity.time_slot = null;
+      movedActivity.start_time = null;
+      movedActivity.end_time = null;
+
+      // Add to target day at specified position or at the end
+      const targetIndex = toActivityIndex ?? newDays[toDayIndex].activities.length;
+      newDays[toDayIndex].activities.splice(targetIndex, 0, movedActivity);
+
+      // Update display_order for both days
+      newDays[fromDayIndex].activities.forEach((act, idx) => {
+        act.display_order = idx;
+      });
+      newDays[toDayIndex].activities.forEach((act, idx) => {
+        act.display_order = idx;
+      });
+
       return { days: newDays, hasUnsavedChanges: true };
     }),
 
