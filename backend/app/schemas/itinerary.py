@@ -26,6 +26,11 @@ class ItineraryDayActivityCreate(BaseModel):
     time_slot: Optional[str] = None  # morning, afternoon, evening
     custom_notes: Optional[str] = None
     custom_price: Optional[Decimal] = None
+    price_amount: Optional[Decimal] = None
+    price_currency: Optional[str] = None
+    pricing_unit: Optional[str] = "flat"
+    quantity: Optional[int] = 1
+    item_discount_amount: Optional[Decimal] = None
 
     # Time fields
     start_time: Optional[str] = None  # e.g., "09:00"
@@ -49,6 +54,11 @@ class ItineraryDayActivityResponse(BaseModel):
     time_slot: Optional[str] = None
     custom_notes: Optional[str] = None
     custom_price: Optional[Decimal] = None
+    price_amount: Optional[Decimal] = None
+    price_currency: Optional[str] = None
+    pricing_unit: Optional[str] = None
+    quantity: Optional[int] = None
+    item_discount_amount: Optional[Decimal] = None
 
     # Time fields
     start_time: Optional[str] = None
@@ -150,6 +160,7 @@ class ItineraryUpdate(BaseModel):
     num_children: Optional[int] = None
     status: Optional[str] = None
     total_price: Optional[Decimal] = None
+    currency: Optional[str] = None
     special_notes: Optional[str] = None
     days: Optional[List[ItineraryDayCreate]] = None
     # Personalization settings
@@ -164,6 +175,7 @@ class ItineraryResponse(ItineraryBase):
     template_id: Optional[str] = None
     status: str
     total_price: Optional[Decimal] = None
+    currency: Optional[str] = None
     created_by: Optional[str] = None
     created_at: datetime
     updated_at: datetime

@@ -66,6 +66,11 @@ class PublicActivity(BaseModel):
     time_slot: Optional[str] = None
     custom_notes: Optional[str] = None
     custom_price: Optional[float] = None
+    price_amount: Optional[float] = None
+    price_currency: Optional[str] = None
+    pricing_unit: Optional[str] = None
+    quantity: Optional[int] = None
+    item_discount_amount: Optional[float] = None
 
     # Time fields
     start_time: Optional[str] = None

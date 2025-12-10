@@ -14,6 +14,7 @@ interface ItineraryState {
   addActivityToDay: (dayIndex: number, activity: ItineraryDayActivityCreate) => void;
   removeActivityFromDay: (dayIndex: number, activityIndex: number) => void;
   moveActivity: (dayIndex: number, activityIndex: number, direction: 'up' | 'down') => void;
+  reorderActivities: (dayIndex: number, startIndex: number, endIndex: number) => void;
   updateActivity: (
     dayIndex: number,
     activityIndex: number,
@@ -44,6 +45,11 @@ export const useItineraryStore = create<ItineraryState>((set) => ({
         time_slot: act.time_slot,
         custom_notes: act.custom_notes,
         custom_price: act.custom_price,
+        price_amount: (act as any).price_amount ?? act.custom_price ?? null,
+        price_currency: (act as any).price_currency || 'USD',
+        pricing_unit: (act as any).pricing_unit || 'flat',
+        quantity: (act as any).quantity ?? 1,
+        item_discount_amount: (act as any).item_discount_amount ?? null,
         start_time: act.start_time || null,
         end_time: act.end_time || null,
         is_locked_by_agency: act.is_locked_by_agency || false,
@@ -111,6 +117,20 @@ export const useItineraryStore = create<ItineraryState>((set) => ({
       newDays[dayIndex].activities.forEach((act, idx) => {
         act.display_order = idx;
       });
+      return { days: newDays, hasUnsavedChanges: true };
+    }),
+
+  reorderActivities: (dayIndex, startIndex, endIndex) =>
+    set((state) => {
+      const newDays = [...state.days];
+      const activities = [...newDays[dayIndex].activities];
+      const [removed] = activities.splice(startIndex, 1);
+      activities.splice(endIndex, 0, removed);
+      // Update display_order
+      activities.forEach((act, idx) => {
+        act.display_order = idx;
+      });
+      newDays[dayIndex].activities = activities;
       return { days: newDays, hasUnsavedChanges: true };
     }),
 

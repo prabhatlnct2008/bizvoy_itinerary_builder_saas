@@ -23,6 +23,7 @@ class Agency(Base):
     country = Column(String(100), nullable=True)
     timezone = Column(String(100), nullable=True)
     default_currency = Column(String(10), nullable=True)
+    accepted_currencies = Column(Text, nullable=True)
     website_url = Column(String(500), nullable=True)
     internal_notes = Column(Text, nullable=True)  # Only visible to bizvoy-admin
 

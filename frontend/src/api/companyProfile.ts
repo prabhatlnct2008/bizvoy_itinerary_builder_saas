@@ -23,6 +23,8 @@ export interface CompanyProfileResponse {
   bank_account_number: string | null;
   bank_ifsc_swift: string | null;
   bank_reference_note: string | null;
+  default_currency: string | null;
+  accepted_currencies: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -44,6 +46,8 @@ export interface CompanyProfileUpdate {
   bank_account_number?: string | null;
   bank_ifsc_swift?: string | null;
   bank_reference_note?: string | null;
+  default_currency?: string | null;
+  accepted_currencies?: string | null;
 }
 
 const companyProfileApi = {

@@ -342,6 +342,11 @@ export interface ItineraryDayActivity {
   time_slot: string | null;
   custom_notes: string | null;
   custom_price: number | null;
+  price_amount?: number | null;
+  price_currency?: string | null;
+  pricing_unit?: string | null;
+  quantity?: number | null;
+  item_discount_amount?: number | null;
   // Time fields
   start_time: string | null;  // e.g., "09:00"
   end_time: string | null;    // e.g., "12:00"
@@ -400,6 +405,11 @@ export interface ItineraryDayActivityCreate {
   time_slot?: string | null;
   custom_notes?: string | null;
   custom_price?: number | null;
+  price_amount?: number | null;
+  price_currency?: string | null;
+  pricing_unit?: string | null;
+  quantity?: number | null;
+  item_discount_amount?: number | null;
   // Time fields
   start_time?: string | null;
   end_time?: string | null;
@@ -427,6 +437,7 @@ export interface ItineraryCreate {
   num_children: number;
   status?: 'draft' | 'sent' | 'confirmed' | 'completed' | 'cancelled';
   total_price?: number | null;
+  currency?: string | null;
   special_notes?: string | null;
   days?: ItineraryDayCreate[];
 }
@@ -443,6 +454,7 @@ export interface ItineraryUpdate {
   num_children?: number;
   status?: 'draft' | 'sent' | 'confirmed' | 'completed' | 'cancelled';
   total_price?: number | null;
+  currency?: string | null;
   special_notes?: string | null;
   days?: ItineraryDayCreate[];
 }

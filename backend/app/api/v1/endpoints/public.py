@@ -46,6 +46,7 @@ from app.services.gamification.vibe_service import VibeService
 from app.services.gamification.settings_service import SettingsService
 from app.services.gamification.deck_builder import DeckBuilder
 from app.services.gamification.interaction_recorder import InteractionRecorder
+from app.services.gamification.llm_scheduler import propose_schedule
 from app.utils.file_storage import file_storage
 from decimal import Decimal
 
@@ -62,6 +63,58 @@ def parse_highlights(highlights) -> list:
         return json.loads(highlights)
     except (json.JSONDecodeError, TypeError):
         return []
+
+
+def _compute_pricing_snapshot(itinerary) -> PublicPricing:
+    """
+    Build a pricing snapshot from itinerary items.
+    Uses price_amount/custom_price/quantity/item_discount_amount on each activity.
+    """
+    subtotal = 0.0
+    currency = None
+
+    for day in itinerary.days:
+        for item in day.activities:
+            amount = None
+            if item.price_amount is not None:
+                amount = float(item.price_amount)
+            elif item.custom_price is not None:
+                amount = float(item.custom_price)
+            elif getattr(item, "activity", None) and getattr(item.activity, "price_numeric", None) is not None:
+                amount = float(item.activity.price_numeric)
+
+            qty = item.quantity if item.quantity is not None else 1
+            discount = float(item.item_discount_amount or 0)
+
+            if amount is not None:
+                subtotal += max(amount * qty - discount, 0)
+                if not currency:
+                    currency = item.price_currency or getattr(item.activity, "currency_code", None)
+
+    # Prefer persisted pricing currency, then item/itinerary/agency defaults
+    currency = (
+        (getattr(itinerary, "pricing", None).currency if getattr(itinerary, "pricing", None) and getattr(itinerary.pricing, "currency", None) else None)
+        or currency
+        or getattr(itinerary, "price_currency", None)
+        or getattr(itinerary.agency, "default_currency", None)
+        or "USD"
+    )
+
+    # If an existing pricing record is present, merge taxes/discounts
+    taxes = float(itinerary.pricing.taxes_fees) if getattr(itinerary, "pricing", None) and itinerary.pricing.taxes_fees else 0.0
+    discount_total = float(itinerary.pricing.discount_amount) if getattr(itinerary, "pricing", None) and itinerary.pricing.discount_amount else 0.0
+    base_package = float(itinerary.pricing.base_package) if getattr(itinerary, "pricing", None) and itinerary.pricing.base_package is not None else subtotal
+
+    total = (base_package if base_package is not None else 0) + taxes - discount_total
+
+    return PublicPricing(
+        base_package=base_package,
+        taxes_fees=taxes if taxes else None,
+        discount_code=itinerary.pricing.discount_code if getattr(itinerary, "pricing", None) else None,
+        discount_amount=discount_total if discount_total else None,
+        total=total,
+        currency=currency
+    )
 
 
 def count_activities_by_type(days, type_keyword: str) -> int:
@@ -281,24 +334,10 @@ def get_public_itinerary(
             phone=itinerary.agency.contact_phone
         )
 
-    # Get pricing
-    pricing_data = None
-    if itinerary.pricing:
-        pricing = itinerary.pricing
-        pricing_data = PublicPricing(
-            base_package=float(pricing.base_package) if pricing.base_package else None,
-            taxes_fees=float(pricing.taxes_fees) if pricing.taxes_fees else None,
-            discount_code=pricing.discount_code,
-            discount_amount=float(pricing.discount_amount) if pricing.discount_amount else None,
-            total=float(pricing.total) if pricing.total else None,
-            currency=pricing.currency or "USD"
-        )
-    elif itinerary.total_price:
-        # Fallback to simple total_price
-        pricing_data = PublicPricing(
-            total=float(itinerary.total_price),
-            currency="USD"
-        )
+    # Get pricing (compute from activities if not persisted)
+    pricing_data = _compute_pricing_snapshot(itinerary)
+    # Keep itinerary.total_price in sync for legacy fields
+    itinerary.total_price = pricing_data.total
 
     # Build share link response
     share_link_response = ShareLinkResponse(
@@ -582,42 +621,56 @@ def complete_personalization(
         ItineraryCartItem.session_id == session.id
     ).all()
 
-    # Simple fitting logic: try to fit activities into available days
+    # Pull itinerary days
     days = db.query(ItineraryDay).filter(
         ItineraryDay.itinerary_id == itinerary.id
     ).order_by(ItineraryDay.day_number).all()
 
+    activities_by_id = {}
+    for item in cart_items:
+        activity = db.query(Activity).filter(Activity.id == item.activity_id).first()
+        if activity:
+            activities_by_id[item.activity_id] = activity
+
     fitted = []
     missed = []
 
-    for cart_item in cart_items:
-        # Simple logic: fit into first available day
-        # In a real implementation, this would use more sophisticated scheduling
-        if days:
-            target_day = days[0]  # Simple: just use first day
-            cart_item.day_id = target_day.id
-            cart_item.fit_status = FitStatus.FITTED
-            cart_item.fit_reason = "Fits into available schedule"
-            cart_item.status = CartItemStatus.FITTED
+    # Try LLM-based scheduling
+    llm_plan = propose_schedule(days, cart_items, activities_by_id)
 
-            activity = db.query(Activity).filter(Activity.id == cart_item.activity_id).first()
-            fitted.append(FittedItem(
-                cart_item_id=cart_item.id,
-                activity_id=cart_item.activity_id,
-                activity_name=activity.name if activity else "Unknown",
-                day_number=target_day.day_number,
-                day_date=target_day.actual_date.isoformat(),
-                time_slot=cart_item.time_slot.value if cart_item.time_slot else None,
-                fit_reason=cart_item.fit_reason,
-                quoted_price=cart_item.quoted_price,
-                currency_code=cart_item.currency_code
-            ))
+    assignments = {}
+    missed_ids = set()
+    if llm_plan:
+        for a in llm_plan.get("assignments", []):
+            aid = a.get("activity_id")
+            day_num = a.get("day_number")
+            if aid and isinstance(day_num, int):
+                assignments[aid] = {
+                    "day_number": day_num,
+                    "time_slot": a.get("time_slot"),
+                }
+        for m in llm_plan.get("missed", []):
+            if isinstance(m, str):
+                missed_ids.add(m)
+
+    # Fallback: round-robin over days if no LLM or invalid response
+    def pick_day(idx: int) -> Optional[ItineraryDay]:
+        if not days:
+            return None
+        return days[idx % len(days)]
+
+    for idx, cart_item in enumerate(cart_items):
+        assignment = assignments.get(cart_item.activity_id)
+        if assignment:
+            target_day = next((d for d in days if d.day_number == assignment["day_number"]), None)
         else:
+            target_day = pick_day(idx)
+
+        if not target_day or cart_item.activity_id in missed_ids:
             cart_item.fit_status = FitStatus.MISSED
             cart_item.miss_reason = "No available days in itinerary"
             cart_item.status = CartItemStatus.MISSED
-
-            activity = db.query(Activity).filter(Activity.id == cart_item.activity_id).first()
+            activity = activities_by_id.get(cart_item.activity_id)
             missed.append(MissedItem(
                 cart_item_id=cart_item.id,
                 activity_id=cart_item.activity_id,
@@ -626,6 +679,29 @@ def complete_personalization(
                 swap_suggestion_activity_id=None,
                 swap_suggestion_name=None
             ))
+            continue
+
+        cart_item.day_id = target_day.id
+        cart_item.fit_status = FitStatus.FITTED
+        cart_item.fit_reason = "LLM placement" if assignment else "Auto placement"
+        cart_item.status = CartItemStatus.FITTED
+
+        # Record time_slot from plan if provided
+        if assignment and assignment.get("time_slot"):
+            cart_item.time_slot = assignment["time_slot"]
+
+        activity = activities_by_id.get(cart_item.activity_id)
+        fitted.append(FittedItem(
+            cart_item_id=cart_item.id,
+            activity_id=cart_item.activity_id,
+            activity_name=activity.name if activity else "Unknown",
+            day_number=target_day.day_number,
+            day_date=target_day.actual_date.isoformat(),
+            time_slot=cart_item.time_slot.value if hasattr(cart_item.time_slot, "value") else assignment.get("time_slot") if assignment else None,
+            fit_reason=cart_item.fit_reason,
+            quoted_price=cart_item.quoted_price,
+            currency_code=cart_item.currency_code
+        ))
 
     # Mark session as completed
     recorder = InteractionRecorder(db)
@@ -678,7 +754,12 @@ def confirm_personalization(
                 item_type='LIBRARY_ACTIVITY',
                 display_order=existing_activities,
                 source_cart_item_id=cart_item.id,
-                added_by_personalization=1
+                added_by_personalization=1,
+                price_amount=cart_item.quoted_price,
+                price_currency=cart_item.currency_code,
+                pricing_unit="flat",
+                quantity=1,
+                item_discount_amount=None
             )
             db.add(itinerary_activity)
 

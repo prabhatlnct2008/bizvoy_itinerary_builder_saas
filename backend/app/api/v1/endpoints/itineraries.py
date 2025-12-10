@@ -130,6 +130,11 @@ def create_itinerary(
                     time_slot=activity_data.time_slot,
                     custom_notes=activity_data.custom_notes,
                     custom_price=activity_data.custom_price,
+                    price_amount=activity_data.price_amount,
+                    price_currency=activity_data.price_currency,
+                    pricing_unit=activity_data.pricing_unit,
+                    quantity=activity_data.quantity,
+                    item_discount_amount=activity_data.item_discount_amount,
                     start_time=activity_data.start_time,
                     end_time=activity_data.end_time,
                     is_locked_by_agency=1 if activity_data.is_locked_by_agency else 0
@@ -184,6 +189,8 @@ def update_itinerary(
         # Convert boolean to int for personalization_enabled (DB uses INTEGER)
         if field == 'personalization_enabled' and value is not None:
             value = 1 if value else 0
+        if field == 'currency':
+            continue  # handled via pricing block below
         setattr(itinerary, field, value)
 
     # Update days if provided
@@ -216,6 +223,11 @@ def update_itinerary(
                     time_slot=activity_data.time_slot,
                     custom_notes=activity_data.custom_notes,
                     custom_price=activity_data.custom_price,
+                    price_amount=activity_data.price_amount,
+                    price_currency=activity_data.price_currency,
+                    pricing_unit=activity_data.pricing_unit,
+                    quantity=activity_data.quantity,
+                    item_discount_amount=activity_data.item_discount_amount,
                     start_time=activity_data.start_time,
                     end_time=activity_data.end_time,
                     is_locked_by_agency=1 if activity_data.is_locked_by_agency else 0
@@ -224,6 +236,19 @@ def update_itinerary(
 
     db.commit()
     db.refresh(itinerary)
+
+    # Handle itinerary-level currency on pricing
+    if data.currency:
+        if not itinerary.pricing:
+            from app.models.itinerary_pricing import ItineraryPricing
+            itinerary.pricing = ItineraryPricing(
+                itinerary_id=itinerary.id,
+                currency=data.currency,
+            )
+        else:
+            itinerary.pricing.currency = data.currency
+        db.commit()
+        db.refresh(itinerary)
 
     # Broadcast update via WebSocket if live updates enabled
     share_link = db.query(ShareLink).filter(
@@ -290,10 +315,63 @@ def _build_itinerary_detail_response(itinerary: Itinerary) -> ItineraryDetailRes
 
     # Exclude 'days' from itinerary.__dict__ to avoid duplicate keyword argument
     itinerary_dict = {k: v for k, v in itinerary.__dict__.items() if k != 'days' and not k.startswith('_')}
+    # Attach currency from pricing or agency default
+    if itinerary.pricing and itinerary.pricing.currency:
+        itinerary_dict['currency'] = itinerary.pricing.currency
+    elif getattr(itinerary.agency, "default_currency", None):
+        itinerary_dict['currency'] = itinerary.agency.default_currency
+    else:
+        itinerary_dict['currency'] = "USD"
     return ItineraryDetailResponse(
         **itinerary_dict,
         days=days
     )
+
+
+def _compute_pricing_snapshot(itinerary) -> dict:
+    """
+    Build a simple pricing snapshot from itinerary items for public payloads.
+    """
+    subtotal = 0.0
+    currency = None
+    for day in itinerary.days:
+        for item in day.activities:
+            amount = None
+            if item.price_amount is not None:
+                amount = float(item.price_amount)
+            elif item.custom_price is not None:
+                amount = float(item.custom_price)
+            elif getattr(item, "activity", None) and getattr(item.activity, "price_numeric", None) is not None:
+                amount = float(item.activity.price_numeric)
+
+            qty = item.quantity if item.quantity is not None else 1
+            discount = float(item.item_discount_amount or 0)
+
+            if amount is not None:
+                subtotal += max(amount * qty - discount, 0)
+                if not currency:
+                    currency = item.price_currency or getattr(item.activity, "currency_code", None)
+
+    currency = (
+        (getattr(itinerary, "pricing", None).currency if getattr(itinerary, "pricing", None) and getattr(itinerary.pricing, "currency", None) else None)
+        or currency
+        or getattr(itinerary, "price_currency", None)
+        or getattr(itinerary.agency, "default_currency", None)
+        or "USD"
+    )
+    taxes = float(itinerary.pricing.taxes_fees) if getattr(itinerary, "pricing", None) and itinerary.pricing.taxes_fees else 0.0
+    discount_total = float(itinerary.pricing.discount_amount) if getattr(itinerary, "pricing", None) and itinerary.pricing.discount_amount else 0.0
+    base_package = float(itinerary.pricing.base_package) if getattr(itinerary, "pricing", None) and itinerary.pricing.base_package is not None else subtotal
+    total = (base_package if base_package is not None else 0) + taxes - discount_total
+
+    return {
+        "base_package": base_package,
+        "taxes_fees": taxes if taxes else None,
+        "discount_code": itinerary.pricing.discount_code if getattr(itinerary, "pricing", None) else None,
+        "discount_amount": discount_total if discount_total else None,
+        "total": total,
+        "currency": currency,
+    }
 
 
 def _build_public_itinerary_payload(itinerary: Itinerary, share_link: ShareLink):
@@ -320,6 +398,11 @@ def _build_public_itinerary_payload(itinerary: Itinerary, share_link: ShareLink)
                     "end_time": activity_item.end_time,
                     "custom_notes": activity_item.custom_notes,
                     "custom_price": float(activity_item.custom_price) if activity_item.custom_price is not None else None,
+                    "price_amount": float(activity_item.price_amount) if activity_item.price_amount is not None else None,
+                    "price_currency": activity_item.price_currency,
+                    "pricing_unit": activity_item.pricing_unit,
+                    "quantity": activity_item.quantity,
+                    "item_discount_amount": float(activity_item.item_discount_amount) if activity_item.item_discount_amount is not None else None,
                     "is_locked_by_agency": bool(activity_item.is_locked_by_agency),
                     "name": activity.name,
                     "type": activity.activity_type.name if activity.activity_type else None,
@@ -347,6 +430,11 @@ def _build_public_itinerary_payload(itinerary: Itinerary, share_link: ShareLink)
                     "end_time": activity_item.end_time,
                     "custom_notes": activity_item.custom_notes,
                     "custom_price": float(activity_item.custom_price) if activity_item.custom_price is not None else None,
+                    "price_amount": float(activity_item.price_amount) if activity_item.price_amount is not None else None,
+                    "price_currency": activity_item.price_currency,
+                    "pricing_unit": activity_item.pricing_unit,
+                    "quantity": activity_item.quantity,
+                    "item_discount_amount": float(activity_item.item_discount_amount) if activity_item.item_discount_amount is not None else None,
                     "is_locked_by_agency": bool(activity_item.is_locked_by_agency),
                     "name": activity_item.custom_title or f"{item_type.title()} Item",
                     "type": item_type,
@@ -366,6 +454,9 @@ def _build_public_itinerary_payload(itinerary: Itinerary, share_link: ShareLink)
             "activities": activities_data
         })
 
+    pricing_snapshot = _compute_pricing_snapshot(itinerary)
+    itinerary.total_price = pricing_snapshot.get("total")
+
     return {
         "id": itinerary.id,
         "trip_name": itinerary.trip_name,
@@ -382,6 +473,7 @@ def _build_public_itinerary_payload(itinerary: Itinerary, share_link: ShareLink)
         "agency_contact_email": itinerary.agency.contact_email,
         "agency_contact_phone": itinerary.agency.contact_phone,
         "live_updates_enabled": share_link.live_updates_enabled,
+        "pricing": pricing_snapshot,
         "share_link": {
             "id": share_link.id,
             "itinerary_id": share_link.itinerary_id,

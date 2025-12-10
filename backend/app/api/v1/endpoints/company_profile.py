@@ -10,6 +10,7 @@ from datetime import datetime
 from app.core.deps import get_db, get_current_user, get_current_agency_id, require_permission
 from app.models.user import User
 from app.models.company_profile import CompanyProfile
+from app.models.agency import Agency
 from app.schemas.company_profile import CompanyProfileUpdate, CompanyProfileResponse
 
 router = APIRouter()
@@ -51,6 +52,7 @@ async def get_company_profile(
     Creates a default profile if one doesn't exist.
     """
     profile = get_or_create_profile(db, agency_id)
+    agency = db.query(Agency).filter(Agency.id == agency_id).first()
 
     # Convert to response with computed URLs
     response = CompanyProfileResponse(
@@ -78,6 +80,8 @@ async def get_company_profile(
         bank_reference_note=profile.bank_reference_note,
         created_at=profile.created_at,
         updated_at=profile.updated_at,
+        default_currency=agency.default_currency if agency else None,
+        accepted_currencies=agency.accepted_currencies if agency else None,
     )
 
     return response
@@ -95,15 +99,27 @@ async def update_company_profile(
     Update the company profile for the current agency.
     """
     profile = get_or_create_profile(db, agency_id)
+    agency = db.query(Agency).filter(Agency.id == agency_id).first()
 
     # Update fields if provided
     update_data = profile_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
+        if field in {"default_currency", "accepted_currencies"}:
+            continue
         setattr(profile, field, value)
+
+    # Update agency currency settings
+    if agency:
+        if profile_data.default_currency is not None:
+            agency.default_currency = profile_data.default_currency
+        if profile_data.accepted_currencies is not None:
+            agency.accepted_currencies = profile_data.accepted_currencies
 
     profile.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(profile)
+    if agency:
+        db.refresh(agency)
 
     # Convert to response
     response = CompanyProfileResponse(
@@ -131,6 +147,8 @@ async def update_company_profile(
         bank_reference_note=profile.bank_reference_note,
         created_at=profile.created_at,
         updated_at=profile.updated_at,
+        default_currency=agency.default_currency if agency else None,
+        accepted_currencies=agency.accepted_currencies if agency else None,
     )
 
     return response

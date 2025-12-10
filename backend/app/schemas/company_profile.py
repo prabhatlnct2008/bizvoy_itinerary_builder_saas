@@ -8,6 +8,8 @@ class CompanyProfileUpdate(BaseModel):
     company_name: Optional[str] = Field(None, max_length=200)
     tagline: Optional[str] = Field(None, max_length=200)
     description: Optional[str] = None
+    default_currency: Optional[str] = Field(None, max_length=10)
+    accepted_currencies: Optional[str] = Field(None, max_length=255)  # CSV
 
     email: Optional[str] = Field(None, max_length=200)
     phone: Optional[str] = Field(None, max_length=50)
@@ -57,6 +59,8 @@ class CompanyProfileResponse(BaseModel):
 
     created_at: datetime
     updated_at: datetime
+    default_currency: Optional[str] = None
+    accepted_currencies: Optional[str] = None
 
     class Config:
         from_attributes = True

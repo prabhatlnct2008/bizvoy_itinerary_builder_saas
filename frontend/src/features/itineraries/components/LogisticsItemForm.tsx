@@ -54,6 +54,11 @@ const LogisticsItemForm: React.FC<LogisticsItemFormProps> = ({
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [notes, setNotes] = useState('');
+  const [priceAmount, setPriceAmount] = useState('');
+  const [priceCurrency, setPriceCurrency] = useState('USD');
+  const [pricingUnit, setPricingUnit] = useState<'flat' | 'per_person' | 'per_night' | 'per_group'>('flat');
+  const [quantity, setQuantity] = useState(1);
+  const [itemDiscount, setItemDiscount] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +78,11 @@ const LogisticsItemForm: React.FC<LogisticsItemFormProps> = ({
       start_time: startTime || null,
       end_time: endTime || null,
       custom_price: null,
+      price_amount: priceAmount ? parseFloat(priceAmount) : null,
+      price_currency: priceCurrency,
+      pricing_unit: pricingUnit,
+      quantity: quantity || 1,
+      item_discount_amount: itemDiscount ? parseFloat(itemDiscount) : null,
       is_locked_by_agency: false,
     };
 
@@ -84,6 +94,11 @@ const LogisticsItemForm: React.FC<LogisticsItemFormProps> = ({
     setStartTime('');
     setEndTime('');
     setNotes('');
+    setPriceAmount('');
+    setPriceCurrency('USD');
+    setPricingUnit('flat');
+    setQuantity(1);
+    setItemDiscount('');
   };
 
   const handleQuickAdd = (item: typeof QUICK_ADD_ITEMS[0]) => {
@@ -98,6 +113,11 @@ const LogisticsItemForm: React.FC<LogisticsItemFormProps> = ({
       start_time: null,
       end_time: null,
       custom_price: null,
+      price_amount: null,
+      price_currency: 'USD',
+      pricing_unit: 'flat',
+      quantity: 1,
+      item_discount_amount: null,
       is_locked_by_agency: false,
     };
 
@@ -168,13 +188,60 @@ const LogisticsItemForm: React.FC<LogisticsItemFormProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={itemType === 'LOGISTICS' ? 'e.g., Airport Pickup' : 'e.g., Free time to explore'}
+          required
+        />
+
+        <div className="grid grid-cols-2 gap-3">
           <Input
-            label="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={itemType === 'LOGISTICS' ? 'e.g., Airport Pickup' : 'e.g., Free time to explore'}
-            required
+            label="Price Amount"
+            type="number"
+            value={priceAmount}
+            onChange={(e) => setPriceAmount(e.target.value)}
+            placeholder="e.g., 100"
           />
+          <Input
+            label="Currency"
+            value={priceCurrency}
+            onChange={(e) => setPriceCurrency(e.target.value)}
+            placeholder="USD"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-secondary mb-1">Pricing Unit</label>
+            <select
+              value={pricingUnit}
+              onChange={(e) => setPricingUnit(e.target.value as any)}
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="flat">Flat</option>
+              <option value="per_person">Per Person</option>
+              <option value="per_night">Per Night</option>
+              <option value="per_group">Per Group</option>
+            </select>
+          </div>
+          <Input
+            label="Quantity"
+            type="number"
+            value={quantity}
+            onChange={(e) => setQuantity(parseInt(e.target.value || '1', 10))}
+            placeholder="1"
+          />
+        </div>
+
+        <Input
+          label="Item Discount"
+          type="number"
+          value={itemDiscount}
+          onChange={(e) => setItemDiscount(e.target.value)}
+          placeholder="Optional discount amount"
+        />
 
           <div>
             <label className="block text-sm font-medium text-secondary mb-2">Icon</label>

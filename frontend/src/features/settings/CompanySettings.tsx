@@ -31,6 +31,8 @@ const CompanySettings: React.FC = () => {
     bank_account_number: '',
     bank_ifsc_swift: '',
     bank_reference_note: '',
+    default_currency: '',
+    accepted_currencies: '',
   });
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
@@ -62,6 +64,8 @@ const CompanySettings: React.FC = () => {
         bank_account_number: data.bank_account_number || '',
         bank_ifsc_swift: data.bank_ifsc_swift || '',
         bank_reference_note: data.bank_reference_note || '',
+        default_currency: data.default_currency || '',
+        accepted_currencies: data.accepted_currencies || '',
       });
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to load company profile');
@@ -203,6 +207,37 @@ const CompanySettings: React.FC = () => {
                 rows={3}
                 className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Currency Settings */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-slate-900 mb-4">Currency</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                Default Currency
+              </label>
+              <input
+                value={formData.default_currency || ''}
+                onChange={(e) => setFormData({ ...formData, default_currency: e.target.value })}
+                placeholder="e.g., USD"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="text-xs text-slate-400 mt-1">3-letter currency code shown by default.</p>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 uppercase tracking-[0.08em] mb-2">
+                Accepted Currencies (CSV)
+              </label>
+              <input
+                value={formData.accepted_currencies || ''}
+                onChange={(e) => setFormData({ ...formData, accepted_currencies: e.target.value })}
+                placeholder="USD, EUR, GBP"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="text-xs text-slate-400 mt-1">Comma-separated list of currencies you accept.</p>
             </div>
           </div>
         </div>

@@ -30,6 +30,7 @@ const ItineraryEditor: React.FC = () => {
     reorderDays,
     addActivityToDay,
     removeActivityFromDay,
+    reorderActivities,
     moveActivity,
     updateActivity,
     markSaved,
@@ -44,6 +45,7 @@ const ItineraryEditor: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [currency, setCurrency] = useState<string>('USD');
 
   // Metadata editing
   const [status, setStatus] = useState<string>('draft');
@@ -51,6 +53,36 @@ const ItineraryEditor: React.FC = () => {
   // Drag-drop state for day reordering
   const [draggedDayIndex, setDraggedDayIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+  // Drag-drop state for activities
+  const [draggedActivityIndex, setDraggedActivityIndex] = useState<number | null>(null);
+  const [dropTargetActivityIndex, setDropTargetActivityIndex] = useState<number | null>(null);
+
+  const currencyOptions = React.useMemo(() => {
+    const defaults = ['USD', 'EUR', 'GBP', 'INR', 'AED'];
+    const seen = new Set<string>();
+    const opts: string[] = [];
+    const preferred = currency || 'USD';
+    [preferred, ...(currentItinerary?.pricing as any)?.accepted_currencies?.split(',') || [], ...defaults].forEach((c) => {
+      const code = c?.trim()?.toUpperCase();
+      if (code && !seen.has(code)) {
+        seen.add(code);
+        opts.push(code);
+      }
+    });
+    // add currencies found on items
+    days.forEach((d) =>
+      d.activities.forEach((a) => {
+        const code = (a.price_currency || '').toUpperCase();
+        if (code && !seen.has(code)) {
+          seen.add(code);
+          opts.push(code);
+        }
+      })
+    );
+    // move preferred to front
+    const filtered = opts.filter((c) => c === preferred).concat(opts.filter((c) => c !== preferred));
+    return filtered;
+  }, [currency, currentItinerary, days]);
 
   useEffect(() => {
     if (id) {
@@ -65,6 +97,7 @@ const ItineraryEditor: React.FC = () => {
       const data = await itinerariesApi.getItinerary(id!);
       setItinerary(data);
       setStatus(data.status);
+      setCurrency((data as any).pricing?.currency || data.currency || 'USD');
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to load itinerary');
       navigate('/itineraries');
@@ -91,6 +124,7 @@ const ItineraryEditor: React.FC = () => {
       const updateData: ItineraryUpdate = {
         status: status as any,
         days,
+        currency,
       };
 
       await itinerariesApi.updateItinerary(currentItinerary.id, updateData);
@@ -113,11 +147,40 @@ const ItineraryEditor: React.FC = () => {
       time_slot: null,
       custom_notes: null,
       custom_price: activity.base_price || null,
+      price_amount: activity.price_numeric || activity.base_price || null,
+      price_currency: activity.currency_code || 'USD',
+      pricing_unit: 'per_person',
+      quantity: currentItinerary?.num_adults || 1,
+      item_discount_amount: null,
       start_time: null,
       end_time: null,
     });
     setIsActivityModalOpen(false);
     toast.success('Activity added');
+  };
+
+  const handleActivityDragStart = (index: number) => {
+    setDraggedActivityIndex(index);
+    setDropTargetActivityIndex(null);
+  };
+
+  const handleActivityDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedActivityIndex !== null && draggedActivityIndex !== index) {
+      setDropTargetActivityIndex(index);
+    }
+  };
+
+  const handleActivityDragEnd = () => {
+    if (
+      draggedActivityIndex !== null &&
+      dropTargetActivityIndex !== null &&
+      draggedActivityIndex !== dropTargetActivityIndex
+    ) {
+      reorderActivities(currentDayIndex, draggedActivityIndex, dropTargetActivityIndex);
+    }
+    setDraggedActivityIndex(null);
+    setDropTargetActivityIndex(null);
   };
 
   const handleAddLogisticsItem = (item: ItineraryDayActivityCreate) => {
@@ -246,6 +309,19 @@ const ItineraryEditor: React.FC = () => {
           </div>
 
           <div className="flex gap-3">
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              title="Itinerary currency"
+            >
+              {currencyOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
@@ -377,8 +453,20 @@ const ItineraryEditor: React.FC = () => {
 
                   return (
                     <div
-                      key={actIndex}
-                      className={`flex items-start gap-3 p-4 rounded-lg border ${bgColor}`}
+                      key={`${act.activity_id || act.custom_title}-${actIndex}`}
+                      draggable
+                      onDragStart={() => handleActivityDragStart(actIndex)}
+                      onDragOver={(e) => handleActivityDragOver(e, actIndex)}
+                      onDragEnd={handleActivityDragEnd}
+                      className={`flex items-start gap-3 p-4 rounded-lg border transition-all ${
+                        bgColor
+                      } ${
+                        draggedActivityIndex === actIndex
+                          ? 'opacity-50 border-primary-400'
+                          : dropTargetActivityIndex === actIndex
+                          ? 'border-primary-500 border-2'
+                          : ''
+                      }`}
                     >
                       {/* Move Buttons */}
                       <div className="flex flex-col gap-1 mt-1">
@@ -508,6 +596,8 @@ const ItineraryEditor: React.FC = () => {
                             onChange={(e) =>
                               updateActivity(currentDayIndex, actIndex, {
                                 custom_price: parseFloat(e.target.value) || null,
+                                price_amount: parseFloat(e.target.value) || null,
+                                price_currency: currency,
                               })
                             }
                             className="text-sm w-40"

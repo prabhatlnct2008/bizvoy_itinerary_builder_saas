@@ -241,7 +241,7 @@ const RoleForm: React.FC<RoleFormProps> = ({ role, onSubmit, onCancel }) => {
                                   type="checkbox"
                                   checked={selectedPermissions.has(permission.id)}
                                   onChange={() => togglePermission(permission.id)}
-                                  className="w-4 h-4 text-primary-600 border-border rounded focus:ring-primary-500 cursor-pointer"
+                                  className="w-5 h-5 border-2 border-slate-400 rounded text-primary-600 focus:ring-2 focus:ring-primary-500 cursor-pointer"
                                 />
                               ) : (
                                 <span className="text-muted text-xs">-</span>

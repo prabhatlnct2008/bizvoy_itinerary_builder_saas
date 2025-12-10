@@ -96,6 +96,7 @@ class TemplateService:
             for template_activity in template_day.activities:
                 # Preserve item_type from template (supports LOGISTICS, NOTE items)
                 item_type = getattr(template_activity, 'item_type', 'LIBRARY_ACTIVITY') or 'LIBRARY_ACTIVITY'
+                linked_activity = getattr(template_activity, "activity", None)
 
                 itinerary_activity = ItineraryDayActivity(
                     itinerary_day_id=itinerary_day.id,
@@ -109,6 +110,17 @@ class TemplateService:
                     time_slot=template_activity.time_slot,
                     custom_notes=template_activity.custom_notes,
                     custom_price=None,  # Can be customized later
+                    price_amount=getattr(template_activity, "price_amount", None) or (
+                        getattr(template_activity, "custom_price", None)
+                        if hasattr(template_activity, "custom_price")
+                        else None
+                    ) or (linked_activity.price_numeric if linked_activity else None),
+                    price_currency=getattr(template_activity, "price_currency", None)
+                    or (linked_activity.currency_code if linked_activity else None)
+                    or "USD",
+                    pricing_unit=getattr(template_activity, "pricing_unit", None) or "flat",
+                    quantity=getattr(template_activity, "quantity", None) or 1,
+                    item_discount_amount=getattr(template_activity, "item_discount_amount", None),
                     # Copy time fields from template
                     start_time=template_activity.start_time,
                     end_time=template_activity.end_time,

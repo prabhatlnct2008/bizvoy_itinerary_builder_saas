@@ -63,13 +63,13 @@ export const SwipeCard = ({ card, onSwipeLeft, onSwipeRight, isTopCard }: SwipeC
       whileDrag={{ cursor: 'grabbing' }}
     >
       <CardFlip card={card}>
-        <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] bg-game-card">
+        <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] bg-game-card min-h-[70vh]">
           {/* Full-bleed Hero Image */}
           <div className="absolute inset-0">
             <img
               src={heroImage}
               alt={card.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover max-h-[70vh]"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
               }}

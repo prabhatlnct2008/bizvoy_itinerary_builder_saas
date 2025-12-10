@@ -108,6 +108,12 @@ class ItineraryDayActivity(Base):
     time_slot = Column(String(50), nullable=True)  # morning, afternoon, evening
     custom_notes = Column(Text, nullable=True)
     custom_price = Column(Numeric(10, 2), nullable=True)
+    # Pricing v2 fields
+    price_amount = Column(Numeric(10, 2), nullable=True)
+    price_currency = Column(String(10), default="USD", nullable=True)
+    pricing_unit = Column(String(20), default="flat", nullable=True)  # flat, per_person, per_group, per_night
+    quantity = Column(Integer, default=1, nullable=True)
+    item_discount_amount = Column(Numeric(10, 2), nullable=True)
 
     # Time fields
     start_time = Column(String(10), nullable=True)  # e.g., "09:00"

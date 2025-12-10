@@ -157,6 +157,12 @@ const PublicItinerary: React.FC = () => {
   }
 
   const { trip_overview, company_profile, pricing } = itinerary;
+
+  const formatPrice = (amount?: number | null, currency?: string) => {
+    const value = amount ?? 0;
+    const curr = currency || pricing?.currency || itinerary.total_price_currency || 'USD';
+    return `${curr} ${value.toLocaleString()}`;
+  };
   const nameParts = itinerary?.client_name?.split(' ') || [];
   const firstName = nameParts[0] || '';
   const lastName = nameParts.slice(1).join(' ') || '';
@@ -454,11 +460,11 @@ const PublicItinerary: React.FC = () => {
                 </div>
 
                 <div className="space-y-3 mb-4">
-                  {pricing.base_package && (
+                  {pricing.base_package !== undefined && pricing.base_package !== null && (
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Base Package</span>
                       <span className="text-slate-900 font-medium">
-                        ${pricing.base_package.toLocaleString()}
+                        {formatPrice(pricing.base_package, pricing.currency)}
                       </span>
                     </div>
                   )}
@@ -466,7 +472,7 @@ const PublicItinerary: React.FC = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Taxes & Fees</span>
                       <span className="text-slate-900 font-medium">
-                        ${pricing.taxes_fees.toLocaleString()}
+                        {formatPrice(pricing.taxes_fees, pricing.currency)}
                       </span>
                     </div>
                   )}
@@ -474,7 +480,7 @@ const PublicItinerary: React.FC = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-emerald-600">Discount</span>
                       <span className="text-emerald-600 font-medium">
-                        -${pricing.discount_amount.toLocaleString()}
+                        -{formatPrice(pricing.discount_amount, pricing.currency)}
                       </span>
                     </div>
                   )}
@@ -485,7 +491,7 @@ const PublicItinerary: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-slate-900 font-bold">Total</span>
                     <span className="text-2xl font-bold text-amber-500">
-                      ${(pricing.total || itinerary.total_price || 0).toLocaleString()}
+                      {formatPrice(pricing.total || itinerary.total_price, pricing.currency)}
                     </span>
                   </div>
                 </div>
@@ -533,7 +539,7 @@ const PublicItinerary: React.FC = () => {
                     className="w-32 h-32 md:w-40 md:h-40"
                   />
                   <p className="text-sm font-medium text-amber-500 mt-2">
-                    Scan to Pay ${(pricing?.total || itinerary.total_price || 0).toLocaleString()}
+                    Scan to Pay {formatPrice(pricing?.total || itinerary.total_price, pricing?.currency)}
                   </p>
                 </div>
               </div>
@@ -966,21 +972,21 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
         {isExpanded && (
           <div className="px-4 pb-4">
             {/* Image Gallery */}
-            {activity.images && activity.images.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {/* Large Image */}
-                {heroImage && (
-                  <div className={`${otherImages.length > 0 ? 'col-span-2 row-span-2' : 'col-span-3'} rounded-xl overflow-hidden`}>
-                    <img
-                      src={`${baseUrl}${heroImage.url}`}
-                      alt={activity.name}
-                      className="w-full h-full object-cover"
-                      style={{ minHeight: otherImages.length > 0 ? '200px' : '180px' }}
-                    />
-                  </div>
-                )}
-                {/* Side Images */}
-                {otherImages.map((img, idx) => (
+          {activity.images && activity.images.length > 0 && (
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {/* Large Image */}
+              {heroImage && (
+                <div className={`${otherImages.length > 0 ? 'col-span-2 row-span-2' : 'col-span-3'} rounded-xl overflow-hidden`}>
+                  <img
+                    src={`${baseUrl}${heroImage.url}`}
+                    alt={activity.name}
+                    className="w-full h-full object-cover max-h-[400px]"
+                    style={{ minHeight: otherImages.length > 0 ? '240px' : '200px' }}
+                  />
+                </div>
+              )}
+              {/* Side Images */}
+              {otherImages.map((img, idx) => (
                   <div key={idx} className="rounded-xl overflow-hidden">
                     <img
                       src={`${baseUrl}${img.url}`}

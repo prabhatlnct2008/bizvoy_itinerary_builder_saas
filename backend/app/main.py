@@ -13,10 +13,11 @@ app = FastAPI(
     redirect_slashes=True  # Normalize / and / routes so both work
 )
 
-# Configure CORS
+# Configure CORS (sanitize list and fall back to *)
+cors_origins = [o for o in settings.BACKEND_CORS_ORIGINS if o] or ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
