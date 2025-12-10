@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Save, ArrowLeft, CheckCircle, LibraryBig } from 'lucide-react';
+import { Save, ArrowLeft, CheckCircle, LibraryBig, Eye } from 'lucide-react';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
@@ -18,6 +18,7 @@ import {
 import DayTimeline from './components/DayTimeline';
 import DayActivityList from './components/DayActivityList';
 import ActivityPicker from './components/ActivityPicker';
+import { TemplatePreviewModal } from '../../components/modals';
 
 const TemplateBuilder: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +60,7 @@ const TemplateBuilder: React.FC = () => {
   });
 
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [activities, setActivities] = useState<ActivityDetail[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -241,6 +243,16 @@ const TemplateBuilder: React.FC = () => {
           </div>
 
           <div className="flex gap-2 lg:gap-3 w-full sm:w-auto">
+            {isEditMode && (
+              <Button
+                variant="secondary"
+                onClick={() => setIsPreviewModalOpen(true)}
+                size="sm"
+              >
+                <Eye className="w-4 h-4 mr-1 lg:mr-2" />
+                <span className="hidden lg:inline">Preview</span>
+              </Button>
+            )}
             <Button variant="secondary" onClick={() => navigate('/templates')} size="sm" className="hidden sm:inline-flex">
               Cancel
             </Button>
@@ -414,6 +426,15 @@ const TemplateBuilder: React.FC = () => {
           selectedActivityIds={selectedActivityIds.filter((id): id is string => id !== undefined)}
         />
       </Modal>
+
+      {/* Template Preview Modal */}
+      {isEditMode && id && (
+        <TemplatePreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          templateId={id}
+        />
+      )}
     </div>
   );
 };

@@ -11,7 +11,8 @@ import activitiesApi from '../../api/activities';
 import activityTypesApi from '../../api/activityTypes';
 import { getAgencyVibes, updateActivityGamification } from '../../api/gamification';
 import { ActivityType, ActivityCreate, ActivityUpdate, ActivityImage } from '../../types';
-import { Star, Clock, Users, DollarSign, Plus, X, Upload, Trash2, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Star, Clock, Users, DollarSign, Plus, X, Upload, Trash2, Image as ImageIcon, Sparkles, Eye } from 'lucide-react';
+import { ActivityPreviewModal } from '../../components/modals';
 
 interface AgencyVibe {
   id: string;
@@ -41,6 +42,7 @@ const ActivityForm: React.FC = () => {
   const [newHighlight, setNewHighlight] = useState('');
   const [agencyVibes, setAgencyVibes] = useState<AgencyVibe[]>([]);
   const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -390,6 +392,16 @@ const ActivityForm: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-4">
+            {isEdit && id && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsPreviewModalOpen(true)}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Preview
+              </Button>
+            )}
             <label className="flex items-center gap-2 cursor-pointer">
               <span className="text-sm text-gray-700">Active</span>
               <div className="relative">
@@ -884,6 +896,16 @@ const ActivityForm: React.FC = () => {
               After creating the activity, you'll be able to upload images.
             </p>
           </div>
+        )}
+
+        {/* Activity Preview Modal */}
+        {isEdit && id && (
+          <ActivityPreviewModal
+            isOpen={isPreviewModalOpen}
+            onClose={() => setIsPreviewModalOpen(false)}
+            activityId={id}
+            hideAddButton
+          />
         )}
       </div>
     </div>

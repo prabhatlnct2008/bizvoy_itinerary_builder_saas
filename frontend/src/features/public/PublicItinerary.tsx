@@ -35,28 +35,61 @@ import {
 } from 'lucide-react';
 import { ItemType } from '../../types';
 
-const PublicItinerary: React.FC = () => {
-  const { token } = useParams<{ token: string }>();
-  const [itinerary, setItinerary] = useState<PublicItineraryResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export interface PublicItineraryProps {
+  /** Optional data to render directly (skips API fetch) */
+  data?: PublicItineraryResponse;
+  /** Mode: 'public' shows personalization CTA, 'preview' hides it */
+  mode?: 'public' | 'preview';
+  /** Optional token override (for when data is not provided) */
+  shareToken?: string;
+}
+
+const PublicItinerary: React.FC<PublicItineraryProps> = ({
+  data: providedData,
+  mode = 'public',
+  shareToken,
+}) => {
+  const { token: urlToken } = useParams<{ token: string }>();
+  const token = shareToken || urlToken;
+  const isPreviewMode = mode === 'preview';
+
+  const [itinerary, setItinerary] = useState<PublicItineraryResponse | null>(providedData || null);
+  const [isLoading, setIsLoading] = useState(!providedData);
   const [, setLastUpdated] = useState<Date | null>(null);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
   const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set());
   const [discountCode, setDiscountCode] = useState('');
 
+  // Only use WebSocket in public mode with token
   const { isConnected, lastMessage } = useWebSocket(
-    token || null,
-    itinerary?.live_updates_enabled || false
+    !isPreviewMode && token ? token : null,
+    !isPreviewMode && itinerary?.live_updates_enabled || false
   );
 
+  // Update itinerary when providedData changes
   useEffect(() => {
-    if (token) {
+    if (providedData) {
+      setItinerary(providedData);
+      setIsLoading(false);
+      // Auto-expand first day
+      if (providedData.days.length > 0) {
+        setExpandedDays(new Set([1]));
+        if (providedData.days[0].activities.length > 0) {
+          setExpandedActivities(new Set([providedData.days[0].activities[0].id]));
+        }
+      }
+    }
+  }, [providedData]);
+
+  // Only fetch if no data provided and we have a token
+  useEffect(() => {
+    if (!providedData && token) {
       fetchItinerary();
     }
-  }, [token]);
+  }, [token, providedData]);
 
   useEffect(() => {
-    if (lastMessage && lastMessage.type === 'itinerary_updated') {
+    if (!isPreviewMode && lastMessage && lastMessage.type === 'itinerary_updated') {
       if (lastMessage.data?.itinerary) {
         setItinerary(lastMessage.data.itinerary);
       } else {
@@ -65,12 +98,13 @@ const PublicItinerary: React.FC = () => {
       setLastUpdated(new Date());
       toast.info('Itinerary updated', { autoClose: 2000 });
     }
-  }, [lastMessage]);
+  }, [lastMessage, isPreviewMode]);
 
   const fetchItinerary = async () => {
+    if (!token) return;
     try {
       setIsLoading(true);
-      const data = await shareApi.getPublicItinerary(token!);
+      const data = await shareApi.getPublicItinerary(token);
       setItinerary(data);
       // Auto-expand first day and its first activity
       if (data.days.length > 0) {
@@ -169,10 +203,17 @@ const PublicItinerary: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Preview Mode Banner */}
+      {isPreviewMode && (
+        <div className="bg-amber-500 text-white text-center py-2 px-4 text-sm font-medium">
+          Preview Mode - This is how your itinerary will appear to clients
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-8">
 
-        {/* Live Updates Indicator */}
-        {itinerary.live_updates_enabled && (
+        {/* Live Updates Indicator - Hidden in preview mode */}
+        {!isPreviewMode && itinerary.live_updates_enabled && (
           <div className="flex items-center justify-end gap-2 text-xs">
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
             <span className="text-slate-500">
@@ -324,8 +365,9 @@ const PublicItinerary: React.FC = () => {
 
         {/* ══════════════════════════════════════════════════════════════
             PERSONALIZED BADGE (shown when personalization was done)
+            Hidden in preview mode
             ══════════════════════════════════════════════════════════════ */}
-        {itinerary.personalization_completed && (
+        {!isPreviewMode && itinerary.personalization_completed && (
           <section>
             <div className="bg-gradient-to-r from-game-accent-green to-game-accent-coral rounded-xl p-6 text-center">
               <div className="flex items-center justify-center gap-2 text-white">
@@ -340,8 +382,9 @@ const PublicItinerary: React.FC = () => {
         {/* ══════════════════════════════════════════════════════════════
             MAKE THIS TRIP YOURS SECTION - always show when enabled
             (deck will filter out activities already in itinerary)
+            Hidden in preview mode
             ══════════════════════════════════════════════════════════════ */}
-        {itinerary.personalization_enabled && token && (
+        {!isPreviewMode && itinerary.personalization_enabled && token && (
           <section className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 md:p-8 border border-slate-200">
             {/* Section Header */}
             <div className="text-center mb-6">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { Eye } from 'lucide-react';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
@@ -8,6 +9,7 @@ import Chip from '../../components/ui/Chip';
 import ShareModal from './ShareModal';
 import LogisticsItemForm from './components/LogisticsItemForm';
 import CustomActivityForm from './components/CustomActivityForm';
+import { ActivityLibraryModal, ItineraryPreviewModal } from '../../components/modals';
 import itinerariesApi from '../../api/itineraries';
 import activitiesApi from '../../api/activities';
 import { useItineraryStore } from '../../store/itineraryStore';
@@ -32,6 +34,7 @@ const ItineraryEditor: React.FC = () => {
     removeActivityFromDay,
     reorderActivities,
     moveActivity,
+    moveActivityBetweenDays,
     updateActivity,
     markSaved,
   } = useItineraryStore();
@@ -41,7 +44,6 @@ const ItineraryEditor: React.FC = () => {
   const [isLogisticsModalOpen, setIsLogisticsModalOpen] = useState(false);
   const [isCustomActivityModalOpen, setIsCustomActivityModalOpen] = useState(false);
   const [activities, setActivities] = useState<ActivityDetail[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -53,9 +55,14 @@ const ItineraryEditor: React.FC = () => {
   // Drag-drop state for day reordering
   const [draggedDayIndex, setDraggedDayIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
-  // Drag-drop state for activities
+  // Drag-drop state for activities (including cross-day)
   const [draggedActivityIndex, setDraggedActivityIndex] = useState<number | null>(null);
+  const [draggedActivityDayIndex, setDraggedActivityDayIndex] = useState<number | null>(null);
   const [dropTargetActivityIndex, setDropTargetActivityIndex] = useState<number | null>(null);
+  const [dropTargetDayIndex, setDropTargetDayIndex] = useState<number | null>(null);
+
+  // Preview modal state
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   const currencyOptions = React.useMemo(() => {
     const defaults = ['USD', 'EUR', 'GBP', 'INR', 'AED'];
@@ -139,11 +146,12 @@ const ItineraryEditor: React.FC = () => {
     }
   };
 
-  const handleAddActivity = (activity: ActivityDetail) => {
-    addActivityToDay(currentDayIndex, {
+  const handleAddActivity = (activity: ActivityDetail, dayIndex?: number) => {
+    const targetDayIndex = dayIndex ?? currentDayIndex;
+    addActivityToDay(targetDayIndex, {
       activity_id: activity.id,
       item_type: 'LIBRARY_ACTIVITY',
-      display_order: days[currentDayIndex].activities.length,
+      display_order: days[targetDayIndex].activities.length,
       time_slot: null,
       custom_notes: null,
       custom_price: activity.base_price || null,
@@ -156,31 +164,75 @@ const ItineraryEditor: React.FC = () => {
       end_time: null,
     });
     setIsActivityModalOpen(false);
-    toast.success('Activity added');
+    toast.success(`Activity added to Day ${targetDayIndex + 1}`);
   };
 
-  const handleActivityDragStart = (index: number) => {
-    setDraggedActivityIndex(index);
+  // Prepare available days for ActivityLibraryModal
+  const availableDays = days.map((day, index) => ({
+    index,
+    label: `Day ${day.day_number} - ${new Date(day.actual_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+  }));
+
+  const handleActivityDragStart = (dayIndex: number, activityIndex: number) => {
+    setDraggedActivityIndex(activityIndex);
+    setDraggedActivityDayIndex(dayIndex);
     setDropTargetActivityIndex(null);
+    setDropTargetDayIndex(null);
   };
 
-  const handleActivityDragOver = (e: React.DragEvent, index: number) => {
+  const handleActivityDragOver = (e: React.DragEvent, dayIndex: number, activityIndex: number) => {
     e.preventDefault();
-    if (draggedActivityIndex !== null && draggedActivityIndex !== index) {
-      setDropTargetActivityIndex(index);
+    if (draggedActivityIndex !== null) {
+      setDropTargetActivityIndex(activityIndex);
+      setDropTargetDayIndex(dayIndex);
     }
+  };
+
+  const handleActivityDropOnDay = (e: React.DragEvent, targetDayIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (draggedActivityIndex !== null && draggedActivityDayIndex !== null) {
+      // Moving to a different day
+      if (draggedActivityDayIndex !== targetDayIndex) {
+        moveActivityBetweenDays(draggedActivityDayIndex, draggedActivityIndex, targetDayIndex);
+        toast.success(`Activity moved to Day ${targetDayIndex + 1}`);
+      }
+    }
+
+    // Clear drag state
+    setDraggedActivityIndex(null);
+    setDraggedActivityDayIndex(null);
+    setDropTargetActivityIndex(null);
+    setDropTargetDayIndex(null);
   };
 
   const handleActivityDragEnd = () => {
     if (
       draggedActivityIndex !== null &&
+      draggedActivityDayIndex !== null &&
       dropTargetActivityIndex !== null &&
-      draggedActivityIndex !== dropTargetActivityIndex
+      dropTargetDayIndex !== null
     ) {
-      reorderActivities(currentDayIndex, draggedActivityIndex, dropTargetActivityIndex);
+      // If dropping in a different day
+      if (draggedActivityDayIndex !== dropTargetDayIndex) {
+        moveActivityBetweenDays(
+          draggedActivityDayIndex,
+          draggedActivityIndex,
+          dropTargetDayIndex,
+          dropTargetActivityIndex
+        );
+        toast.success(`Activity moved to Day ${dropTargetDayIndex + 1}`);
+      } else if (draggedActivityIndex !== dropTargetActivityIndex) {
+        // Same day, different position
+        reorderActivities(draggedActivityDayIndex, draggedActivityIndex, dropTargetActivityIndex);
+      }
     }
+
     setDraggedActivityIndex(null);
+    setDraggedActivityDayIndex(null);
     setDropTargetActivityIndex(null);
+    setDropTargetDayIndex(null);
   };
 
   const handleAddLogisticsItem = (item: ItineraryDayActivityCreate) => {
@@ -253,9 +305,6 @@ const ItineraryEditor: React.FC = () => {
   }
 
   const currentDay = days[currentDayIndex];
-  const filteredActivities = activities.filter((act) =>
-    act.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const getStatusColor = (
     status: string
@@ -334,6 +383,10 @@ const ItineraryEditor: React.FC = () => {
               <option value="cancelled">Cancelled</option>
             </select>
 
+            <Button variant="secondary" onClick={() => setIsPreviewModalOpen(true)}>
+              <Eye className="w-4 h-4 mr-2" />
+              Preview
+            </Button>
             <Button variant="secondary" onClick={() => navigate('/itineraries')}>
               Close
             </Button>
@@ -359,14 +412,29 @@ const ItineraryEditor: React.FC = () => {
                   key={day.day_number}
                   draggable
                   onDragStart={(e) => handleDayDragStart(e, index)}
-                  onDragOver={(e) => handleDayDragOver(e, index)}
-                  onDragLeave={handleDayDragLeave}
+                  onDragOver={(e) => {
+                    handleDayDragOver(e, index);
+                    // Also handle activity drops on day tabs
+                    if (draggedActivityIndex !== null) {
+                      e.preventDefault();
+                      setDropTargetDayIndex(index);
+                    }
+                  }}
+                  onDragLeave={() => {
+                    handleDayDragLeave();
+                    setDropTargetDayIndex(null);
+                  }}
                   onDragEnd={handleDayDragEnd}
+                  onDrop={(e) => handleActivityDropOnDay(e, index)}
                   onClick={() => setCurrentDayIndex(index)}
                   className={`px-6 py-4 font-medium whitespace-nowrap transition-all cursor-move ${
                     draggedDayIndex === index ? 'opacity-50 scale-95' : ''
                   } ${
                     dropTargetIndex === index ? 'ring-2 ring-primary-400 ring-offset-1' : ''
+                  } ${
+                    dropTargetDayIndex === index && draggedActivityDayIndex !== index
+                      ? 'ring-2 ring-green-400 ring-offset-1 bg-green-50'
+                      : ''
                   } ${
                     currentDayIndex === index
                       ? 'border-b-2 border-primary-600 text-primary-600 bg-primary-50'
@@ -455,15 +523,15 @@ const ItineraryEditor: React.FC = () => {
                     <div
                       key={`${act.activity_id || act.custom_title}-${actIndex}`}
                       draggable
-                      onDragStart={() => handleActivityDragStart(actIndex)}
-                      onDragOver={(e) => handleActivityDragOver(e, actIndex)}
+                      onDragStart={() => handleActivityDragStart(currentDayIndex, actIndex)}
+                      onDragOver={(e) => handleActivityDragOver(e, currentDayIndex, actIndex)}
                       onDragEnd={handleActivityDragEnd}
-                      className={`flex items-start gap-3 p-4 rounded-lg border transition-all ${
+                      className={`flex items-start gap-3 p-4 rounded-lg border transition-all cursor-grab ${
                         bgColor
                       } ${
-                        draggedActivityIndex === actIndex
+                        draggedActivityIndex === actIndex && draggedActivityDayIndex === currentDayIndex
                           ? 'opacity-50 border-primary-400'
-                          : dropTargetActivityIndex === actIndex
+                          : dropTargetActivityIndex === actIndex && dropTargetDayIndex === currentDayIndex
                           ? 'border-primary-500 border-2'
                           : ''
                       }`}
@@ -623,41 +691,21 @@ const ItineraryEditor: React.FC = () => {
         </div>
       </div>
 
-      {/* Activity Selection Modal */}
-      <Modal
+      {/* Activity Library Modal (with filtering and preview) */}
+      <ActivityLibraryModal
         isOpen={isActivityModalOpen}
         onClose={() => setIsActivityModalOpen(false)}
-        title="Add Activity"
-        size="lg"
-      >
-        <div className="space-y-4">
-          <Input
-            placeholder="Search activities..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        onAddActivity={handleAddActivity}
+        availableDays={availableDays}
+        currentDayIndex={currentDayIndex}
+      />
 
-          <div className="max-h-96 overflow-y-auto space-y-2">
-            {filteredActivities.length === 0 ? (
-              <p className="text-center py-8 text-muted">No activities found</p>
-            ) : (
-              filteredActivities.map((activity) => (
-                <button
-                  key={activity.id}
-                  onClick={() => handleAddActivity(activity)}
-                  className="w-full p-4 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border border-border transition-colors"
-                >
-                  <p className="font-medium text-primary">{activity.name}</p>
-                  <p className="text-sm text-muted">{activity.location}</p>
-                  {activity.base_price && (
-                    <p className="text-sm text-secondary-500 mt-1">${activity.base_price}</p>
-                  )}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      </Modal>
+      {/* Itinerary Preview Modal */}
+      <ItineraryPreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        itineraryId={currentItinerary.id}
+      />
 
       {/* Share Modal */}
       <ShareModal
