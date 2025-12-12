@@ -109,11 +109,23 @@ const ItineraryPreviewModal: React.FC<ItineraryPreviewModalProps> = ({
           group_size_label: act.activity?.group_size_label || null,
           cost_type: act.activity?.cost_type || 'extra',
           cost_display: act.activity?.cost_display || null,
-          highlights: act.activity?.highlights ?
-            (typeof act.activity.highlights === 'string' ?
-              JSON.parse(act.activity.highlights) : act.activity.highlights) : [],
+          highlights: (() => {
+            const h = act.activity?.highlights;
+            if (!h) return [];
+            if (Array.isArray(h)) return h;
+            try {
+              const parsed = JSON.parse(h);
+              return Array.isArray(parsed) ? parsed : [];
+            } catch {
+              return String(h).split(',').map((v) => v.trim()).filter(Boolean);
+            }
+          })(),
           images: (act.activity?.images || []).map((img: any) => ({
-            url: img.file_url || `/uploads/${img.file_path}`,
+            url: img.file_url
+              ? (img.file_url.startsWith('http') ? img.file_url : `${baseUrl}${img.file_url}`)
+              : img.file_path
+                ? `${baseUrl}/uploads/${img.file_path}`
+                : '',
             is_hero: img.is_hero || img.is_primary,
           })),
         };

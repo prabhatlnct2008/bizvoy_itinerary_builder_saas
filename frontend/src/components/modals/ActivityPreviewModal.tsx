@@ -110,24 +110,28 @@ const ActivityPreviewModal: React.FC<ActivityPreviewModalProps> = ({
     }
   };
 
-  const parseHighlights = (highlights: string | null | undefined): string[] => {
+  const parseHighlights = (highlights: string | string[] | null | undefined): string[] => {
     if (!highlights) return [];
+    if (Array.isArray(highlights)) return highlights.filter(Boolean);
     try {
       const parsed = JSON.parse(highlights);
-      return Array.isArray(parsed) ? parsed : [];
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
     } catch {
-      return highlights.split(',').map((h) => h.trim()).filter(Boolean);
+      // fall through to comma split
     }
+    return highlights.split(',').map((h) => h.trim()).filter(Boolean);
   };
 
-  const parseTags = (tags: string | null | undefined): string[] => {
+  const parseTags = (tags: string | string[] | null | undefined): string[] => {
     if (!tags) return [];
+    if (Array.isArray(tags)) return tags.filter(Boolean);
     try {
       const parsed = JSON.parse(tags);
-      return Array.isArray(parsed) ? parsed : [];
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
     } catch {
-      return tags.split(',').map((t) => t.trim()).filter(Boolean);
+      // fall through to comma split
     }
+    return tags.split(',').map((t) => t.trim()).filter(Boolean);
   };
 
   const renderContent = () => {

@@ -810,8 +810,6 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   const isAdHocItem = itemType === 'LOGISTICS' || itemType === 'NOTE' || itemType === 'CUSTOM_ACTIVITY';
 
   const duration = formatDuration(activity.default_duration_value, activity.default_duration_unit);
-  const heroImage = activity.images?.find(img => img.is_hero || img.is_primary) || activity.images?.[0];
-  const otherImages = activity.images?.filter(img => img !== heroImage).slice(0, 2) || [];
 
   // Get time display - prefer start_time/end_time over time_slot
   const getTimeDisplay = () => {
@@ -823,6 +821,37 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     }
     return activity.time_slot || '—';
   };
+
+  const normalizeHighlights = (h: any): string[] => {
+    if (!h) return [];
+    if (Array.isArray(h)) return h;
+    if (typeof h === 'string') {
+      try {
+        const parsed = JSON.parse(h);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        return h.split(',').map((v) => v.trim()).filter(Boolean);
+      }
+    }
+    return [];
+  };
+
+  const normalizeImages = (imgs: any[] | undefined) => {
+    return (imgs || []).map((img) => {
+      if (!img) return null;
+      const url = img.url
+        ? (String(img.url).startsWith('http') ? img.url : `${baseUrl}${img.url}`)
+        : img.file_path
+          ? `${baseUrl}/uploads/${img.file_path}`
+          : '';
+      return { ...img, url };
+    }).filter(Boolean) as any[];
+  };
+
+  const images = normalizeImages(activity.images);
+  const heroImage = images.find((img) => img.is_hero) || images[0];
+  const otherImages = images.filter((img) => img !== heroImage).slice(0, 2);
+  const highlights = normalizeHighlights(activity.highlights);
 
   // Category styling
   const getCategoryStyle = (category: string | null) => {
@@ -958,9 +987,9 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
         >
           {/* Thumbnail */}
           {heroImage && (
-            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+            <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
               <img
-                src={`${baseUrl}${heroImage.url}`}
+                src={heroImage.url}
                 alt={activity.name}
                 className="w-full h-full object-cover"
               />
@@ -1015,32 +1044,30 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
         {isExpanded && (
           <div className="px-4 pb-4">
             {/* Image Gallery */}
-          {activity.images && activity.images.length > 0 && (
+          {images.length > 0 && (
             <div className="grid grid-cols-3 gap-2 mb-4">
-              {/* Large Image */}
               {heroImage && (
                 <div className={`${otherImages.length > 0 ? 'col-span-2 row-span-2' : 'col-span-3'} rounded-xl overflow-hidden`}>
                   <img
-                    src={`${baseUrl}${heroImage.url}`}
+                    src={heroImage.url}
                     alt={activity.name}
-                    className="w-full h-full object-cover max-h-[400px]"
-                    style={{ minHeight: otherImages.length > 0 ? '240px' : '200px' }}
+                    className="w-full h-full object-cover max-h-[320px]"
+                    style={{ minHeight: otherImages.length > 0 ? '220px' : '200px' }}
                   />
                 </div>
               )}
-              {/* Side Images */}
               {otherImages.map((img, idx) => (
-                  <div key={idx} className="rounded-xl overflow-hidden">
-                    <img
-                      src={`${baseUrl}${img.url}`}
-                      alt={`${activity.name} ${idx + 2}`}
-                      className="w-full h-full object-cover"
-                      style={{ height: '98px' }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+                <div key={idx} className="rounded-xl overflow-hidden">
+                  <img
+                    src={img.url}
+                    alt={`${activity.name} ${idx + 2}`}
+                    className="w-full h-full object-cover"
+                    style={{ height: '120px' }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
             {/* Description */}
             {(activity.client_description || activity.short_description) && (
@@ -1086,11 +1113,11 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
             </div>
 
             {/* Highlights */}
-            {activity.highlights && activity.highlights.length > 0 && (
+            {highlights.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-slate-700 mb-2">Highlights:</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  {activity.highlights.map((highlight, idx) => (
+                  {highlights.map((highlight, idx) => (
                     <span key={idx} className="text-sm text-amber-600 font-medium">
                       {highlight}
                     </span>
