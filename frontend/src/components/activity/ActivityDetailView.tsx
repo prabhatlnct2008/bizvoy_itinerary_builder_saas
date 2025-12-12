@@ -45,6 +45,8 @@ interface ActivityDetailViewProps {
   variant?: 'full' | 'compact';
   /** Whether to show the image carousel */
   showImages?: boolean;
+  /** Hide the category/name header (useful when shown elsewhere) */
+  hideHeader?: boolean;
   /** Custom notes to show at the bottom */
   customNotes?: string | null;
   /** Whether this is a personalized activity */
@@ -58,6 +60,7 @@ const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({
   baseUrl = '',
   variant = 'full',
   showImages = true,
+  hideHeader = false,
   customNotes,
   isPersonalized,
   className = '',
@@ -129,7 +132,7 @@ const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({
   const isCompact = variant === 'compact';
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-5 ${className}`}>
       {/* Image Carousel */}
       {showImages && images.length > 0 && currentImage && (
         <div className="relative">
@@ -179,8 +182,8 @@ const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({
         </div>
       )}
 
-      {/* Category & Name - Only in full variant when not showing images header */}
-      {!isCompact && (
+      {/* Category & Name - Only in full variant and when not hidden */}
+      {!isCompact && !hideHeader && (
         <div>
           <div className="flex items-center gap-2 mb-2">
             {activity.category_label && (
@@ -234,7 +237,7 @@ const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({
       )}
 
       {/* Stats Row */}
-      <div className="bg-slate-50 rounded-xl p-4 grid grid-cols-3 gap-4">
+      <div className="bg-slate-50 rounded-xl p-5 grid grid-cols-3 gap-4">
         {/* Rating */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-1">
