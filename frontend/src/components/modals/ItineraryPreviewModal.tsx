@@ -4,6 +4,7 @@ import PublicItinerary from '../../features/public/PublicItinerary';
 import { PublicItineraryResponse } from '../../types';
 import shareApi from '../../api/share';
 import itinerariesApi from '../../api/itineraries';
+import activitiesApi from '../../api/activities';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 interface ItineraryPreviewModalProps {
@@ -48,7 +49,32 @@ const ItineraryPreviewModal: React.FC<ItineraryPreviewModalProps> = ({
 
       // Otherwise, fetch the itinerary and transform to preview format
       const itinerary = await itinerariesApi.getItinerary(itineraryId);
-      const previewData = transformToPublicFormat(itinerary);
+      const activityIds: string[] = [];
+      (itinerary.days || []).forEach((d: any) =>
+        (d.activities || []).forEach((a: any) => {
+          if (a.activity_id) activityIds.push(a.activity_id);
+        })
+      );
+      const uniqueIds = Array.from(new Set(activityIds));
+      const activityMap: Record<string, any> = {};
+      if (uniqueIds.length) {
+        const details = await Promise.all(
+          uniqueIds.map(async (id) => {
+            try {
+              return await activitiesApi.getActivity(id);
+            } catch {
+              return null;
+            }
+          })
+        );
+        details.forEach((act) => {
+          if (act && act.id) {
+            activityMap[act.id] = act;
+          }
+        });
+      }
+
+      const previewData = transformToPublicFormat(itinerary, activityMap);
       setData(previewData);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load preview');
@@ -57,16 +83,48 @@ const ItineraryPreviewModal: React.FC<ItineraryPreviewModalProps> = ({
     }
   };
 
-  // Transform itinerary detail to public format (simplified)
-  const transformToPublicFormat = (itinerary: any): PublicItineraryResponse => {
+  // Transform itinerary detail to public format (enriched) for preview
+  const transformToPublicFormat = (itinerary: any, activityMap: Record<string, any>): PublicItineraryResponse => {
+    const normalizeHighlights = (h: any): string[] => {
+      if (!h) return [];
+      if (Array.isArray(h)) return h;
+      if (typeof h === 'string') {
+        try {
+          const parsed = JSON.parse(h);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {
+          return h.split(',').map((v) => v.trim()).filter(Boolean);
+        }
+      }
+      return [];
+    };
+
+    const normalizeImages = (imgs: any[] | undefined) =>
+      (imgs || [])
+        .map((img) => {
+          if (!img) return null;
+          const url = img.file_url
+            ? (String(img.file_url).startsWith('http') ? img.file_url : `${baseUrl}${img.file_url}`)
+            : img.file_path
+              ? `${baseUrl}/uploads/${img.file_path}`
+              : img.url
+                ? (String(img.url).startsWith('http') ? img.url : `${baseUrl}${img.url}`)
+                : '';
+          return { ...img, url };
+        })
+        .filter(Boolean);
+
     const totalDays = itinerary.days?.length || 0;
     let activityCount = 0;
     let mealCount = 0;
     let transferCount = 0;
     let accommodationCount = 0;
+    let subtotal = 0;
+    let currency = itinerary.currency || itinerary.pricing?.currency || 'USD';
 
     const days = (itinerary.days || []).map((day: any) => {
       const activities = (day.activities || []).map((act: any) => {
+        const fullActivity = act.activity_id ? activityMap[act.activity_id] : null;
         // Count activities by type
         const itemType = act.item_type || 'LIBRARY_ACTIVITY';
         if (itemType === 'LIBRARY_ACTIVITY' || itemType === 'CUSTOM_ACTIVITY') {
@@ -79,6 +137,21 @@ const ItineraryPreviewModal: React.FC<ItineraryPreviewModalProps> = ({
             mealCount++;
           } else {
             transferCount++;
+          }
+        }
+
+        // pricing accumulation
+        const price =
+          act.price_amount ??
+          act.custom_price ??
+          fullActivity?.price_numeric ??
+          null;
+        const qty = act.quantity ?? 1;
+        const itemDiscount = act.item_discount_amount ?? 0;
+        if (price !== null) {
+          subtotal += Math.max(price * qty - itemDiscount, 0);
+          if (!currency) {
+            currency = act.price_currency || fullActivity?.currency_code || 'USD';
           }
         }
 
@@ -100,37 +173,20 @@ const ItineraryPreviewModal: React.FC<ItineraryPreviewModalProps> = ({
           source_cart_item_id: null,
           added_by_personalization: act.added_by_personalization || false,
           // Activity details
-          name: act.activity?.name || act.custom_title || 'Untitled',
-          activity_type_name: act.activity?.activity_type_name || null,
-          category_label: act.activity?.category_label || null,
-          location_display: act.activity?.location_display || null,
-          short_description: act.activity?.short_description || null,
-          client_description: act.activity?.client_description || null,
-          default_duration_value: act.activity?.default_duration_value || null,
-          default_duration_unit: act.activity?.default_duration_unit || null,
-          rating: act.activity?.rating || null,
-          group_size_label: act.activity?.group_size_label || null,
-          cost_type: act.activity?.cost_type || 'extra',
-          cost_display: act.activity?.cost_display || null,
-          highlights: (() => {
-            const h = act.activity?.highlights;
-            if (!h) return [];
-            if (Array.isArray(h)) return h;
-            try {
-              const parsed = JSON.parse(h);
-              return Array.isArray(parsed) ? parsed : [];
-            } catch {
-              return String(h).split(',').map((v) => v.trim()).filter(Boolean);
-            }
-          })(),
-          images: (act.activity?.images || []).map((img: any) => ({
-            url: img.file_url
-              ? (img.file_url.startsWith('http') ? img.file_url : `${baseUrl}${img.file_url}`)
-              : img.file_path
-                ? `${baseUrl}/uploads/${img.file_path}`
-                : '',
-            is_hero: img.is_hero || img.is_primary,
-          })),
+          name: fullActivity?.name || act.activity?.name || act.custom_title || 'Untitled',
+          activity_type_name: fullActivity?.activity_type?.name || fullActivity?.activity_type_name || act.activity?.activity_type_name || null,
+          category_label: fullActivity?.category_label || act.activity?.category_label || null,
+          location_display: fullActivity?.location_display || act.activity?.location_display || null,
+          short_description: fullActivity?.short_description || act.activity?.short_description || null,
+          client_description: fullActivity?.client_description || act.activity?.client_description || null,
+          default_duration_value: fullActivity?.default_duration_value || act.activity?.default_duration_value || null,
+          default_duration_unit: fullActivity?.default_duration_unit || act.activity?.default_duration_unit || null,
+          rating: fullActivity?.rating || act.activity?.rating || null,
+          group_size_label: fullActivity?.group_size_label || act.activity?.group_size_label || act.activity?.group_size || 'Private',
+          cost_type: fullActivity?.cost_type || act.activity?.cost_type || 'extra',
+          cost_display: fullActivity?.cost_display || act.activity?.cost_display || act.custom_price || act.price_amount || 'Extra',
+          highlights: normalizeHighlights(fullActivity?.highlights || act.activity?.highlights),
+          images: normalizeImages(fullActivity?.images || act.activity?.images),
         };
       });
 
@@ -166,8 +222,25 @@ const ItineraryPreviewModal: React.FC<ItineraryPreviewModalProps> = ({
         meal_count: mealCount,
         transfer_count: transferCount,
       },
-      company_profile: null, // Would need to fetch separately
-      pricing: null, // Would need to calculate
+      company_profile: {
+        company_name: itinerary.agency_name || 'Preview Agency',
+        tagline: itinerary.agency_tagline || null,
+        description: itinerary.agency_description || null,
+        logo_url: itinerary.agency_logo ? `${baseUrl}${itinerary.agency_logo}` : null,
+        email: itinerary.agency_email || null,
+        phone: itinerary.agency_phone || null,
+        website_url: itinerary.agency_website || null,
+        payment_qr_url: itinerary.payment_qr_url || null,
+        payment_note: itinerary.payment_note || null,
+      },
+      pricing: {
+        base_package: subtotal || itinerary.total_price || null,
+        taxes_fees: null,
+        discount_code: null,
+        discount_amount: null,
+        total: (subtotal || itinerary.total_price || 0) || null,
+        currency,
+      },
       live_updates_enabled: false,
       share_link: {
         id: '',
