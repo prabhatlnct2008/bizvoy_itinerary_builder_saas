@@ -25,6 +25,9 @@ const ItineraryPreviewModal: React.FC<ItineraryPreviewModalProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+  const baseUrl = API_URL.replace('/api/v1', '');
+
   useEffect(() => {
     if (isOpen && itineraryId) {
       fetchPreviewData();
