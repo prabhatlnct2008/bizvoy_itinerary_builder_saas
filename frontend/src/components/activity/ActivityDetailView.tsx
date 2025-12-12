@@ -132,7 +132,7 @@ const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({
   const isCompact = variant === 'compact';
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-5 ${className}`}>
       {/* Image Carousel */}
       {showImages && images.length > 0 && currentImage && (
         <div className="relative">
@@ -237,7 +237,7 @@ const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({
       )}
 
       {/* Stats Row */}
-      <div className="bg-slate-50 rounded-xl p-4 grid grid-cols-3 gap-4">
+      <div className="bg-slate-50 rounded-xl p-5 grid grid-cols-3 gap-4">
         {/* Rating */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-1">

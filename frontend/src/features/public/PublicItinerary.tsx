@@ -416,7 +416,7 @@ const PublicItinerary: React.FC<PublicItineraryProps> = ({
           </div>
 
           {/* Day Cards */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             {itinerary.days.map((day) => (
               <DayCard
                 key={day.id}
@@ -691,10 +691,10 @@ const DayCard: React.FC<DayCardProps> = ({
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="mt-4">
+        <div className="mt-6">
           {/* Day Notes */}
           {day.notes && (
-            <div className="bg-white rounded-xl p-4 mb-4 border-l-4 border-slate-300">
+            <div className="bg-white rounded-xl p-5 mb-6 border-l-4 border-slate-300">
               <p className="text-slate-600 text-sm leading-relaxed">{day.notes}</p>
             </div>
           )}
@@ -705,7 +705,7 @@ const DayCard: React.FC<DayCardProps> = ({
               <p className="text-slate-400">No activities scheduled for this day</p>
             </div>
           ) : (
-            <div className="relative">
+            <div className="relative space-y-2">
               {day.activities.map((activity, idx) => (
                 <ActivityCard
                   key={activity.id}
@@ -871,7 +871,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     const IconComponent = getLogisticsIcon(activity.custom_icon, itemType);
 
     return (
-      <div className="flex gap-4 mb-4">
+      <div className="flex gap-4 mb-6">
         {/* Timeline Column */}
         <div className="flex flex-col items-center w-16 flex-shrink-0">
           {/* Time Circle */}
@@ -882,7 +882,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           </div>
           {/* Connector Line */}
           {!isLast && (
-            <div className="flex-1 w-px bg-slate-200 mt-2" style={{ minHeight: '60px' }}></div>
+            <div className="flex-1 w-px bg-slate-200 mt-2" style={{ minHeight: '80px' }}></div>
           )}
         </div>
 
@@ -946,7 +946,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
 
   // Render Library Activity (full card)
   return (
-    <div className="flex gap-4 mb-4">
+    <div className="flex gap-4 mb-6">
       {/* Timeline Column */}
       <div className="flex flex-col items-center w-16 flex-shrink-0">
         {/* Time Circle */}
@@ -957,7 +957,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
         </div>
         {/* Connector Line */}
         {!isLast && (
-          <div className="flex-1 w-px bg-slate-200 mt-2" style={{ minHeight: '100px' }}></div>
+          <div className="flex-1 w-px bg-slate-200 mt-2" style={{ minHeight: '120px' }}></div>
         )}
       </div>
 
@@ -1025,7 +1025,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
 
         {/* Expanded Content - Using shared ActivityDetailView */}
         {isExpanded && (
-          <div className="px-4 pb-4">
+          <div className="px-5 pb-5 pt-4 border-t border-slate-100">
             <ActivityDetailView
               activity={{
                 id: activity.id,
