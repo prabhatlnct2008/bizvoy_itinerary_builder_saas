@@ -45,6 +45,8 @@ interface ActivityDetailViewProps {
   variant?: 'full' | 'compact';
   /** Whether to show the image carousel */
   showImages?: boolean;
+  /** Hide the category/name header (useful when shown elsewhere) */
+  hideHeader?: boolean;
   /** Custom notes to show at the bottom */
   customNotes?: string | null;
   /** Whether this is a personalized activity */
@@ -58,6 +60,7 @@ const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({
   baseUrl = '',
   variant = 'full',
   showImages = true,
+  hideHeader = false,
   customNotes,
   isPersonalized,
   className = '',
@@ -179,8 +182,8 @@ const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({
         </div>
       )}
 
-      {/* Category & Name - Only in full variant when not showing images header */}
-      {!isCompact && (
+      {/* Category & Name - Only in full variant and when not hidden */}
+      {!isCompact && !hideHeader && (
         <div>
           <div className="flex items-center gap-2 mb-2">
             {activity.category_label && (

@@ -1046,8 +1046,9 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
                 added_by_personalization: activity.added_by_personalization,
               }}
               baseUrl={baseUrl}
-              variant="compact"
+              variant="full"
               showImages={true}
+              hideHeader={true}
               isPersonalized={activity.added_by_personalization}
             />
           </div>
