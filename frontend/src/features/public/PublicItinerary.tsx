@@ -5,12 +5,12 @@ import shareApi from '../../api/share';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { PublicItineraryResponse, PublicItineraryDay, PublicActivity } from '../../types';
 import { PersonalizationEntry } from '../personalization/components/PersonalizationEntry';
+import { ActivityDetailView } from '../../components/activity';
 import {
   Calendar,
   MapPin,
   Users,
   Clock,
-  Star,
   ChevronUp,
   ChevronDown,
   Mail,
@@ -20,7 +20,6 @@ import {
   Utensils,
   Car,
   Sparkles,
-  DollarSign,
   Shield,
   Hotel,
   Camera,
@@ -822,20 +821,6 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     return activity.time_slot || '—';
   };
 
-  const normalizeHighlights = (h: any): string[] => {
-    if (!h) return [];
-    if (Array.isArray(h)) return h;
-    if (typeof h === 'string') {
-      try {
-        const parsed = JSON.parse(h);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        return h.split(',').map((v) => v.trim()).filter(Boolean);
-      }
-    }
-    return [];
-  };
-
   const normalizeImages = (imgs: any[] | undefined) => {
     return (imgs || []).map((img) => {
       if (!img) return null;
@@ -850,8 +835,6 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
 
   const images = normalizeImages(activity.images);
   const heroImage = images.find((img) => img.is_hero) || images[0];
-  const otherImages = images.filter((img) => img !== heroImage).slice(0, 2);
-  const highlights = normalizeHighlights(activity.highlights);
 
   // Category styling
   const getCategoryStyle = (category: string | null) => {
@@ -1040,98 +1023,33 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           )}
         </div>
 
-        {/* Expanded Content */}
+        {/* Expanded Content - Using shared ActivityDetailView */}
         {isExpanded && (
           <div className="px-4 pb-4">
-            {/* Image Gallery */}
-          {images.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {heroImage && (
-                <div className={`${otherImages.length > 0 ? 'col-span-2 row-span-2' : 'col-span-3'} rounded-xl overflow-hidden`}>
-                  <img
-                    src={heroImage.url}
-                    alt={activity.name}
-                    className="w-full h-full object-cover max-h-[320px]"
-                    style={{ minHeight: otherImages.length > 0 ? '220px' : '200px' }}
-                  />
-                </div>
-              )}
-              {otherImages.map((img, idx) => (
-                <div key={idx} className="rounded-xl overflow-hidden">
-                  <img
-                    src={img.url}
-                    alt={`${activity.name} ${idx + 2}`}
-                    className="w-full h-full object-cover"
-                    style={{ height: '120px' }}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-
-            {/* Description */}
-            {(activity.client_description || activity.short_description) && (
-              <p className="text-slate-600 text-sm leading-relaxed mb-4">
-                {activity.client_description || activity.short_description}
-              </p>
-            )}
-
-            {/* Stats Row */}
-            <div className="bg-slate-50 rounded-xl p-4 grid grid-cols-3 gap-4 mb-4">
-              {/* Rating */}
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <Star className={`w-4 h-4 ${activity.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}`} />
-                  <span className={`font-semibold ${activity.rating ? 'text-amber-500' : 'text-slate-400'}`}>
-                    {activity.rating || '—'}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Rating</p>
-              </div>
-
-              {/* Group Size */}
-              <div className="text-center border-x border-slate-200">
-                <div className="flex items-center justify-center gap-1">
-                  <Users className="w-4 h-4 text-slate-400" />
-                  <span className="font-semibold text-slate-700">
-                    {activity.group_size_label || 'Private'}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Group Size</p>
-              </div>
-
-              {/* Cost */}
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <DollarSign className={`w-4 h-4 ${activity.cost_type === 'included' ? 'text-emerald-500' : 'text-slate-400'}`} />
-                  <span className={`font-semibold ${activity.cost_type === 'included' ? 'text-emerald-500' : 'text-slate-700'}`}>
-                    {activity.cost_type === 'included' ? 'Included' : activity.cost_display || 'Extra'}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Cost</p>
-              </div>
-            </div>
-
-            {/* Highlights */}
-            {highlights.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-slate-700 mb-2">Highlights:</p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  {highlights.map((highlight, idx) => (
-                    <span key={idx} className="text-sm text-amber-600 font-medium">
-                      {highlight}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Custom Notes */}
-            {activity.custom_notes && (
-              <div className="mt-4 bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-lg">
-                <p className="text-sm text-blue-800">{activity.custom_notes}</p>
-              </div>
-            )}
+            <ActivityDetailView
+              activity={{
+                id: activity.id,
+                name: activity.name,
+                category_label: activity.category_label,
+                location_display: activity.location_display,
+                short_description: activity.short_description,
+                client_description: activity.client_description,
+                default_duration_value: activity.default_duration_value,
+                default_duration_unit: activity.default_duration_unit,
+                rating: activity.rating,
+                group_size_label: activity.group_size_label,
+                cost_type: activity.cost_type,
+                cost_display: activity.cost_display,
+                highlights: activity.highlights,
+                images: images,
+                custom_notes: activity.custom_notes,
+                added_by_personalization: activity.added_by_personalization,
+              }}
+              baseUrl={baseUrl}
+              variant="compact"
+              showImages={true}
+              isPersonalized={activity.added_by_personalization}
+            />
           </div>
         )}
       </div>
