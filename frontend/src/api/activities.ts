@@ -95,6 +95,13 @@ export const activitiesApi = {
     const response = await client.put(`/api/v1/activities/${activityId}/images/${imageId}`, data);
     return response.data;
   },
+
+  // Reindex activities in Chroma (all or selected)
+  async reindexActivities(activityIds?: string[]): Promise<{ indexed: number; requested?: number }> {
+    const payload = activityIds && activityIds.length > 0 ? { activity_ids: activityIds } : {};
+    const response = await client.post('/api/v1/activities/search/reindex', payload);
+    return response.data;
+  },
 };
 
 export default activitiesApi;

@@ -216,6 +216,8 @@ export interface ActivityUpdate {
 export interface ActivitySearchRequest {
   query: string;
   limit?: number;
+  activity_type_id?: string | null;
+  is_active?: boolean;
 }
 
 // Template types

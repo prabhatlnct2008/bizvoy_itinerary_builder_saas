@@ -69,14 +69,23 @@ class SearchService:
     def index_activity(self, activity: Activity) -> bool:
         """Add or update activity in ChromaDB"""
         try:
+            location = getattr(activity, "location_display", None) or getattr(activity, "location", None)
+
+            def normalize_to_text(value):
+                if value is None:
+                    return ""
+                if isinstance(value, (list, tuple)):
+                    return " ".join([str(v) for v in value if v])
+                return str(value)
+
             # Prepare text for embedding
             text_parts = [activity.name]
             if activity.short_description:
                 text_parts.append(activity.short_description)
             if activity.highlights:
-                text_parts.append(activity.highlights)
-            if activity.location:
-                text_parts.append(activity.location)
+                text_parts.append(normalize_to_text(activity.highlights))
+            if location:
+                text_parts.append(normalize_to_text(location))
 
             text = " ".join(text_parts)
 
@@ -92,14 +101,14 @@ class SearchService:
             metadata = {
                 "activity_id": activity.id,
                 "name": activity.name,
-                "location": activity.location or "",
+                "location": location or "",
                 "is_active": str(activity.is_active),
             }
 
             if activity.activity_type_id:
                 metadata["activity_type_id"] = activity.activity_type_id
             if activity.tags:
-                metadata["tags"] = activity.tags
+                metadata["tags"] = normalize_to_text(activity.tags)
 
             # Upsert to collection
             collection.upsert(

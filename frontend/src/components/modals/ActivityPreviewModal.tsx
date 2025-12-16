@@ -18,6 +18,8 @@ interface ActivityPreviewModalProps {
   availableDays?: { index: number; label: string }[];
   /** Hide the add button */
   hideAddButton?: boolean;
+  /** Default day index to preselect in the add dropdown */
+  defaultDayIndex?: number;
 }
 
 const ActivityPreviewModal: React.FC<ActivityPreviewModalProps> = ({
@@ -28,27 +30,35 @@ const ActivityPreviewModal: React.FC<ActivityPreviewModalProps> = ({
   onAddToDay,
   availableDays,
   hideAddButton = false,
+  defaultDayIndex,
 }) => {
   const [activity, setActivity] = useState<ActivityDetail | null>(providedActivity || null);
   const [isLoading, setIsLoading] = useState(!providedActivity && !!activityId);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(availableDays?.[0]?.index ?? 0);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(defaultDayIndex ?? availableDays?.[0]?.index ?? 0);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
   const baseUrl = API_URL.replace('/api/v1', '');
 
-  // Fetch activity if only ID provided
+  // Fetch activity when an ID is provided to ensure full details (images, meta)
   useEffect(() => {
-    if (providedActivity) {
+    const shouldFetch = !!activityId && isOpen;
+
+    if (shouldFetch) {
+      fetchActivity();
+    } else if (providedActivity) {
       setActivity(providedActivity);
       setIsLoading(false);
-      return;
-    }
-
-    if (activityId && isOpen) {
-      fetchActivity();
     }
   }, [activityId, providedActivity, isOpen]);
+
+  // Keep selected day in sync when modal opens or default changes
+  useEffect(() => {
+    if (isOpen) {
+      const next = defaultDayIndex ?? availableDays?.[0]?.index ?? 0;
+      setSelectedDayIndex(next);
+    }
+  }, [isOpen, defaultDayIndex, availableDays]);
 
   const fetchActivity = async () => {
     if (!activityId) return;

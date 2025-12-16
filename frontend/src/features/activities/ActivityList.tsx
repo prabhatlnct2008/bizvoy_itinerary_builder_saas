@@ -7,6 +7,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import activitiesApi from '../../api/activities';
 import activityTypesApi from '../../api/activityTypes';
 import { ActivityDetail, ActivityType } from '../../types';
+import Modal from '../../components/ui/Modal';
 
 const ActivityList: React.FC = () => {
   const navigate = useNavigate();
@@ -17,11 +18,16 @@ const ActivityList: React.FC = () => {
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isReindexModalOpen, setIsReindexModalOpen] = useState(false);
+  const [reindexScope, setReindexScope] = useState<'all' | 'selected'>('all');
+  const [isReindexing, setIsReindexing] = useState(false);
   const { hasPermission } = usePermissions();
 
   const canView = hasPermission('activities.view');
   const canCreate = hasPermission('activities.create');
   const canDelete = hasPermission('activities.delete');
+  const canEdit = hasPermission('activities.edit');
 
   useEffect(() => {
     if (canView) {
@@ -95,6 +101,39 @@ const ActivityList: React.FC = () => {
     }
   };
 
+  const toggleSelectAll = (checked: boolean) => {
+    setSelectedIds(checked ? activities.map((a) => a.id) : []);
+  };
+
+  const toggleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds((prev) =>
+      checked ? Array.from(new Set([...prev, id])) : prev.filter((item) => item !== id)
+    );
+  };
+
+  const openReindexModal = (scope: 'all' | 'selected') => {
+    if (scope === 'selected' && selectedIds.length === 0) {
+      toast.info('Select at least one activity to reindex.');
+      return;
+    }
+    setReindexScope(scope);
+    setIsReindexModalOpen(true);
+  };
+
+  const handleReindex = async () => {
+    try {
+      setIsReindexing(true);
+      const activityIds = reindexScope === 'selected' ? selectedIds : undefined;
+      const result = await activitiesApi.reindexActivities(activityIds);
+      toast.success(`Reindexed ${result.indexed} activit${result.indexed === 1 ? 'y' : 'ies'}`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Failed to reindex activities');
+    } finally {
+      setIsReindexing(false);
+      setIsReindexModalOpen(false);
+    }
+  };
+
   if (!canView) {
     return (
       <div className="max-w-6xl mx-auto px-5 py-6 text-center text-slate-500">
@@ -104,6 +143,26 @@ const ActivityList: React.FC = () => {
   }
 
   const columns = [
+    {
+      key: 'select',
+      header: (
+        <input
+          type="checkbox"
+          checked={selectedIds.length > 0 && selectedIds.length === activities.length}
+          onChange={(e) => toggleSelectAll(e.target.checked)}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      width: '40px',
+      render: (activity: ActivityDetail) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.includes(activity.id)}
+          onChange={(e) => toggleSelectOne(activity.id, e.target.checked)}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+    },
     {
       key: 'name',
       header: 'Activity name',
@@ -177,14 +236,33 @@ const ActivityList: React.FC = () => {
           <h1 className="text-xl font-semibold text-slate-900">Activities</h1>
           <p className="text-sm text-slate-500">Manage reusable activities for itineraries.</p>
         </div>
-        {canCreate && (
-          <button
-            onClick={() => navigate('/activities/new')}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium"
-          >
-            Add activity
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {canEdit && (
+            <>
+              <button
+                onClick={() => openReindexModal('selected')}
+                disabled={selectedIds.length === 0}
+                className="border border-slate-300 bg-white text-slate-700 text-sm px-3 py-2 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+              >
+                Reindex selected
+              </button>
+              <button
+                onClick={() => openReindexModal('all')}
+                className="border border-slate-300 bg-white text-slate-700 text-sm px-3 py-2 rounded-lg hover:bg-slate-50"
+              >
+                Reindex all
+              </button>
+            </>
+          )}
+          {canCreate && (
+            <button
+              onClick={() => navigate('/activities/new')}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium"
+            >
+              Add activity
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -236,6 +314,43 @@ const ActivityList: React.FC = () => {
           onRowClick={(activity) => navigate(`/activities/${activity.id}`)}
         />
       </div>
+
+      {/* Reindex confirmation */}
+      <Modal
+        isOpen={isReindexModalOpen}
+        onClose={() => !isReindexing && setIsReindexModalOpen(false)}
+        title="Reindex activities"
+        size="md"
+        footer={
+          <>
+            <button
+              onClick={() => setIsReindexModalOpen(false)}
+              disabled={isReindexing}
+              className="border border-slate-300 bg-white text-slate-700 text-sm px-3 py-2 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleReindex}
+              disabled={isReindexing}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+            >
+              {isReindexing ? 'Reindexing...' : 'Confirm reindex'}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-slate-700">
+            {reindexScope === 'all'
+              ? 'This will reindex all active activities for this agency in Chroma. It may take some time.'
+              : `This will reindex ${selectedIds.length} selected activit${selectedIds.length === 1 ? 'y' : 'ies'}.`}
+          </p>
+          <p className="text-xs text-slate-500">
+            Reindexing refreshes the semantic search index. Activities must be active to be indexed.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 };

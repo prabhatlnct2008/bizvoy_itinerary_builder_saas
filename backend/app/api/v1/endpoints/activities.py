@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query, Body
 from sqlalchemy.orm import Session, joinedload
-from typing import List, Optional
+from typing import List, Optional, Any
+import json
 from app.db.session import get_db
 from app.core.deps import get_current_user, get_current_agency_id, require_permission
 from app.models.user import User
@@ -14,11 +15,72 @@ from app.schemas.activity import (
     ActivityDetailResponse,
     ActivityResponse,
     ActivityImageResponse,
-    ImageUpdateRequest
+    ImageUpdateRequest,
+    ActivitySearchRequest
 )
 from app.utils.file_storage import file_storage
+from app.services.search_service import search_service
 
 router = APIRouter()
+
+
+def build_activity_detail_response(activity: Activity) -> ActivityDetailResponse:
+    """Map Activity ORM instance to ActivityDetailResponse with image URLs."""
+    def ensure_list(value: Any) -> List[Any]:
+        """Convert JSON/text field into a list for pydantic."""
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    return parsed
+            except Exception:
+                # Fall back to wrapping the string
+                return [value]
+        return []
+
+    images = [
+        ActivityImageResponse(
+            id=img.id,
+            activity_id=img.activity_id,
+            file_path=img.file_path,
+            file_url=file_storage.get_file_url(img.file_path),
+            display_order=img.display_order,
+            is_hero=img.is_hero,
+            uploaded_at=img.uploaded_at
+        )
+        for img in sorted(activity.images, key=lambda x: x.display_order)
+    ]
+
+    return ActivityDetailResponse(
+        id=activity.id,
+        agency_id=activity.agency_id,
+        activity_type_id=activity.activity_type_id,
+        activity_type_name=activity.activity_type.name if activity.activity_type else None,
+        created_by_id=activity.created_by_id,
+        name=activity.name,
+        category_label=activity.category_label,
+        location_display=activity.location_display,
+        short_description=activity.short_description,
+        client_description=activity.client_description,
+        default_duration_value=activity.default_duration_value,
+        default_duration_unit=activity.default_duration_unit,
+        rating=activity.rating,
+        group_size_label=activity.group_size_label,
+        cost_type=activity.cost_type,
+        cost_display=activity.cost_display,
+        highlights=ensure_list(activity.highlights),
+        tags=ensure_list(activity.tags),
+        vibe_tags=ensure_list(activity.vibe_tags),
+        is_active=activity.is_active,
+        internal_notes=activity.internal_notes,
+        created_at=activity.created_at,
+        updated_at=activity.updated_at,
+        images=images
+    )
 
 
 @router.get("", response_model=List[ActivityListItem])
@@ -83,6 +145,75 @@ def list_activities(
     return result
 
 
+@router.post("/search", response_model=List[ActivityDetailResponse])
+def search_activities(
+    search_request: ActivitySearchRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    agency_id: str = Depends(get_current_agency_id),
+    _: None = Depends(require_permission("activities.view"))
+):
+    """Semantic search for activities (top-N) using Chroma."""
+    results = search_service.search_activities(
+        agency_id=agency_id,
+        query=search_request.query,
+        limit=search_request.limit,
+        db=db
+    )
+
+    if not results:
+        return []
+
+    # Filter by type/active while preserving similarity ordering
+    filtered_activities: List[Activity] = []
+    for item in results:
+        activity = item.get("activity") if isinstance(item, dict) else None
+        if not activity:
+            continue
+        if search_request.activity_type_id and activity.activity_type_id != search_request.activity_type_id:
+            continue
+        if search_request.is_active is not None and activity.is_active != search_request.is_active:
+            continue
+        filtered_activities.append(activity)
+        if len(filtered_activities) >= search_request.limit:
+            break
+
+    return [build_activity_detail_response(activity) for activity in filtered_activities]
+
+
+@router.post("/search/reindex")
+def reindex_activity_search(
+    reindex_request: Optional[dict] = Body(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    agency_id: str = Depends(get_current_agency_id),
+    _: None = Depends(require_permission("activities.edit"))
+):
+    """Reindex all active activities for the current agency into Chroma."""
+    activity_ids = []
+    if reindex_request and isinstance(reindex_request, dict):
+        activity_ids = reindex_request.get("activity_ids") or []
+
+    if activity_ids:
+        # Reindex only the provided IDs (that belong to the agency and are active)
+        activities = db.query(Activity).filter(
+            Activity.id.in_(activity_ids),
+            Activity.agency_id == agency_id,
+            Activity.is_active == True
+        ).all()
+
+        indexed = 0
+        for activity in activities:
+            if search_service.index_activity(activity):
+                indexed += 1
+
+        return {"indexed": indexed, "requested": len(activity_ids)}
+
+    # Fallback: reindex all active activities
+    indexed = search_service.reindex_all_activities(agency_id=agency_id, db=db)
+    return {"indexed": indexed}
+
+
 @router.post("", response_model=ActivityResponse, status_code=status.HTTP_201_CREATED)
 def create_activity(
     activity_data: ActivityCreate,
@@ -115,6 +246,10 @@ def create_activity(
     db.commit()
     db.refresh(activity)
 
+    # Index for semantic search if active
+    if activity.is_active:
+        search_service.index_activity(activity)
+
     return activity
 
 
@@ -141,45 +276,7 @@ def get_activity(
             detail="Activity not found"
         )
 
-    # Build response with images
-    images = [
-        ActivityImageResponse(
-            id=img.id,
-            activity_id=img.activity_id,
-            file_path=img.file_path,
-            file_url=file_storage.get_file_url(img.file_path),
-            display_order=img.display_order,
-            is_hero=img.is_hero,
-            uploaded_at=img.uploaded_at
-        )
-        for img in sorted(activity.images, key=lambda x: x.display_order)
-    ]
-
-    return ActivityDetailResponse(
-        id=activity.id,
-        agency_id=activity.agency_id,
-        activity_type_id=activity.activity_type_id,
-        activity_type_name=activity.activity_type.name if activity.activity_type else None,
-        created_by_id=activity.created_by_id,
-        name=activity.name,
-        category_label=activity.category_label,
-        location_display=activity.location_display,
-        short_description=activity.short_description,
-        client_description=activity.client_description,
-        default_duration_value=activity.default_duration_value,
-        default_duration_unit=activity.default_duration_unit,
-        rating=activity.rating,
-        group_size_label=activity.group_size_label,
-        cost_type=activity.cost_type,
-        cost_display=activity.cost_display,
-        highlights=activity.highlights or [],
-        tags=activity.tags or [],
-        is_active=activity.is_active,
-        internal_notes=activity.internal_notes,
-        created_at=activity.created_at,
-        updated_at=activity.updated_at,
-        images=images
-    )
+    return build_activity_detail_response(activity)
 
 
 @router.put("/{activity_id}", response_model=ActivityResponse)
@@ -203,6 +300,8 @@ def update_activity(
             detail="Activity not found"
         )
 
+    previous_active_status = activity.is_active
+
     # Verify activity type if being changed
     if activity_data.activity_type_id:
         activity_type = db.query(ActivityType).filter(
@@ -223,6 +322,12 @@ def update_activity(
 
     db.commit()
     db.refresh(activity)
+
+    # Keep search index in sync
+    if activity.is_active:
+        search_service.index_activity(activity)
+    elif previous_active_status:
+        search_service.delete_activity(agency_id, activity.id)
 
     return activity
 
@@ -250,6 +355,9 @@ def delete_activity(
     # Delete associated images from storage
     for image in activity.images:
         file_storage.delete_file(image.file_path)
+
+    # Remove from search index
+    search_service.delete_activity(agency_id, activity.id)
 
     db.delete(activity)
     db.commit()

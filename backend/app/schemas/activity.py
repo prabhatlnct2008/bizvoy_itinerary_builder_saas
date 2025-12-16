@@ -156,3 +156,10 @@ class ActivityResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ActivitySearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=500)
+    limit: int = Field(default=10, ge=1, le=50)
+    activity_type_id: Optional[str] = None
+    is_active: Optional[bool] = None

@@ -141,18 +141,19 @@ const TemplateBuilder: React.FC = () => {
     updateDay(selectedDayIndex, { [field]: value });
   };
 
-  const handleAddActivity = (activity: ActivityDetail) => {
+  const handleAddActivity = (activity: ActivityDetail, targetDayIndex?: number) => {
+    const dayIndex = targetDayIndex ?? selectedDayIndex;
     const newActivity: TemplateDayActivityCreate = {
       activity_id: activity.id,
       item_type: 'LIBRARY_ACTIVITY',
-      display_order: days[selectedDayIndex].activities.length,
+      display_order: days[dayIndex].activities.length,
       time_slot: null,
       custom_notes: null,
     };
 
-    addActivityToDay(selectedDayIndex, newActivity);
+    addActivityToDay(dayIndex, newActivity);
     setIsActivityModalOpen(false);
-    toast.success(`Added ${activity.name} to Day ${days[selectedDayIndex].day_number}`);
+    toast.success(`Added ${activity.name} to Day ${days[dayIndex].day_number}`);
   };
 
   const validate = (): boolean => {
@@ -419,11 +420,16 @@ const TemplateBuilder: React.FC = () => {
         isOpen={isActivityModalOpen}
         onClose={() => setIsActivityModalOpen(false)}
         title={`Add Activity to Day ${currentDay?.day_number || ''}`}
-        size="lg"
+        size="full"
       >
         <ActivityPicker
           onSelectActivity={handleAddActivity}
           selectedActivityIds={selectedActivityIds.filter((id): id is string => id !== undefined)}
+          availableDays={days.map((day, idx) => ({
+            index: idx,
+            label: `Day ${day.day_number}${day.title ? `: ${day.title}` : ''}`,
+          }))}
+          defaultDayIndex={selectedDayIndex}
         />
       </Modal>
 
