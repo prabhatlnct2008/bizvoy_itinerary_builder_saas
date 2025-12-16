@@ -27,6 +27,9 @@ class Agency(Base):
     website_url = Column(String(500), nullable=True)
     internal_notes = Column(Text, nullable=True)  # Only visible to bizvoy-admin
 
+    # AI Module Permissions
+    ai_builder_enabled = Column(Boolean, default=False, nullable=False)
+
     # Relationships
     users = relationship("User", back_populates="agency", cascade="all, delete-orphan")
     roles = relationship("Role", back_populates="agency", cascade="all, delete-orphan")
@@ -37,3 +40,4 @@ class Agency(Base):
     company_profile = relationship("CompanyProfile", back_populates="agency", uselist=False, cascade="all, delete-orphan")
     vibes = relationship("AgencyVibe", back_populates="agency", cascade="all, delete-orphan")
     personalization_settings = relationship("AgencyPersonalizationSettings", back_populates="agency", uselist=False, cascade="all, delete-orphan")
+    ai_builder_sessions = relationship("AIBuilderSession", back_populates="agency", cascade="all, delete-orphan")

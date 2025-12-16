@@ -29,6 +29,14 @@ from app.models.itinerary_cart_item import (
     TimeSlot,
 )
 
+# AI Builder models
+from app.models.ai_builder import (
+    AIBuilderSession,
+    AIBuilderDraftActivity,
+    AISessionStatus,
+    DraftDecision,
+)
+
 __all__ = [
     "Agency",
     "User",
@@ -61,4 +69,9 @@ __all__ = [
     "CartItemStatus",
     "FitStatus",
     "TimeSlot",
+    # AI Builder models
+    "AIBuilderSession",
+    "AIBuilderDraftActivity",
+    "AISessionStatus",
+    "DraftDecision",
 ]

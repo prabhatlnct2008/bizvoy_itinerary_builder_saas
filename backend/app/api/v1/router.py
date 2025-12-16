@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     auth, users, roles, activity_types, activities,
     templates, itineraries, share, public, websocket,
-    company_profile, dashboard, admin, gamification
+    company_profile, dashboard, admin, gamification, ai_builder
 )
 
 api_router = APIRouter()
@@ -46,3 +46,6 @@ api_router.include_router(websocket.router, prefix="/ws", tags=["websocket"])
 
 # Bizvoy Admin endpoints (platform admin only)
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+
+# AI Itinerary Builder endpoints (agency admin with permission)
+api_router.include_router(ai_builder.router, prefix="/ai-builder", tags=["ai-builder"])

@@ -13,3 +13,6 @@ from app.models.itinerary import Itinerary, ItineraryDay, ItineraryDayActivity  
 from app.models.share import ShareLink, PDFExport  # noqa
 from app.models.company_profile import CompanyProfile  # noqa
 from app.models.itinerary_pricing import ItineraryPricing  # noqa
+
+# AI Builder models
+from app.models.ai_builder import AIBuilderSession, AIBuilderDraftActivity  # noqa

@@ -31,6 +31,8 @@ export interface Agency {
   default_currency?: string | null;
   website_url?: string | null;
   internal_notes?: string | null;
+  // AI Module permissions
+  ai_builder_enabled?: boolean;
 }
 
 export interface LoginRequest {

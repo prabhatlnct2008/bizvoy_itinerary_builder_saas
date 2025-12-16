@@ -30,6 +30,13 @@ import AdminDashboard from '../features/admin/AdminDashboard';
 import AgenciesList from '../features/admin/AgenciesList';
 import AgencyForm from '../features/admin/AgencyForm';
 import AgencyDetail from '../features/admin/AgencyDetail';
+// AI Builder Pages
+import {
+  AIBuilderHome,
+  AIBreakdownPage,
+  ReviewActivitiesPage,
+  TemplateCreatedPage
+} from '../features/ai-builder';
 
 // Protected Route Component
 interface ProtectedRouteProps {
@@ -126,6 +133,12 @@ const AppRoutes: React.FC = () => {
           <Route path="settings/readiness" element={<ReadinessOverview />} />
           <Route path="settings/vibes" element={<VibesManager />} />
           <Route path="analytics/personalization" element={<PersonalizationAnalyticsDashboard />} />
+
+          {/* AI Builder Routes */}
+          <Route path="ai-builder" element={<AIBuilderHome />} />
+          <Route path="ai-builder/session/:sessionId/breakdown" element={<AIBreakdownPage />} />
+          <Route path="ai-builder/session/:sessionId/review" element={<ReviewActivitiesPage />} />
+          <Route path="ai-builder/session/:sessionId/complete" element={<TemplateCreatedPage />} />
 
           {/* Admin Routes - Bizvoy Admin Only */}
           <Route

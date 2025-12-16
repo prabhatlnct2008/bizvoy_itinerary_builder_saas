@@ -79,6 +79,8 @@ class AgencyResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    # AI Module permissions
+    ai_builder_enabled: bool = False
 
     class Config:
         from_attributes = True
@@ -186,3 +188,17 @@ class ChangePasswordResponse(BaseModel):
     success: bool
     message: str
     new_password: Optional[str] = None  # Only returned if email not sent
+
+
+# AI Module Schemas
+class AIModuleToggle(BaseModel):
+    """Toggle AI module for an agency"""
+    ai_builder_enabled: bool
+
+
+class AIModuleResponse(BaseModel):
+    """Response after toggling AI module"""
+    id: str
+    name: str
+    ai_builder_enabled: bool
+    message: str
