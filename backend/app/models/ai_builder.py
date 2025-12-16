@@ -86,6 +86,8 @@ class AIBuilderDraftActivity(Base):
     """
     Draft activity extracted by AI, pending user review.
 
+    Contains ALL fields from Activity model (minus images) so AI can fully enrich.
+
     Each draft can be:
     - create_new: Create a new Activity from this draft
     - reuse_existing: Link to an existing Activity (matched_activity_id)
@@ -100,19 +102,50 @@ class AIBuilderDraftActivity(Base):
     order_index = Column(Integer, default=0)
     day_title = Column(String(255), nullable=True)  # e.g., "Arrival & Check-in"
 
-    # Extracted data (editable by user)
-    name = Column(String(255), nullable=False)
+    # ===== CORE ACTIVITY FIELDS (matching Activity model) =====
+
+    # Basic Information
+    name = Column(String(200), nullable=False)
     activity_type_id = Column(String(36), ForeignKey("activity_types.id", ondelete="SET NULL"), nullable=True)
-    location_display = Column(String(255), nullable=True)
-    short_description = Column(Text, nullable=True)
+    category_label = Column(String(50), nullable=True)  # "transfer", "relaxation", "dining"
+    location_display = Column(String(200), nullable=True)
+
+    # Descriptions (AI-enriched)
+    short_description = Column(Text, nullable=True)  # 1-3 lines for lists
+    client_description = Column(Text, nullable=True)  # Full paragraph for shared view
+
+    # Duration
     default_duration_value = Column(Integer, nullable=True)
     default_duration_unit = Column(String(20), nullable=True)  # minutes/hours/days
-    estimated_price = Column(Float, nullable=True)
-    currency_code = Column(String(3), default="INR")
 
-    # Reuse matching
+    # Meta
+    rating = Column(Float, nullable=True)  # 0.0 to 5.0
+    group_size_label = Column(String(50), nullable=True)  # "Private", "Shared", "Max 10 people"
+
+    # Cost
+    cost_type = Column(String(20), default="included")  # "included" or "extra"
+    cost_display = Column(String(100), nullable=True)  # e.g., "From $120 per person"
+    price_numeric = Column(Float, nullable=True)
+    currency_code = Column(String(10), default="INR")
+
+    # JSON fields (AI-enriched)
+    highlights = Column(JSON, nullable=True)  # Array of strings: ["Meet & Greet", "Welcome Drink"]
+    tags = Column(JSON, nullable=True)  # Array of strings: ["Family-friendly", "Luxury"]
+    vibe_tags = Column(JSON, nullable=True)  # Array of vibe_keys: ["adventure", "luxury"]
+
+    # Additional meta
+    marketing_badge = Column(String(50), nullable=True)  # e.g., "Popular", "New", "Limited"
+    optimal_time_of_day = Column(String(50), nullable=True)  # e.g., "morning", "evening"
+
+    # ===== MATCHING & COMPARISON FIELDS =====
+
+    # Search results (from semantic/fuzzy search)
+    search_matches = Column(JSON, nullable=True)  # Array of {activity_id, name, score}
+
+    # LLM comparison results
     matched_activity_id = Column(String(36), ForeignKey("activities.id", ondelete="SET NULL"), nullable=True)
-    match_score = Column(Float, nullable=True)  # 0-1 similarity score
+    match_score = Column(Float, nullable=True)  # 0-1 similarity score from LLM
+    match_reasoning = Column(Text, nullable=True)  # LLM explanation for match/no-match
 
     # User decision
     decision = Column(SQLEnum(DraftDecision), default=DraftDecision.pending, nullable=False)

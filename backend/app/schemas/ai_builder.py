@@ -54,24 +54,54 @@ class AIBuilderSessionResponse(BaseModel):
 
 # Draft Activity Schemas
 class DraftActivityResponse(BaseModel):
-    """Response for a draft activity"""
+    """Response for a draft activity with all enriched fields"""
     id: str
     day_number: int
     order_index: int
     day_title: Optional[str] = None
+
+    # Core fields
     name: str
     activity_type_id: Optional[str] = None
     activity_type_label: Optional[str] = None
+    category_label: Optional[str] = None
     location_display: Optional[str] = None
+
+    # Descriptions (AI-enriched)
     short_description: Optional[str] = None
+    client_description: Optional[str] = None
+
+    # Duration
     default_duration_value: Optional[int] = None
     default_duration_unit: Optional[str] = None
-    estimated_price: Optional[float] = None
+    optimal_time_of_day: Optional[str] = None
+
+    # Cost
+    cost_type: Optional[str] = None
+    cost_display: Optional[str] = None
+    price_numeric: Optional[float] = None
     currency_code: str = "INR"
+
+    # Tags & Highlights (AI-enriched)
+    highlights: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    vibe_tags: Optional[List[str]] = None
+
+    # Meta
+    group_size_label: Optional[str] = None
+    marketing_badge: Optional[str] = None
+    rating: Optional[float] = None
+
+    # Match info
     matched_activity_id: Optional[str] = None
     matched_activity_name: Optional[str] = None
     match_score: Optional[float] = None
+    match_reasoning: Optional[str] = None
+
+    # Decision
     decision: str  # pending, create_new, reuse_existing
+
+    # Timestamps
     created_at: datetime
     updated_at: datetime
 
@@ -80,14 +110,26 @@ class DraftActivityResponse(BaseModel):
 
 
 class DraftActivityUpdate(BaseModel):
-    """Update a draft activity"""
+    """Update a draft activity - all editable fields"""
     name: Optional[str] = None
     activity_type_id: Optional[str] = None
+    category_label: Optional[str] = None
     location_display: Optional[str] = None
     short_description: Optional[str] = None
+    client_description: Optional[str] = None
     default_duration_value: Optional[int] = None
     default_duration_unit: Optional[str] = None
-    estimated_price: Optional[float] = None
+    optimal_time_of_day: Optional[str] = None
+    cost_type: Optional[str] = None
+    cost_display: Optional[str] = None
+    price_numeric: Optional[float] = None
+    currency_code: Optional[str] = None
+    highlights: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    vibe_tags: Optional[List[str]] = None
+    group_size_label: Optional[str] = None
+    marketing_badge: Optional[str] = None
+    rating: Optional[float] = None
 
 
 class DraftDecision(BaseModel):

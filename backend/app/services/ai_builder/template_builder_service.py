@@ -175,7 +175,7 @@ class AITemplateBuilderService:
         session_id: str,
         db: Session
     ) -> Activity:
-        """Create a new Activity from a draft"""
+        """Create a new Activity from a draft with all enriched fields"""
         # Determine duration unit
         duration_unit = None
         if draft.default_duration_unit:
@@ -185,17 +185,42 @@ class AITemplateBuilderService:
             else:
                 duration_unit = DurationUnit.minutes
 
+        # Determine cost type
+        cost_type = CostType.included
+        if draft.cost_type:
+            if draft.cost_type.lower() == "extra":
+                cost_type = CostType.extra
+        elif draft.price_numeric:
+            cost_type = CostType.extra
+
         activity = Activity(
             agency_id=agency_id,
             activity_type_id=draft.activity_type_id,
+            # Basic info
             name=draft.name,
+            category_label=draft.category_label,
             location_display=draft.location_display,
+            # Descriptions (AI-enriched)
             short_description=draft.short_description,
+            client_description=draft.client_description,
+            # Duration
             default_duration_value=draft.default_duration_value,
             default_duration_unit=duration_unit,
-            cost_type=CostType.extra if draft.estimated_price else CostType.included,
-            price_numeric=draft.estimated_price,
+            # Meta
+            rating=draft.rating,
+            group_size_label=draft.group_size_label,
+            # Cost
+            cost_type=cost_type,
+            cost_display=draft.cost_display,
+            price_numeric=draft.price_numeric,
             currency_code=draft.currency_code or "INR",
+            # Tags & Highlights (AI-enriched)
+            highlights=draft.highlights,
+            tags=draft.tags,
+            vibe_tags=draft.vibe_tags,
+            # Additional meta
+            marketing_badge=draft.marketing_badge,
+            optimal_time_of_day=draft.optimal_time_of_day,
             is_active=True,
             # AI Builder tracking
             created_via_ai_builder=True,

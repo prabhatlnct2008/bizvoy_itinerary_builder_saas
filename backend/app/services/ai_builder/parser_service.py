@@ -1,7 +1,8 @@
 """
 AI Parser Service
 
-Parses raw trip content into structured activities using OpenAI.
+Parses raw trip content and generates enriched activity data matching the Activity model.
+Uses OpenAI GPT-4o-mini for intelligent extraction and enrichment.
 """
 import json
 import logging
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class AIParserService:
-    """Parses raw trip content into structured activities using OpenAI"""
+    """Parses raw trip content and generates enriched activity data"""
 
     def __init__(self):
         self.client = self._safe_openai_client()
@@ -36,13 +37,14 @@ class AIParserService:
             logger.error(f"Failed to initialize OpenAI client: {e}")
             return None
 
-    def _build_prompt(
+    def _build_enrichment_prompt(
         self,
         raw_content: str,
         destination: Optional[str] = None,
-        num_days: Optional[int] = None
+        num_days: Optional[int] = None,
+        activity_types: List[str] = None
     ) -> str:
-        """Build the OpenAI prompt for trip parsing"""
+        """Build the OpenAI prompt for activity enrichment"""
         hints = []
         if destination:
             hints.append(f"Destination: {destination}")
@@ -51,43 +53,62 @@ class AIParserService:
 
         hint_text = "\n".join(hints) if hints else "No additional hints provided."
 
-        prompt = f"""You are a travel itinerary parser. Extract structured activities from the following trip description.
+        # Build activity types list for the prompt
+        types_text = ", ".join(activity_types) if activity_types else "Stay, Meal, Experience, Transfer, Other"
 
-## Rules:
-1. Identify day markers (Day 1, Day 2, dates, or sequential patterns)
-2. For each day, extract all activities, stays, meals, and transfers
-3. Classify each item into one of these types:
-   - "Stay" - Hotels, accommodations, resorts, guesthouses
-   - "Breakfast" - Morning meals
-   - "Lunch" - Midday meals
-   - "Dinner" - Evening meals
-   - "Local Experience" - Cultural activities, tours, sightseeing
-   - "Outdoor Sports" - Adventure activities, water sports, trekking
-   - "Transfer" - Airport pickup, car rental, taxi, train, flight
-   - "Other" - Anything that doesn't fit above
+        prompt = f"""You are a travel activity enrichment AI. Your job is to:
+1. Parse the trip content and identify individual activities
+2. Generate RICH, COMPLETE activity data for each one (as if creating a professional travel catalog)
 
-4. Extract for each activity:
-   - name: A clear, concise name
-   - type: One of the types above
-   - location: Where it takes place (if mentioned)
-   - description: Brief description (1-2 sentences)
-   - duration_value: Estimated duration number
-   - duration_unit: "minutes" or "hours"
-   - estimated_price: Price if mentioned (just the number)
+## Activity Types Available:
+{types_text}
 
-5. Return ONLY valid JSON, no markdown or explanation.
+## For EACH activity, generate these fields:
 
-## Hints:
+### Required Fields:
+- **name**: Clear, professional activity name (e.g., "Colosseum Guided Tour with Skip-the-Line Access")
+- **activity_type**: One of the types above
+- **category_label**: Subcategory like "sightseeing", "fine_dining", "airport_transfer", "boutique_hotel"
+- **location_display**: Full location (e.g., "Trastevere, Rome, Italy")
+
+### Descriptions (IMPORTANT - write these professionally):
+- **short_description**: 1-2 sentences for preview cards. Engaging, informative.
+- **client_description**: Full 3-5 sentence paragraph for the client-facing itinerary. Include what they'll experience, why it's special, practical tips.
+
+### Duration & Timing:
+- **duration_value**: Number (e.g., 90)
+- **duration_unit**: "minutes", "hours", or "days"
+- **optimal_time_of_day**: "morning", "afternoon", "evening", "night", or "flexible"
+
+### Cost Information (infer from context or use reasonable estimates):
+- **cost_type**: "included" (part of package) or "extra" (additional cost)
+- **cost_display**: Human-readable like "From €45 per person" or "Included in package"
+- **price_numeric**: Just the number, or null if included
+- **currency_code**: "EUR", "USD", "INR" etc.
+
+### Tags & Highlights:
+- **highlights**: Array of 3-5 key highlights (e.g., ["Skip-the-line access", "Expert local guide", "Small group max 15"])
+- **tags**: Array of descriptive tags (e.g., ["Family-friendly", "Cultural", "Must-see", "Walking tour"])
+- **vibe_tags**: Array of experience vibes (e.g., ["cultural", "adventure", "luxury", "romantic", "family"])
+
+### Additional:
+- **group_size_label**: "Private", "Small group", "Shared", or specific like "Max 12 people"
+- **marketing_badge**: Optional special badge like "Popular", "Best Seller", "Hidden Gem", "New"
+- **rating**: Estimated rating 1.0-5.0 based on quality/popularity (be realistic)
+
+## Input Context:
 {hint_text}
 
-## Trip Content:
+## Raw Trip Content:
 {raw_content}
 
-## Response Format:
+## Response Format (ONLY valid JSON, no markdown):
 {{
-  "trip_title": "Suggested title for the trip",
-  "detected_days": <number of days detected>,
+  "trip_title": "Suggested professional trip title",
+  "destination": "Primary destination",
+  "detected_days": <number>,
   "summary": {{
+    "total_activities": <count>,
     "stays": <count>,
     "meals": <count>,
     "experiences": <count>,
@@ -96,21 +117,40 @@ class AIParserService:
   "days": [
     {{
       "day_number": 1,
-      "day_title": "Day theme/title",
+      "day_title": "Thematic title for this day",
       "activities": [
         {{
           "name": "Activity name",
-          "type": "Stay|Breakfast|Lunch|Dinner|Local Experience|Outdoor Sports|Transfer|Other",
-          "location": "Location or null",
-          "description": "Brief description",
-          "duration_value": 60,
+          "activity_type": "Type from list",
+          "category_label": "subcategory",
+          "location_display": "Full location",
+          "short_description": "1-2 engaging sentences",
+          "client_description": "Full 3-5 sentence paragraph for clients",
+          "duration_value": 90,
           "duration_unit": "minutes",
-          "estimated_price": null
+          "optimal_time_of_day": "morning",
+          "cost_type": "included",
+          "cost_display": "Included in package",
+          "price_numeric": null,
+          "currency_code": "EUR",
+          "highlights": ["Highlight 1", "Highlight 2", "Highlight 3"],
+          "tags": ["Tag1", "Tag2"],
+          "vibe_tags": ["cultural", "adventure"],
+          "group_size_label": "Private",
+          "marketing_badge": null,
+          "rating": 4.5
         }}
       ]
     }}
   ]
-}}"""
+}}
+
+IMPORTANT:
+- Write descriptions as a professional travel writer would
+- Be specific about locations (neighborhood, city, country)
+- Generate realistic, useful highlights and tags
+- Infer reasonable durations and costs from context
+- Every activity should feel ready for a luxury travel catalog"""
         return prompt
 
     def parse_trip_content(
@@ -119,7 +159,7 @@ class AIParserService:
         db: Session
     ) -> bool:
         """
-        Parse raw trip content and create draft activities.
+        Parse raw trip content and create enriched draft activities.
 
         Args:
             session: The AI builder session to process
@@ -139,29 +179,40 @@ class AIParserService:
             session.current_step = 1
             db.commit()
 
-            # Build prompt
-            prompt = self._build_prompt(
+            # Get activity types for this agency
+            activity_types = db.query(ActivityType).filter(
+                ActivityType.agency_id == session.agency_id
+            ).all()
+            type_names = [at.name for at in activity_types]
+            type_mapping = {at.name.lower(): at.id for at in activity_types}
+
+            # Build enrichment prompt
+            prompt = self._build_enrichment_prompt(
                 raw_content=session.raw_content,
                 destination=session.destination,
-                num_days=session.num_days
+                num_days=session.num_days,
+                activity_types=type_names
             )
 
-            # Step 2: Detecting days & dates
+            # Step 2: AI Processing
             session.current_step = 2
             db.commit()
 
-            # Call OpenAI
+            # Call OpenAI for enrichment
             completion = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a travel itinerary parser. Reply ONLY with valid JSON. No markdown code blocks, no explanations."
+                        "content": """You are a professional travel content writer and itinerary parser.
+Your task is to extract activities from trip content and enrich them with professional descriptions,
+highlights, and metadata suitable for a luxury travel agency's catalog.
+Reply ONLY with valid JSON. No markdown code blocks, no explanations."""
                     },
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3,
-                max_tokens=4000
+                temperature=0.4,
+                max_tokens=8000  # Increased for richer content
             )
 
             response_text = completion.choices[0].message.content if completion.choices else ""
@@ -174,7 +225,7 @@ class AIParserService:
                     response_text = response_text[4:]
                 response_text = response_text.strip()
 
-            # Step 3: Finding stays, meals & experiences
+            # Step 3: Parsing response
             session.current_step = 3
             db.commit()
 
@@ -189,7 +240,7 @@ class AIParserService:
                 db.commit()
                 return False
 
-            # Step 4: Grouping by day
+            # Step 4: Creating draft activities
             session.current_step = 4
             db.commit()
 
@@ -199,21 +250,20 @@ class AIParserService:
 
             if not session.trip_title and parsed_data.get("trip_title"):
                 session.trip_title = parsed_data["trip_title"]
+            if not session.destination and parsed_data.get("destination"):
+                session.destination = parsed_data["destination"]
 
-            # Get activity types for mapping
-            activity_types = self._get_activity_type_mapping(session.agency_id, db)
-
-            # Step 5: Drafting activity cards
-            session.current_step = 5
-            db.commit()
-
-            # Create draft activities
+            # Create draft activities with all enriched fields
             days = parsed_data.get("days", [])
             if not days:
                 session.status = AISessionStatus.failed
                 session.error_message = "Could not detect any activities from the content."
                 db.commit()
                 return False
+
+            # Step 5: Saving drafts
+            session.current_step = 5
+            db.commit()
 
             for day_data in days:
                 day_number = day_data.get("day_number", 1)
@@ -222,8 +272,8 @@ class AIParserService:
 
                 for idx, act_data in enumerate(activities):
                     # Map activity type
-                    act_type = act_data.get("type", "Other")
-                    activity_type_id = activity_types.get(act_type)
+                    act_type_name = act_data.get("activity_type", "Other")
+                    activity_type_id = type_mapping.get(act_type_name.lower())
 
                     # Determine duration unit
                     duration_unit = act_data.get("duration_unit", "minutes")
@@ -235,20 +285,35 @@ class AIParserService:
                         day_number=day_number,
                         order_index=idx,
                         day_title=day_title,
+                        # Core fields
                         name=act_data.get("name", "Unnamed Activity"),
                         activity_type_id=activity_type_id,
-                        location_display=act_data.get("location"),
-                        short_description=act_data.get("description"),
+                        category_label=act_data.get("category_label"),
+                        location_display=act_data.get("location_display"),
+                        # Descriptions
+                        short_description=act_data.get("short_description"),
+                        client_description=act_data.get("client_description"),
+                        # Duration
                         default_duration_value=act_data.get("duration_value"),
                         default_duration_unit=duration_unit,
-                        estimated_price=act_data.get("estimated_price"),
-                        currency_code="INR"
+                        optimal_time_of_day=act_data.get("optimal_time_of_day"),
+                        # Cost
+                        cost_type=act_data.get("cost_type", "included"),
+                        cost_display=act_data.get("cost_display"),
+                        price_numeric=act_data.get("price_numeric"),
+                        currency_code=act_data.get("currency_code", "INR"),
+                        # Tags & Highlights
+                        highlights=act_data.get("highlights"),
+                        tags=act_data.get("tags"),
+                        vibe_tags=act_data.get("vibe_tags"),
+                        # Meta
+                        group_size_label=act_data.get("group_size_label"),
+                        marketing_badge=act_data.get("marketing_badge"),
+                        rating=act_data.get("rating"),
                     )
                     db.add(draft)
 
-            # Mark session as completed
-            session.status = AISessionStatus.completed
-            session.completed_at = datetime.utcnow()
+            # Mark parsing complete (matching will happen next)
             db.commit()
 
             logger.info(f"Successfully parsed session {session.id} with {session.detected_days} days")
@@ -260,53 +325,6 @@ class AIParserService:
             session.error_message = f"An error occurred while parsing: {str(e)}"
             db.commit()
             return False
-
-    def _get_activity_type_mapping(self, agency_id: str, db: Session) -> Dict[str, str]:
-        """Get mapping of activity type names to IDs"""
-        activity_types = db.query(ActivityType).filter(
-            ActivityType.agency_id == agency_id
-        ).all()
-
-        # Create mapping with common aliases
-        mapping = {}
-        for at in activity_types:
-            mapping[at.name] = at.id
-            mapping[at.name.lower()] = at.id
-
-        # Add common aliases
-        alias_mapping = {
-            "Stay": ["Hotel", "Accommodation", "Resort", "Guesthouse", "Lodge"],
-            "Meal": ["Breakfast", "Lunch", "Dinner", "Brunch"],
-            "Experience": ["Local Experience", "Tour", "Sightseeing", "Cultural"],
-            "Transfer": ["Transport", "Transportation", "Pickup", "Drop-off"],
-            "Other": ["Miscellaneous", "General"]
-        }
-
-        for canonical, aliases in alias_mapping.items():
-            if canonical in mapping:
-                for alias in aliases:
-                    if alias not in mapping:
-                        mapping[alias] = mapping[canonical]
-                    if alias.lower() not in mapping:
-                        mapping[alias.lower()] = mapping[canonical]
-
-        # Handle specific meal types to Meal
-        if "Meal" in mapping:
-            for meal_type in ["Breakfast", "Lunch", "Dinner", "Brunch"]:
-                if meal_type not in mapping:
-                    mapping[meal_type] = mapping["Meal"]
-                if meal_type.lower() not in mapping:
-                    mapping[meal_type.lower()] = mapping["Meal"]
-
-        # Handle Local Experience and Outdoor Sports to Experience
-        if "Experience" in mapping:
-            for exp_type in ["Local Experience", "Outdoor Sports", "Adventure"]:
-                if exp_type not in mapping:
-                    mapping[exp_type] = mapping["Experience"]
-                if exp_type.lower() not in mapping:
-                    mapping[exp_type.lower()] = mapping["Experience"]
-
-        return mapping
 
 
 # Singleton instance

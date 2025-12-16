@@ -390,7 +390,7 @@ def _session_to_response(session: AIBuilderSession) -> AIBuilderSessionResponse:
 
 
 def _draft_to_response(draft: AIBuilderDraftActivity, db: Session) -> DraftActivityResponse:
-    """Convert draft activity model to response"""
+    """Convert draft activity model to response with all enriched fields"""
     # Get activity type label
     activity_type_label = None
     if draft.activity_type_id:
@@ -414,19 +414,40 @@ def _draft_to_response(draft: AIBuilderDraftActivity, db: Session) -> DraftActiv
         day_number=draft.day_number,
         order_index=draft.order_index,
         day_title=draft.day_title,
+        # Core fields
         name=draft.name,
         activity_type_id=draft.activity_type_id,
         activity_type_label=activity_type_label,
+        category_label=draft.category_label,
         location_display=draft.location_display,
+        # Descriptions
         short_description=draft.short_description,
+        client_description=draft.client_description,
+        # Duration
         default_duration_value=draft.default_duration_value,
         default_duration_unit=draft.default_duration_unit,
-        estimated_price=draft.estimated_price,
-        currency_code=draft.currency_code,
+        optimal_time_of_day=draft.optimal_time_of_day,
+        # Cost
+        cost_type=draft.cost_type,
+        cost_display=draft.cost_display,
+        price_numeric=draft.price_numeric,
+        currency_code=draft.currency_code or "INR",
+        # Tags & Highlights
+        highlights=draft.highlights,
+        tags=draft.tags,
+        vibe_tags=draft.vibe_tags,
+        # Meta
+        group_size_label=draft.group_size_label,
+        marketing_badge=draft.marketing_badge,
+        rating=draft.rating,
+        # Match info
         matched_activity_id=draft.matched_activity_id,
         matched_activity_name=matched_activity_name,
         match_score=draft.match_score,
+        match_reasoning=draft.match_reasoning,
+        # Decision
         decision=draft.decision.value,
+        # Timestamps
         created_at=draft.created_at,
         updated_at=draft.updated_at
     )
@@ -467,10 +488,18 @@ def _get_draft_activity(
 
 
 async def process_ai_session(session_id: str):
-    """Background task to process AI session"""
+    """
+    Background task to process AI session.
+
+    Flow:
+    1. Parse trip content → Generate enriched activity data (parser_service)
+    2. Search existing activities for each draft (comparison_service)
+    3. LLM comparison → Determine highly similar matches (comparison_service)
+    4. Mark session as completed
+    """
     from app.db.session import SessionLocal
     from app.services.ai_builder.parser_service import get_parser_service
-    from app.services.ai_builder.matcher_service import get_matcher_service
+    from app.services.ai_builder.comparison_service import get_comparison_service
 
     db = SessionLocal()
     try:
@@ -485,7 +514,7 @@ async def process_ai_session(session_id: str):
         session.status = AISessionStatus.processing
         db.commit()
 
-        # Step 1-5: Parse trip content using AI
+        # Step 1-5: Parse trip content and generate enriched activity data
         parser_service = get_parser_service()
         success = parser_service.parse_trip_content(session, db)
 
@@ -493,10 +522,19 @@ async def process_ai_session(session_id: str):
             # Parser already updated session with error
             return
 
-        # Find reuse matches for draft activities
-        matcher_service = get_matcher_service()
-        matcher_service.find_matches_for_session(session, db)
+        # Refresh session to get draft activities
+        db.refresh(session)
 
+        # Step 6: Compare drafts with existing library using LLM
+        comparison_service = get_comparison_service()
+        comparison_stats = comparison_service.compare_all_drafts(session, db)
+
+        # Update session with stats
+        session.activities_reused = comparison_stats.get("matched", 0)
+
+        # Mark as completed
+        session.status = AISessionStatus.completed
+        session.completed_at = datetime.utcnow()
         db.commit()
 
     except Exception as e:
