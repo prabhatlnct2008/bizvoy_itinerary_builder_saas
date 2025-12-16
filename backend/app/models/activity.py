@@ -11,6 +11,7 @@ class DurationUnit(str, enum.Enum):
     minutes = "minutes"
     hours = "hours"
     days = "days"
+    nights = "nights"
 
 
 class CostType(str, enum.Enum):

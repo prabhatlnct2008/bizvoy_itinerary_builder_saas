@@ -368,6 +368,8 @@ class FitEngine:
             return int(duration_value * 60)
         elif duration_unit == 'days':
             return int(duration_value * 480)  # 8 hours per day
+        elif duration_unit == 'nights':
+            return int(duration_value * 1440)  # 24 hours per night
         else:
             return 120  # Default 2 hours
 

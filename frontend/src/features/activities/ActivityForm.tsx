@@ -351,6 +351,7 @@ const ActivityForm: React.FC = () => {
     { value: 'minutes', label: 'Minutes' },
     { value: 'hours', label: 'Hours' },
     { value: 'days', label: 'Days' },
+    { value: 'nights', label: 'Nights' },
   ];
 
   const groupSizeOptions = [
