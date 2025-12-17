@@ -48,98 +48,155 @@ class AITemplateBuilderService:
     def _build_template_structure_prompt(
         self,
         session: AIBuilderSession,
-        activities_by_day: Dict[int, List[Dict[str, Any]]]
+        activities_by_day: Dict[int, List[Dict[str, Any]]],
+        activity_id_map: Dict[str, str]  # draft_index_key -> activity_id
     ) -> str:
-        """Build prompt for LLM to structure the template"""
+        """
+        Build prompt for LLM to structure the template.
 
-        # Format activities for the prompt
+        The LLM output must exactly match the TemplateCreate schema structure:
+        - Template fields: description, approximate_price
+        - Days: day_number, title, notes, activities[]
+        - Activities: activity_id, item_type, custom_title, custom_payload, custom_icon,
+                      display_order, time_slot, custom_notes, start_time, end_time, is_locked_by_agency
+        """
+
+        # Format activities for the prompt with their actual activity_ids
         activities_text = ""
         for day_num in sorted(activities_by_day.keys()):
             day_activities = activities_by_day[day_num]
             activities_text += f"\n### Day {day_num}:\n"
-            for idx, act in enumerate(day_activities, 1):
+            for idx, act in enumerate(day_activities):
+                # Get the actual activity_id for this draft
+                activity_id = act.get('activity_id', 'unknown')
                 activities_text += f"""
-{idx}. **{act['name']}**
-   - Type: {act.get('activity_type', 'Experience')}
-   - Location: {act.get('location', 'N/A')}
-   - Duration: {act.get('duration_value', '?')} {act.get('duration_unit', 'minutes')}
-   - Optimal time: {act.get('optimal_time', 'flexible')}
-   - Description: {act.get('short_description', 'N/A')}
+Activity #{idx} (activity_id: "{activity_id}")
+  - Name: {act['name']}
+  - Type: {act.get('activity_type', 'Experience')}
+  - Location: {act.get('location', 'N/A')}
+  - Duration: {act.get('duration_value', 60)} {act.get('duration_unit', 'minutes')}
+  - Optimal time: {act.get('optimal_time', 'flexible')}
+  - Description: {act.get('short_description', 'N/A')}
 """
 
-        prompt = f"""You are a professional travel itinerary planner. Structure the following activities into an optimal template.
+        num_days = session.detected_days or len(activities_by_day)
+
+        prompt = f"""You are a professional travel itinerary planner. Your task is to structure activities into a template
+that will be saved to our database.
 
 ## Trip Details:
 - Destination: {session.destination or 'Multi-destination'}
 - Title: {session.trip_title or 'Untitled Trip'}
-- Number of Days: {session.detected_days or len(activities_by_day)}
+- Number of Days: {num_days}
+- Number of Nights: {max(0, num_days - 1)}
 
-## Activities by Day:
+## Activities by Day (with their database IDs):
 {activities_text}
 
-## Your Task:
-Create a well-structured template with:
+## OUTPUT REQUIREMENTS:
 
-1. **Template Metadata**:
-   - Professional description (2-3 sentences about the trip)
-   - Approximate total price (estimate based on activities, in the local currency)
+You must output JSON that matches our exact database schema:
 
-2. **For Each Day**:
-   - Engaging day title (e.g., "Ancient Wonders of Rome" not just "Day 1")
-   - Day notes (brief overview, travel tips, what to expect)
+### Template Level Fields:
+- description: string (2-3 professional sentences about the trip)
+- approximate_price: number (estimated total cost in local currency, or null)
 
-3. **For Each Activity**:
-   - Optimal start_time (HH:MM format, e.g., "09:00")
-   - end_time (calculated from start + duration)
-   - time_slot ("Morning", "Afternoon", "Evening", "Night")
-   - custom_notes (specific tips for this activity in the context of this trip)
+### For Each Day (template_days table):
+- day_number: integer (1, 2, 3...)
+- title: string (engaging thematic title like "Ancient Wonders of Rome", not "Day 1")
+- notes: string or null (brief overview, travel tips, what to expect)
+- activities: array of activity items
 
-4. **Logistics Items** (suggest where needed):
-   - Inter-city transfers (train, flight between cities)
-   - Airport transfers on arrival/departure days
-   - Important travel notes
+### For Each Activity (template_day_activities table):
+For LIBRARY_ACTIVITY items (activities from our catalog):
+- activity_id: string (USE THE EXACT activity_id PROVIDED ABOVE)
+- item_type: "LIBRARY_ACTIVITY"
+- display_order: integer (0, 1, 2... for ordering within the day)
+- time_slot: string ("Morning", "Afternoon", "Evening", or "Night")
+- custom_notes: string or null (specific tips for this activity in context of this trip)
+- start_time: string (HH:MM format like "09:00")
+- end_time: string (HH:MM format, calculated from start + duration)
+- is_locked_by_agency: boolean (true = traveler cannot swap this activity)
 
-## Response Format (JSON only, no markdown):
+For LOGISTICS items (transfers, travel between places):
+- activity_id: null
+- item_type: "LOGISTICS"
+- custom_title: string (e.g., "Airport Transfer", "Train to Florence")
+- custom_payload: string (JSON string with extra details, e.g., '{{"notes": "45 min drive"}}')
+- custom_icon: string (one of: "car", "plane", "train", "bus", "taxi", "hotel", "info")
+- display_order: integer
+- time_slot: string or null
+- custom_notes: string or null
+- start_time: string or null
+- end_time: string or null
+- is_locked_by_agency: true
+
+For NOTE items (important information without activity):
+- activity_id: null
+- item_type: "NOTE"
+- custom_title: string (the note title)
+- custom_payload: string (JSON with note content)
+- custom_icon: "info"
+- display_order: integer
+- time_slot: null
+- custom_notes: null
+- start_time: null
+- end_time: null
+- is_locked_by_agency: true
+
+## OUTPUT FORMAT (JSON only, no markdown code blocks):
 {{
-  "template": {{
-    "description": "Professional 2-3 sentence description",
-    "approximate_price": 1500,
-    "currency": "EUR"
-  }},
+  "description": "A captivating 2-3 sentence description of this travel experience...",
+  "approximate_price": 1500,
   "days": [
     {{
       "day_number": 1,
-      "title": "Engaging Day Title",
-      "notes": "Brief day overview and tips",
+      "title": "Arrival & First Impressions",
+      "notes": "Brief day overview and helpful tips...",
       "activities": [
         {{
-          "activity_index": 0,
-          "start_time": "14:00",
-          "end_time": "15:00",
+          "activity_id": null,
+          "item_type": "LOGISTICS",
+          "custom_title": "Airport Transfer",
+          "custom_payload": "{{\\"notes\\": \\"Private car pickup from airport to hotel (45 mins)\\"}}",
+          "custom_icon": "car",
+          "display_order": 0,
           "time_slot": "Afternoon",
-          "custom_notes": "Specific tip for this activity"
-        }}
-      ],
-      "logistics": [
+          "custom_notes": null,
+          "start_time": "14:00",
+          "end_time": "14:45",
+          "is_locked_by_agency": true
+        }},
         {{
-          "type": "LOGISTICS",
-          "title": "Airport Transfer",
-          "notes": "Private car from FCO to hotel (45 mins)",
-          "icon": "car",
-          "insert_before_activity": 0,
-          "start_time": "12:00"
+          "activity_id": "actual-uuid-from-above",
+          "item_type": "LIBRARY_ACTIVITY",
+          "custom_title": null,
+          "custom_payload": null,
+          "custom_icon": null,
+          "display_order": 1,
+          "time_slot": "Afternoon",
+          "custom_notes": "Best to arrive early to avoid crowds",
+          "start_time": "15:00",
+          "end_time": "17:00",
+          "is_locked_by_agency": true
         }}
       ]
     }}
   ]
 }}
 
-IMPORTANT:
-- Use realistic times based on activity type (breakfast at 8-9am, dinner at 7-9pm, etc.)
-- Account for travel time between activities
-- Add logistics items for significant transfers (airports, train stations, city changes)
-- Day titles should be thematic and engaging
-- Notes should be practical and helpful"""
+## IMPORTANT RULES:
+1. Use EXACT activity_id values from the activity list above - do not make up IDs
+2. Use realistic times (breakfast 8-9am, lunch 12-1pm, dinner 7-9pm, etc.)
+3. Account for travel time between activities
+4. Add LOGISTICS items for:
+   - Airport arrival/departure transfers on first/last days
+   - Inter-city travel (train/flight when destination changes)
+   - Check-in/check-out notes for hotels
+5. Day titles should be thematic and engaging, never generic like "Day 1"
+6. display_order must be sequential starting from 0 within each day
+7. is_locked_by_agency should be true for most activities (travelers cannot swap)
+8. custom_payload must be a valid JSON STRING (escaped quotes inside)"""
 
         return prompt
 
@@ -152,6 +209,12 @@ IMPORTANT:
     ) -> TemplateCreationResponse:
         """
         Create template from reviewed draft activities using LLM for optimal structuring.
+
+        The LLM generates data that directly matches the TemplateCreate schema:
+        - Template fields: description, approximate_price
+        - Days: day_number, title, notes, activities[]
+        - Activities: activity_id, item_type, custom_title, custom_payload, custom_icon,
+                      display_order, time_slot, custom_notes, start_time, end_time, is_locked_by_agency
 
         Args:
             session: The AI builder session
@@ -196,7 +259,7 @@ IMPORTANT:
 
         db.flush()
 
-        # Prepare activities by day for LLM prompt
+        # Prepare activities by day for LLM prompt - now includes activity_id
         activities_by_day: Dict[int, List[Dict[str, Any]]] = {}
         draft_by_day: Dict[int, List[AIBuilderDraftActivity]] = {}
 
@@ -213,11 +276,12 @@ IMPORTANT:
                 "duration_unit": draft.default_duration_unit or "minutes",
                 "optimal_time": draft.optimal_time_of_day or "flexible",
                 "short_description": draft.short_description,
+                "activity_id": activity_map[draft.id],  # Include actual activity_id for LLM
             })
             draft_by_day[draft.day_number].append(draft)
 
-        # Get LLM-generated template structure
-        template_structure = self._get_template_structure(session, activities_by_day)
+        # Get LLM-generated template structure (now in exact schema format)
+        template_structure = self._get_template_structure(session, activities_by_day, activity_map)
 
         # Determine template name
         final_name = template_name or session.trip_title or f"AI Generated - {session.destination or 'Trip'}"
@@ -231,11 +295,10 @@ IMPORTANT:
         template_desc = "Generated from AI Itinerary Builder"
         approximate_price = None
 
-        if template_structure and "template" in template_structure:
-            tmpl_data = template_structure["template"]
-            template_desc = tmpl_data.get("description", template_desc)
-            if tmpl_data.get("approximate_price"):
-                approximate_price = Decimal(str(tmpl_data["approximate_price"]))
+        if template_structure:
+            template_desc = template_structure.get("description", template_desc)
+            if template_structure.get("approximate_price"):
+                approximate_price = Decimal(str(template_structure["approximate_price"]))
 
         # Create template
         template = Template(
@@ -252,96 +315,77 @@ IMPORTANT:
         db.add(template)
         db.flush()
 
-        # Create template days and activities
-        llm_days = {}
+        # Build a set of valid activity IDs for validation
+        valid_activity_ids = set(activity_map.values())
+
+        # Create template days and activities from LLM output
         if template_structure and "days" in template_structure:
-            for day_data in template_structure["days"]:
-                llm_days[day_data["day_number"]] = day_data
+            # Use LLM-generated structure directly (matches TemplateCreate schema)
+            for llm_day in template_structure["days"]:
+                day_number = llm_day.get("day_number", 1)
 
-        for day_number in sorted(draft_by_day.keys()):
-            day_drafts = draft_by_day[day_number]
-            llm_day = llm_days.get(day_number, {})
-
-            # Create template day with LLM-generated title and notes
-            template_day = TemplateDay(
-                template_id=template.id,
-                day_number=day_number,
-                title=llm_day.get("title") or day_drafts[0].day_title or f"Day {day_number}",
-                notes=llm_day.get("notes")
-            )
-            db.add(template_day)
-            db.flush()
-
-            # Get LLM activity data
-            llm_activities = {}
-            if "activities" in llm_day:
-                for act_data in llm_day["activities"]:
-                    llm_activities[act_data.get("activity_index", -1)] = act_data
-
-            # Get logistics items
-            logistics_items = llm_day.get("logistics", [])
-            logistics_by_position = {}
-            for log_item in logistics_items:
-                pos = log_item.get("insert_before_activity", 999)
-                if pos not in logistics_by_position:
-                    logistics_by_position[pos] = []
-                logistics_by_position[pos].append(log_item)
-
-            display_order = 0
-
-            # Process activities for this day
-            for idx, draft in enumerate(day_drafts):
-                # Add any logistics items before this activity
-                if idx in logistics_by_position:
-                    for log_item in logistics_by_position[idx]:
-                        logistics_activity = TemplateDayActivity(
-                            template_day_id=template_day.id,
-                            activity_id=None,
-                            item_type="LOGISTICS",
-                            custom_title=log_item.get("title", "Transfer"),
-                            custom_payload=json.dumps({"notes": log_item.get("notes", "")}),
-                            custom_icon=log_item.get("icon", "car"),
-                            display_order=display_order,
-                            start_time=log_item.get("start_time"),
-                            is_locked_by_agency=1
-                        )
-                        db.add(logistics_activity)
-                        display_order += 1
-
-                # Get LLM data for this activity
-                llm_act = llm_activities.get(idx, {})
-
-                # Create template day activity
-                template_activity = TemplateDayActivity(
-                    template_day_id=template_day.id,
-                    activity_id=activity_map[draft.id],
-                    item_type="LIBRARY_ACTIVITY",
-                    display_order=display_order,
-                    time_slot=llm_act.get("time_slot"),
-                    start_time=llm_act.get("start_time"),
-                    end_time=llm_act.get("end_time"),
-                    custom_notes=llm_act.get("custom_notes"),
-                    is_locked_by_agency=1
+                # Create template day
+                template_day = TemplateDay(
+                    template_id=template.id,
+                    day_number=day_number,
+                    title=llm_day.get("title") or f"Day {day_number}",
+                    notes=llm_day.get("notes")
                 )
-                db.add(template_activity)
-                display_order += 1
+                db.add(template_day)
+                db.flush()
 
-            # Add any remaining logistics at end of day
-            if 999 in logistics_by_position:
-                for log_item in logistics_by_position[999]:
-                    logistics_activity = TemplateDayActivity(
+                # Create activities from LLM output (already in correct format)
+                for act_data in llm_day.get("activities", []):
+                    item_type = act_data.get("item_type", "LIBRARY_ACTIVITY")
+                    activity_id = act_data.get("activity_id")
+
+                    # Validate activity_id for LIBRARY_ACTIVITY
+                    if item_type == "LIBRARY_ACTIVITY":
+                        if not activity_id or activity_id not in valid_activity_ids:
+                            logger.warning(f"Invalid activity_id {activity_id} from LLM, skipping")
+                            continue
+
+                    template_activity = TemplateDayActivity(
                         template_day_id=template_day.id,
-                        activity_id=None,
-                        item_type="LOGISTICS",
-                        custom_title=log_item.get("title", "Transfer"),
-                        custom_payload=json.dumps({"notes": log_item.get("notes", "")}),
-                        custom_icon=log_item.get("icon", "car"),
-                        display_order=display_order,
-                        start_time=log_item.get("start_time"),
+                        activity_id=activity_id if item_type == "LIBRARY_ACTIVITY" else None,
+                        item_type=item_type,
+                        custom_title=act_data.get("custom_title"),
+                        custom_payload=act_data.get("custom_payload"),
+                        custom_icon=act_data.get("custom_icon"),
+                        display_order=act_data.get("display_order", 0),
+                        time_slot=act_data.get("time_slot"),
+                        custom_notes=act_data.get("custom_notes"),
+                        start_time=act_data.get("start_time"),
+                        end_time=act_data.get("end_time"),
+                        is_locked_by_agency=1 if act_data.get("is_locked_by_agency", True) else 0
+                    )
+                    db.add(template_activity)
+        else:
+            # Fallback: create basic structure without LLM enhancements
+            logger.warning("LLM structure not available, using fallback template creation")
+            for day_number in sorted(draft_by_day.keys()):
+                day_drafts = draft_by_day[day_number]
+
+                # Create template day
+                template_day = TemplateDay(
+                    template_id=template.id,
+                    day_number=day_number,
+                    title=day_drafts[0].day_title or f"Day {day_number}",
+                    notes=None
+                )
+                db.add(template_day)
+                db.flush()
+
+                # Create activities
+                for idx, draft in enumerate(day_drafts):
+                    template_activity = TemplateDayActivity(
+                        template_day_id=template_day.id,
+                        activity_id=activity_map[draft.id],
+                        item_type="LIBRARY_ACTIVITY",
+                        display_order=idx,
                         is_locked_by_agency=1
                     )
-                    db.add(logistics_activity)
-                    display_order += 1
+                    db.add(template_activity)
 
         # Update session
         session.template_id = template.id
@@ -378,24 +422,43 @@ IMPORTANT:
     def _get_template_structure(
         self,
         session: AIBuilderSession,
-        activities_by_day: Dict[int, List[Dict[str, Any]]]
+        activities_by_day: Dict[int, List[Dict[str, Any]]],
+        activity_id_map: Dict[str, str]
     ) -> Optional[Dict[str, Any]]:
-        """Get LLM-generated template structure"""
+        """
+        Get LLM-generated template structure in exact TemplateCreate schema format.
+
+        The output directly matches the database schema for:
+        - templates table: description, approximate_price
+        - template_days table: day_number, title, notes
+        - template_day_activities table: activity_id, item_type, custom_title,
+          custom_payload, custom_icon, display_order, time_slot, custom_notes,
+          start_time, end_time, is_locked_by_agency
+        """
         if not self.client:
             logger.warning("OpenAI client not available, using default structure")
             return None
 
         try:
-            prompt = self._build_template_structure_prompt(session, activities_by_day)
+            prompt = self._build_template_structure_prompt(session, activities_by_day, activity_id_map)
 
             completion = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
-                        "content": """You are an expert travel itinerary planner.
-Create optimal day structures with realistic timings, engaging titles, and helpful notes.
-Reply ONLY with valid JSON. No markdown code blocks."""
+                        "content": """You are an expert travel itinerary planner creating data for a travel template database.
+
+Your output must be valid JSON that exactly matches the database schema:
+- Template: description, approximate_price
+- Days: day_number, title, notes, activities[]
+- Activities: activity_id, item_type, custom_title, custom_payload, custom_icon, display_order, time_slot, custom_notes, start_time, end_time, is_locked_by_agency
+
+CRITICAL RULES:
+1. Use EXACT activity_id values provided - never invent IDs
+2. item_type must be "LIBRARY_ACTIVITY", "LOGISTICS", or "NOTE"
+3. custom_payload must be a JSON STRING (with escaped quotes)
+4. Reply ONLY with valid JSON - no markdown code blocks, no explanations"""
                     },
                     {"role": "user", "content": prompt}
                 ],
