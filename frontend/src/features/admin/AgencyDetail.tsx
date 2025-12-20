@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Key,
   Shield,
+  Sparkles,
 } from 'lucide-react';
 import { adminAPI } from '../../api/admin';
 import { AgencyWithStats, AgencyUpdate, AdminUser } from '../../types';
@@ -65,6 +66,7 @@ const AgencyDetail: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [aiModuleLoading, setAiModuleLoading] = useState(false);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
 
@@ -172,6 +174,19 @@ const AgencyDetail: React.FC = () => {
       toast.error(err.response?.data?.detail || 'Failed to reactivate agency');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleToggleAIBuilder = async (enabled: boolean) => {
+    try {
+      setAiModuleLoading(true);
+      const result = await adminAPI.toggleAIModules(id!, { ai_builder_enabled: enabled });
+      toast.success(result.message);
+      fetchAgency();
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to update AI module settings');
+    } finally {
+      setAiModuleLoading(false);
     }
   };
 
@@ -552,6 +567,50 @@ const AgencyDetail: React.FC = () => {
                   <span>Templates</span>
                 </div>
                 <span className="font-medium text-text-primary">{agency.template_count}</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* AI Modules Card */}
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-purple-50 rounded-lg">
+                <Sparkles className="h-5 w-5 text-purple-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-text-primary">AI Modules</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-text-primary">AI Itinerary Builder</span>
+                    {agency.ai_builder_enabled && (
+                      <Badge variant="success" className="text-xs">Active</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-text-secondary mt-1">
+                    Allows this agency to turn pasted trip content into reusable templates.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer ml-4">
+                  <input
+                    type="checkbox"
+                    checked={agency.ai_builder_enabled || false}
+                    onChange={(e) => handleToggleAIBuilder(e.target.checked)}
+                    disabled={aiModuleLoading}
+                    className="sr-only peer"
+                  />
+                  <div className={`
+                    w-11 h-6 bg-gray-200 rounded-full peer
+                    peer-checked:after:translate-x-full peer-checked:after:border-white
+                    after:content-[''] after:absolute after:top-0.5 after:left-[2px]
+                    after:bg-white after:border-gray-300 after:border after:rounded-full
+                    after:h-5 after:w-5 after:transition-all
+                    peer-checked:bg-purple-600
+                    ${aiModuleLoading ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}></div>
+                </label>
               </div>
             </div>
           </Card>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Home,
@@ -11,11 +11,12 @@ import {
   Building,
   Building2,
   LayoutDashboard,
-  Settings,
   BarChart3,
   Gamepad2,
+  Wand2,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { aiBuilderAPI } from '../../api/ai-builder';
 
 interface NavItem {
   name: string;
@@ -50,6 +51,16 @@ const adminNavItems: NavItem[] = [
 const Sidebar: React.FC = () => {
   const { user } = useAuthStore();
   const isBizvoyAdmin = user?.is_bizvoy_admin || false;
+  const [aiBuilderEnabled, setAIBuilderEnabled] = useState(false);
+
+  // Check if AI Builder is enabled for this agency
+  useEffect(() => {
+    if (!isBizvoyAdmin && user?.agency_id) {
+      aiBuilderAPI.getStatus()
+        .then(status => setAIBuilderEnabled(status.enabled))
+        .catch(() => setAIBuilderEnabled(false));
+    }
+  }, [isBizvoyAdmin, user?.agency_id]);
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
@@ -115,6 +126,30 @@ const Sidebar: React.FC = () => {
                 </NavLink>
               );
             })}
+
+            {/* AI Builder Section - Only if enabled */}
+            {aiBuilderEnabled && (
+              <>
+                <div className="pt-6 pb-1">
+                  <p className="px-4 text-xs font-semibold text-purple-600 uppercase tracking-wider">
+                    AI Tools
+                  </p>
+                </div>
+                <NavLink
+                  to="/ai-builder"
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-purple-50 text-purple-600'
+                        : 'text-text-secondary hover:bg-gray-50 hover:text-text-primary'
+                    }`
+                  }
+                >
+                  <Wand2 className="mr-3 h-5 w-5" />
+                  AI Itinerary Builder
+                </NavLink>
+              </>
+            )}
 
             {/* Gamification Section */}
             <div className="pt-6 pb-1">

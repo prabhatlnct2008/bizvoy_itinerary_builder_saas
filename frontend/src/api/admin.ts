@@ -129,6 +129,20 @@ export const adminAPI = {
     );
     return response.data;
   },
+
+  /**
+   * Toggle AI module permissions for an agency
+   */
+  toggleAIModules: async (
+    agencyId: string,
+    data: { ai_builder_enabled: boolean }
+  ): Promise<{ id: string; name: string; ai_builder_enabled: boolean; message: string }> => {
+    const response = await apiClient.patch(
+      `${API_PREFIX}/agencies/${agencyId}/ai-modules`,
+      data
+    );
+    return response.data;
+  },
 };
 
 export default adminAPI;

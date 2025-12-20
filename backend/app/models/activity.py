@@ -72,6 +72,10 @@ class Activity(Base):
     # Internal
     internal_notes = Column(Text, nullable=True)
 
+    # AI Builder tracking
+    created_via_ai_builder = Column(Boolean, default=False, nullable=False)
+    ai_builder_session_id = Column(String(36), ForeignKey("ai_builder_sessions.id", ondelete="SET NULL"), nullable=True)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -86,6 +90,9 @@ class Activity(Base):
 
     # Gamification relationships
     deck_interactions = relationship("UserDeckInteraction", back_populates="activity", cascade="all, delete-orphan")
+
+    # AI Builder relationship
+    ai_builder_session = relationship("AIBuilderSession", foreign_keys=[ai_builder_session_id])
 
     def __repr__(self):
         return f"<Activity(id={self.id}, name={self.name}, agency_id={self.agency_id})>"

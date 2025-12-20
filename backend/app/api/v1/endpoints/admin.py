@@ -26,7 +26,9 @@ from app.schemas.admin import (
     ResendInvitationResponse,
     AgencyStatusChange,
     ChangePasswordRequest,
-    ChangePasswordResponse
+    ChangePasswordResponse,
+    AIModuleToggle,
+    AIModuleResponse
 )
 from app.services.email_service import (
     generate_temporary_password,
@@ -563,3 +565,32 @@ def get_agency_users(
         )
         for user in users
     ]
+
+
+@router.patch("/agencies/{agency_id}/ai-modules", response_model=AIModuleResponse)
+def toggle_ai_modules(
+    agency_id: str,
+    toggle_data: AIModuleToggle,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_bizvoy_admin)
+):
+    """Toggle AI module permissions for an agency (Bizvoy Admin only)"""
+    agency = db.query(Agency).filter(Agency.id == agency_id).first()
+    if not agency:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agency not found"
+        )
+
+    # Update AI builder permission
+    agency.ai_builder_enabled = toggle_data.ai_builder_enabled
+    db.commit()
+    db.refresh(agency)
+
+    status_text = "enabled" if toggle_data.ai_builder_enabled else "disabled"
+    return AIModuleResponse(
+        id=agency.id,
+        name=agency.name,
+        ai_builder_enabled=agency.ai_builder_enabled,
+        message=f"AI Itinerary Builder has been {status_text} for {agency.name}"
+    )
