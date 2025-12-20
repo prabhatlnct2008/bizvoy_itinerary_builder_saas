@@ -180,9 +180,19 @@ def main() -> int:
             print("  + Created index on ai_builder_draft_activities")
 
         # ============================================================
+        # ADD AI_BUILDER_ENABLED TO AGENCIES TABLE
+        # ============================================================
+        print("\n[3/4] Adding AI Builder toggle to agencies table...")
+
+        add_column_if_missing(
+            cursor, "agencies", "ai_builder_enabled",
+            "INTEGER DEFAULT 0 NOT NULL"
+        )
+
+        # ============================================================
         # ADD TRACKING COLUMNS TO ACTIVITIES TABLE
         # ============================================================
-        print("\n[3/3] Adding AI tracking columns to activities table...")
+        print("\n[4/4] Adding AI tracking columns to activities table...")
 
         add_column_if_missing(
             cursor, "activities", "created_via_ai_builder",
