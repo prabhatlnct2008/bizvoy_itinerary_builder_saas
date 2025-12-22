@@ -283,6 +283,37 @@ For NOTE items (important information without activity):
         # Get LLM-generated template structure (now in exact schema format)
         template_structure = self._get_template_structure(session, activities_by_day, activity_map)
 
+        # Deterministic fallback if LLM output is missing/invalid
+        if not template_structure or not template_structure.get("days"):
+            logger.warning(f"[AI Builder] Using deterministic template fallback for session {session.id}")
+            template_structure = {
+                "description": "Generated from AI Itinerary Builder",
+                "approximate_price": None,
+                "days": []
+            }
+            for day_num in sorted(activities_by_day.keys()):
+                template_structure["days"].append({
+                    "day_number": day_num,
+                    "title": draft_by_day[day_num][0].day_title if draft_by_day[day_num] and draft_by_day[day_num][0].day_title else f"Day {day_num}",
+                    "notes": None,
+                    "activities": [
+                        {
+                            "activity_id": item["activity_id"],
+                            "item_type": "LIBRARY_ACTIVITY",
+                            "custom_title": None,
+                            "custom_payload": None,
+                            "custom_icon": None,
+                            "display_order": idx,
+                            "time_slot": None,
+                            "custom_notes": None,
+                            "start_time": None,
+                            "end_time": None,
+                            "is_locked_by_agency": False
+                        }
+                        for idx, item in enumerate(sorted(activities_by_day[day_num], key=lambda x: x.get("order_index", 0)))
+                    ]
+                })
+
         # Determine template name
         final_name = template_name or session.trip_title or f"AI Generated - {session.destination or 'Trip'}"
 
@@ -409,6 +440,9 @@ For NOTE items (important information without activity):
             db=db
         )
 
+        logger.info(f"[AI Builder] Template {template.id} created from session {session.id} "
+                    f"(created={activities_created}, reused={activities_reused})")
+
         return TemplateCreationResponse(
             template_id=template.id,
             template_name=template.name,
@@ -463,7 +497,7 @@ CRITICAL RULES:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=4000
+                max_tokens=1500
             )
 
             response_text = completion.choices[0].message.content if completion.choices else ""

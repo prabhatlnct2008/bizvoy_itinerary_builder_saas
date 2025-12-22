@@ -7,7 +7,7 @@ from app.core.config import settings
 engine = create_engine(
     settings.DATABASE_URL,
     connect_args={"check_same_thread": False},  # Needed for SQLite
-    echo=settings.DEBUG,
+    echo=False,  # Limit SQL logging noise; errors handled via logging config
 )
 
 # Create session factory

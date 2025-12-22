@@ -197,8 +197,11 @@ If no match, set is_match=false, matched_candidate_number=null, match_score=0.0"
             )
 
         try:
+            # Limit candidates to reduce token size
+            limited_candidates = candidates[:5]
+
             # Build comparison prompt
-            prompt = self._build_comparison_prompt(draft, candidates)
+            prompt = self._build_comparison_prompt(draft, limited_candidates)
 
             # Call LLM for comparison
             completion = self.client.chat.completions.create(
@@ -233,8 +236,8 @@ Reply ONLY with valid JSON."""
             match_score = result.get("match_score", 0.0)
             reasoning = result.get("reasoning", "")
 
-            if is_match and candidate_num and 1 <= candidate_num <= len(candidates):
-                matched_activity_id = candidates[candidate_num - 1].activity_id
+            if is_match and candidate_num and 1 <= candidate_num <= len(limited_candidates):
+                matched_activity_id = limited_candidates[candidate_num - 1].activity_id
             else:
                 matched_activity_id = None
                 is_match = False
@@ -273,6 +276,7 @@ Reply ONLY with valid JSON."""
             "new": 0,
             "errors": 0
         }
+        logger.info(f"[AI Builder] Comparing {len(drafts)} drafts for session {session.id}")
 
         for draft in drafts:
             try:
@@ -298,6 +302,7 @@ Reply ONLY with valid JSON."""
                 draft.match_reasoning = f"Comparison error: {str(e)}"
 
         db.commit()
+        logger.info(f"[AI Builder] Comparison stats for session {session.id}: {stats}")
         return stats
 
 

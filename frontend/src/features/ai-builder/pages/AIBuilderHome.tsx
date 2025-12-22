@@ -95,7 +95,7 @@ const AIBuilderHome: React.FC = () => {
         raw_content: formData.raw_content,
       });
 
-      navigate(`/ai-builder/session/${session.id}`);
+      navigate(`/ai-builder/session/${session.id}/breakdown`);
     } catch (err: any) {
       toast.error(err.response?.data?.detail || 'Failed to start AI processing');
     } finally {

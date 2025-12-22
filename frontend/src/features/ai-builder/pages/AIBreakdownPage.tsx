@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Sparkles, Loader2, Check, AlertCircle, ArrowLeft, MapPin, Calendar, RefreshCw } from 'lucide-react';
+import { Sparkles, Loader2, Check, AlertCircle, ArrowLeft, MapPin, Calendar, RefreshCw, Activity, Layers, ListChecks } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
@@ -8,11 +8,11 @@ import StepProgress from '../components/StepProgress';
 import { aiBuilderAPI, AIBuilderSessionResponse } from '../../../api/ai-builder';
 
 const PROGRESS_STEPS = [
-  { step: 1, label: 'Reading your content' },
-  { step: 2, label: 'Detecting days & dates' },
-  { step: 3, label: 'Finding stays, meals & experiences' },
-  { step: 4, label: 'Grouping by day' },
-  { step: 5, label: 'Drafting activity cards' },
+  { step: 1, label: 'Reading your content', detail: 'Extracting days, destinations, and key phrases.' },
+  { step: 2, label: 'Drafting activity cards', detail: 'Naming, describing, and enriching experiences.' },
+  { step: 3, label: 'Finding matches', detail: 'Comparing with your library to suggest reuse.' },
+  { step: 4, label: 'Structuring template', detail: 'Grouping by day and ordering activities.' },
+  { step: 5, label: 'Ready to review', detail: 'Drafts are ready for your edits.' },
 ];
 
 const AIBreakdownPage: React.FC = () => {
@@ -95,7 +95,7 @@ const AIBreakdownPage: React.FC = () => {
 
   // Calculate summary stats
   const summary = session.parsed_summary || {};
-  const totalActivities = (summary.stays || 0) + (summary.meals || 0) + (summary.experiences || 0) + (summary.transfers || 0);
+  const totalActivities = (summary.total_activities ?? ((summary.stays || 0) + (summary.meals || 0) + (summary.experiences || 0) + (summary.transfers || 0)));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -132,8 +132,8 @@ const AIBreakdownPage: React.FC = () => {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="space-y-6">
-          {/* Progress Card */}
-          <Card className="p-6">
+            {/* Progress Card */}
+            <Card className="p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-6">
               {isProcessing ? 'AI is turning your notes into activities...' :
                isCompleted ? 'Processing complete!' :
@@ -147,10 +147,10 @@ const AIBreakdownPage: React.FC = () => {
                 const isStepActive = session.current_step === step.step && isProcessing;
 
                 return (
-                  <div key={step.step} className="flex items-center gap-4">
+                  <div key={step.step} className="flex items-start gap-4">
                     <div
                       className={`
-                        w-8 h-8 rounded-full flex items-center justify-center
+                        w-10 h-10 rounded-full flex items-center justify-center
                         transition-all duration-300
                         ${isStepComplete
                           ? 'bg-green-100 text-green-600'
@@ -168,19 +168,24 @@ const AIBreakdownPage: React.FC = () => {
                         <span className="text-sm font-medium">{step.step}</span>
                       )}
                     </div>
-                    <span
-                      className={`
-                        text-sm font-medium
-                        ${isStepComplete
-                          ? 'text-green-600'
-                          : isStepActive
-                            ? 'text-blue-600'
-                            : 'text-gray-400'
-                        }
-                      `}
-                    >
-                      {step.label}
-                    </span>
+                    <div className="flex-1">
+                      <span
+                        className={`
+                          text-sm font-semibold
+                          ${isStepComplete
+                            ? 'text-green-700'
+                            : isStepActive
+                              ? 'text-blue-700'
+                              : 'text-gray-500'
+                          }
+                        `}
+                      >
+                        {step.label}
+                      </span>
+                      {step.detail && (
+                        <p className="text-xs text-gray-500 mt-1">{step.detail}</p>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -196,10 +201,56 @@ const AIBreakdownPage: React.FC = () => {
                     <p className="text-sm text-red-600 mt-1">
                       {session.error_message || 'An error occurred while processing your content.'}
                     </p>
+                    <div className="flex gap-3 mt-3">
+                      <button
+                        onClick={() => navigate('/ai-builder')}
+                        className="text-sm text-gray-700 hover:text-gray-900 underline"
+                      >
+                        Back to start
+                      </button>
+                      <button
+                        onClick={fetchSessionStatus}
+                        className="text-sm text-purple-700 hover:text-purple-900 underline"
+                      >
+                        Retry status
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* Live Counters */}
+            <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 bg-gray-50 rounded-lg flex items-center gap-2">
+                <Activity className="w-4 h-4 text-purple-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Drafts</p>
+                  <p className="text-sm font-semibold text-gray-900">{summary.total_activities || 0}</p>
+                </div>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg flex items-center gap-2">
+                <Layers className="w-4 h-4 text-blue-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Days detected</p>
+                  <p className="text-sm font-semibold text-gray-900">{session.detected_days || '-'}</p>
+                </div>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg flex items-center gap-2">
+                <ListChecks className="w-4 h-4 text-green-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Matches (est.)</p>
+                  <p className="text-sm font-semibold text-gray-900">{session.activities_reused || 0}</p>
+                </div>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <div>
+                  <p className="text-xs text-gray-500">New (est.)</p>
+                  <p className="text-sm font-semibold text-gray-900">{session.activities_created || 0}</p>
+                </div>
+              </div>
+            </div>
           </Card>
 
           {/* Preview Card - Only show when completed */}
@@ -250,6 +301,27 @@ const AIBreakdownPage: React.FC = () => {
               <p className="text-sm text-gray-600 mt-4">
                 You'll be able to edit everything in the next step.
               </p>
+            </Card>
+          )}
+
+          {/* Early Peek at Drafts if processing is still running but we have counts */}
+          {isProcessing && (summary.total_activities || 0) > 0 && (
+            <Card className="p-5 bg-blue-50 border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-blue-900">Drafts are being prepared</h4>
+                  <p className="text-xs text-blue-800 mt-1">
+                    {summary.total_activities} draft activit{summary.total_activities === 1 ? 'y' : 'ies'} detected so far.
+                  </p>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => navigate(`/ai-builder/session/${sessionId}/review`)}
+                >
+                  Open review
+                </Button>
+              </div>
             </Card>
           )}
 

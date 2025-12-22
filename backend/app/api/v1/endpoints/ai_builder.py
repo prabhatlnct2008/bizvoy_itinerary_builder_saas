@@ -1,5 +1,5 @@
 """AI Itinerary Builder API endpoints"""
-
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -7,6 +7,7 @@ from typing import Optional
 from datetime import datetime
 
 from app.core.deps import get_db, get_current_user
+from app.services.rbac_service import has_permission
 from app.models.user import User
 from app.models.agency import Agency
 from app.models.activity_type import ActivityType
@@ -33,21 +34,26 @@ from app.schemas.ai_builder import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def require_ai_builder_access(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> User:
-    """Require user to be agency admin with AI builder enabled"""
-    # Must be agency admin (superuser at agency level)
-    if not current_user.is_superuser:
+    """Require agency user with permission and AI builder enabled (Bizvoy admin bypasses flag)."""
+    # Bizvoy platform admins can bypass agency flag
+    if current_user.is_bizvoy_admin:
+        return current_user
+
+    # Require templates.create (agency-admin level) permission
+    if not has_permission(current_user, "templates.create", db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Agency admin privileges required"
+            detail="AI Itinerary Builder requires template creation permission"
         )
 
-    # Check if agency has AI builder enabled
+    # Check agency toggle
     agency = db.query(Agency).filter(Agency.id == current_user.agency_id).first()
     if not agency or not agency.ai_builder_enabled:
         raise HTTPException(
@@ -510,6 +516,8 @@ async def process_ai_session(session_id: str):
         if not session:
             return
 
+        logger.info(f"[AI Builder] Starting processing for session {session_id}")
+
         # Update status to processing
         session.status = AISessionStatus.processing
         db.commit()
@@ -536,11 +544,13 @@ async def process_ai_session(session_id: str):
         session.status = AISessionStatus.completed
         session.completed_at = datetime.utcnow()
         db.commit()
+        logger.info(f"[AI Builder] Completed processing for session {session_id}")
 
     except Exception as e:
         if session:
             session.status = AISessionStatus.failed
             session.error_message = f"Processing error: {str(e)}"
             db.commit()
+        logger.exception(f"[AI Builder] Processing error for session {session_id}: {e}")
     finally:
         db.close()

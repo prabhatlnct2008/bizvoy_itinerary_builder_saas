@@ -2,8 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
+from app.core.logging_config import setup_logging
 from app.db.session import engine, Base
 import os
+
+# Configure logging
+setup_logging()
 
 # Create FastAPI app
 app = FastAPI(
