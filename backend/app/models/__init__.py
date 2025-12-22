@@ -11,6 +11,7 @@ from app.models.activity_image import ActivityImage
 from app.models.template import Template, TemplateDay, TemplateDayActivity
 from app.models.itinerary import Itinerary, ItineraryDay, ItineraryDayActivity
 from app.models.itinerary_pricing import ItineraryPricing
+from app.models.itinerary_payment import ItineraryPayment, PaymentType, PaymentMethod
 from app.models.share import ShareLink, PDFExport
 from app.models.company_profile import CompanyProfile
 
@@ -54,6 +55,9 @@ __all__ = [
     "ItineraryDay",
     "ItineraryDayActivity",
     "ItineraryPricing",
+    "ItineraryPayment",
+    "PaymentType",
+    "PaymentMethod",
     "ShareLink",
     "PDFExport",
     "CompanyProfile",

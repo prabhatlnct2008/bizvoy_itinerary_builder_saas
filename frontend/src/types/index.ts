@@ -571,8 +571,36 @@ export interface PublicPricing {
   taxes_fees: number | null;
   discount_code: string | null;
   discount_amount: number | null;
+  discount_percent: number | null;
   total: number | null;
   currency: string;
+  // Payment schedule fields
+  advance_enabled: boolean;
+  advance_type: string | null;
+  advance_amount: number | null;
+  advance_percent: number | null;
+  advance_deadline: string | null;
+  final_deadline: string | null;
+}
+
+export interface PublicPaymentRecord {
+  id: string;
+  payment_type: string;
+  amount: number;
+  currency: string;
+  paid_at: string | null;
+}
+
+export interface PublicPaymentSummary {
+  total_amount: number;
+  total_paid: number;
+  balance_due: number;
+  currency: string;
+  advance_required: number | null;
+  advance_paid: boolean;
+  advance_deadline: string | null;
+  final_deadline: string | null;
+  payments: PublicPaymentRecord[];
 }
 
 export interface TripOverview {
@@ -600,6 +628,7 @@ export interface PublicItineraryResponse {
   trip_overview: TripOverview;
   company_profile: PublicCompanyProfile | null;
   pricing: PublicPricing | null;
+  payment_summary: PublicPaymentSummary | null;
   live_updates_enabled: boolean;
   share_link: ShareLink;
   // Personalization fields

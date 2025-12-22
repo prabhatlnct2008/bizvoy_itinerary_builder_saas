@@ -16,6 +16,8 @@ from app.schemas.share import (
     PublicActivityImage,
     PublicCompanyProfile,
     PublicPricing,
+    PublicPaymentSummary,
+    PublicPaymentRecord,
     TripOverview,
     ShareLinkResponse
 )
@@ -107,13 +109,78 @@ def _compute_pricing_snapshot(itinerary) -> PublicPricing:
 
     total = (base_package if base_package is not None else 0) + taxes - discount_total
 
+    pricing = getattr(itinerary, "pricing", None)
+
     return PublicPricing(
         base_package=base_package,
         taxes_fees=taxes if taxes else None,
-        discount_code=itinerary.pricing.discount_code if getattr(itinerary, "pricing", None) else None,
+        discount_code=pricing.discount_code if pricing else None,
         discount_amount=discount_total if discount_total else None,
+        discount_percent=float(pricing.discount_percent) if pricing and pricing.discount_percent else None,
         total=total,
-        currency=currency
+        currency=currency,
+        # Payment schedule fields
+        advance_enabled=bool(pricing.advance_enabled) if pricing else False,
+        advance_type=pricing.advance_type if pricing else None,
+        advance_amount=float(pricing.advance_amount) if pricing and pricing.advance_amount else None,
+        advance_percent=float(pricing.advance_percent) if pricing and pricing.advance_percent else None,
+        advance_deadline=pricing.advance_deadline if pricing else None,
+        final_deadline=pricing.final_deadline if pricing else None,
+    )
+
+
+def _compute_public_payment_summary(itinerary) -> PublicPaymentSummary | None:
+    """
+    Build a public-facing payment summary showing what's been paid and what's due.
+    """
+    pricing = getattr(itinerary, "pricing", None)
+    payments = getattr(itinerary, "payments", []) or []
+
+    if not pricing or not pricing.total:
+        return None
+
+    total_amount = float(pricing.total)
+    total_paid = sum(float(p.amount) for p in payments)
+    balance_due = max(0.0, total_amount - total_paid)
+
+    # Compute advance requirement
+    advance_required = None
+    advance_paid = False
+
+    if pricing.advance_enabled:
+        if pricing.advance_type == "fixed" and pricing.advance_amount:
+            advance_required = float(pricing.advance_amount)
+        elif pricing.advance_type == "percent" and pricing.advance_percent:
+            advance_required = total_amount * (float(pricing.advance_percent) / 100)
+
+        if advance_required:
+            advance_payments = sum(
+                float(p.amount) for p in payments if p.payment_type == "advance"
+            )
+            advance_paid = advance_payments >= advance_required
+
+    # Build public payment records
+    public_payments = [
+        PublicPaymentRecord(
+            id=p.id,
+            payment_type=p.payment_type,
+            amount=float(p.amount),
+            currency=p.currency,
+            paid_at=p.paid_at,
+        )
+        for p in payments
+    ]
+
+    return PublicPaymentSummary(
+        total_amount=total_amount,
+        total_paid=total_paid,
+        balance_due=balance_due,
+        currency=pricing.currency,
+        advance_required=advance_required,
+        advance_paid=advance_paid,
+        advance_deadline=pricing.advance_deadline,
+        final_deadline=pricing.final_deadline,
+        payments=public_payments,
     )
 
 
@@ -339,6 +406,9 @@ def get_public_itinerary(
     # Keep itinerary.total_price in sync for legacy fields
     itinerary.total_price = pricing_data.total
 
+    # Get payment summary (dynamic based on recorded payments)
+    payment_summary_data = _compute_public_payment_summary(itinerary)
+
     # Build share link response
     share_link_response = ShareLinkResponse(
         id=share_link.id,
@@ -375,6 +445,7 @@ def get_public_itinerary(
         trip_overview=trip_overview,
         company_profile=company_profile_data,
         pricing=pricing_data,
+        payment_summary=payment_summary_data,
         live_updates_enabled=share_link.live_updates_enabled,
         share_link=share_link_response,
         personalization_enabled=personalization_enabled,

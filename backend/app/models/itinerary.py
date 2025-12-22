@@ -53,7 +53,7 @@ class Itinerary(Base):
     share_links = relationship("ShareLink", back_populates="itinerary", cascade="all, delete-orphan")
     pdf_exports = relationship("PDFExport", back_populates="itinerary", cascade="all, delete-orphan")
     pricing = relationship("ItineraryPricing", back_populates="itinerary", uselist=False, cascade="all, delete-orphan")
-    personalization_sessions = relationship("PersonalizationSession", back_populates="itinerary", cascade="all, delete-orphan")
+    payments = relationship("ItineraryPayment", back_populates="itinerary", cascade="all, delete-orphan", order_by="ItineraryPayment.created_at")
 
     # Gamification relationships
     personalization_sessions = relationship("PersonalizationSession", back_populates="itinerary", cascade="all, delete-orphan")
