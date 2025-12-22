@@ -160,7 +160,7 @@ const PublicItinerary: React.FC<PublicItineraryProps> = ({
     );
   }
 
-  const { trip_overview, company_profile, pricing } = itinerary;
+  const { trip_overview, company_profile, pricing, payment_summary } = itinerary;
   const totalDays = trip_overview?.total_days || itinerary.days.length;
   const totalNights = trip_overview?.total_nights || Math.max(0, itinerary.days.length - 1);
 
@@ -275,6 +275,7 @@ const PublicItinerary: React.FC<PublicItineraryProps> = ({
         <ItineraryFooter
           companyProfile={company_profile}
           pricing={pricing}
+          paymentSummary={payment_summary}
           totalPrice={itinerary.total_price}
           baseUrl={baseUrl}
         />

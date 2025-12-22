@@ -9,6 +9,7 @@ import Chip from '../../components/ui/Chip';
 import ShareModal from './ShareModal';
 import LogisticsItemForm from './components/LogisticsItemForm';
 import CustomActivityForm from './components/CustomActivityForm';
+import PaymentSection from './components/PaymentSection';
 import { ActivityLibraryModal, ItineraryPreviewModal } from '../../components/modals';
 import itinerariesApi from '../../api/itineraries';
 import activitiesApi from '../../api/activities';
@@ -690,6 +691,12 @@ const ItineraryEditor: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Section */}
+      <PaymentSection
+        itineraryId={currentItinerary.id}
+        currency={currency}
+      />
 
       {/* Activity Library Modal (with filtering and preview) */}
       <ActivityLibraryModal

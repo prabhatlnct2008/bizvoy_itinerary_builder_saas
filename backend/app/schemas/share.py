@@ -130,14 +130,47 @@ class PublicCompanyProfile(BaseModel):
     payment_note: Optional[str] = None
 
 
+# --- Payment Record for Public ---
+class PublicPaymentRecord(BaseModel):
+    """Payment record visible to client"""
+    id: str
+    payment_type: str
+    amount: float
+    currency: str
+    paid_at: Optional[datetime] = None
+
+
+# --- Payment Summary for Public ---
+class PublicPaymentSummary(BaseModel):
+    """Payment status summary visible to client"""
+    total_amount: float
+    total_paid: float
+    balance_due: float
+    currency: str
+    advance_required: Optional[float] = None
+    advance_paid: bool = False
+    advance_deadline: Optional[datetime] = None
+    final_deadline: Optional[datetime] = None
+    payments: List[PublicPaymentRecord] = []
+
+
 # --- Pricing for Public ---
 class PublicPricing(BaseModel):
     base_package: Optional[float] = None
     taxes_fees: Optional[float] = None
     discount_code: Optional[str] = None
     discount_amount: Optional[float] = None
+    discount_percent: Optional[float] = None
     total: Optional[float] = None
     currency: str = "USD"
+
+    # Payment schedule fields
+    advance_enabled: bool = False
+    advance_type: Optional[str] = None
+    advance_amount: Optional[float] = None
+    advance_percent: Optional[float] = None
+    advance_deadline: Optional[datetime] = None
+    final_deadline: Optional[datetime] = None
 
 
 # --- Trip Overview Stats ---
@@ -176,6 +209,9 @@ class PublicItineraryResponse(BaseModel):
 
     # Pricing breakdown
     pricing: Optional[PublicPricing] = None
+
+    # Payment status summary (dynamic based on recorded payments)
+    payment_summary: Optional[PublicPaymentSummary] = None
 
     # Share link metadata
     live_updates_enabled: bool

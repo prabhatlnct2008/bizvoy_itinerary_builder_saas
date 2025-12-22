@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Phone, Globe, Building2, Sparkles, Shield } from 'lucide-react';
+import { Mail, Phone, Globe, Building2, Sparkles, Shield, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export interface CompanyProfile {
   company_name?: string | null;
@@ -18,13 +18,41 @@ export interface Pricing {
   taxes_fees?: number | null;
   discount_code?: string | null;
   discount_amount?: number | null;
+  discount_percent?: number | null;
   total?: number | null;
   currency?: string;
+  advance_enabled?: boolean;
+  advance_type?: string | null;
+  advance_amount?: number | null;
+  advance_percent?: number | null;
+  advance_deadline?: string | null;
+  final_deadline?: string | null;
+}
+
+export interface PaymentRecord {
+  id: string;
+  payment_type: string;
+  amount: number;
+  currency: string;
+  paid_at?: string | null;
+}
+
+export interface PaymentSummary {
+  total_amount: number;
+  total_paid: number;
+  balance_due: number;
+  currency: string;
+  advance_required?: number | null;
+  advance_paid: boolean;
+  advance_deadline?: string | null;
+  final_deadline?: string | null;
+  payments: PaymentRecord[];
 }
 
 interface ItineraryFooterProps {
   companyProfile?: CompanyProfile | null;
   pricing?: Pricing | null;
+  paymentSummary?: PaymentSummary | null;
   totalPrice?: number | null;
   baseUrl: string;
   priceCurrency?: string;
@@ -33,6 +61,7 @@ interface ItineraryFooterProps {
 const ItineraryFooter: React.FC<ItineraryFooterProps> = ({
   companyProfile,
   pricing,
+  paymentSummary,
   totalPrice,
   baseUrl,
   priceCurrency,
@@ -44,6 +73,21 @@ const ItineraryFooter: React.FC<ItineraryFooterProps> = ({
     const curr = currency || pricing?.currency || priceCurrency || 'USD';
     return `${curr} ${value.toLocaleString()}`;
   };
+
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  // Use payment summary if available, otherwise fall back to pricing
+  const displayTotal = paymentSummary?.total_amount ?? pricing?.total ?? totalPrice;
+  const displayPaid = paymentSummary?.total_paid ?? 0;
+  const displayBalance = paymentSummary?.balance_due ?? displayTotal ?? 0;
+  const hasPayments = paymentSummary && paymentSummary.payments.length > 0;
 
   return (
     <section className="bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 rounded-3xl p-8 md:p-10">
@@ -145,20 +189,89 @@ const ItineraryFooter: React.FC<ItineraryFooterProps> = ({
                   </span>
                 </div>
               )}
+              {pricing.discount_percent !== undefined && pricing.discount_percent !== null && pricing.discount_percent > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-emerald-600">Discount ({pricing.discount_percent}%)</span>
+                  <span className="text-emerald-600 font-medium">Applied</span>
+                </div>
+              )}
             </div>
 
             {/* Total */}
-            <div className="border-t border-slate-200 pt-4 mb-5">
+            <div className="border-t border-slate-200 pt-4 mb-4">
               <div className="flex justify-between items-center">
                 <span className="text-slate-900 font-bold">Total</span>
                 <span className="text-2xl font-bold text-amber-500">
-                  {formatPrice(pricing.total || totalPrice, pricing.currency)}
+                  {formatPrice(displayTotal, pricing.currency)}
                 </span>
               </div>
             </div>
 
+            {/* Payment Status Section */}
+            {paymentSummary && (displayPaid > 0 || pricing.advance_enabled) && (
+              <div className="border-t border-slate-200 pt-4 mb-4 space-y-3">
+                {/* Amount Paid */}
+                {displayPaid > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-emerald-600 flex items-center gap-1">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Paid
+                    </span>
+                    <span className="text-emerald-600 font-medium">
+                      {formatPrice(displayPaid, paymentSummary.currency)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Balance Due */}
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-900 font-bold">Balance Due</span>
+                  <span className={`text-xl font-bold ${displayBalance > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {formatPrice(displayBalance, paymentSummary.currency)}
+                  </span>
+                </div>
+
+                {/* Advance Payment Status */}
+                {pricing.advance_enabled && paymentSummary.advance_required && (
+                  <div className={`flex items-center gap-2 text-sm p-2 rounded-lg ${
+                    paymentSummary.advance_paid ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                  }`}>
+                    {paymentSummary.advance_paid ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Advance payment received</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-4 h-4" />
+                        <span>Advance required: {formatPrice(paymentSummary.advance_required, paymentSummary.currency)}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Payment Deadlines */}
+                {(paymentSummary.advance_deadline || paymentSummary.final_deadline) && (
+                  <div className="space-y-2 text-sm">
+                    {paymentSummary.advance_deadline && !paymentSummary.advance_paid && (
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Calendar className="w-4 h-4" />
+                        <span>Advance due: {formatDate(paymentSummary.advance_deadline)}</span>
+                      </div>
+                    )}
+                    {paymentSummary.final_deadline && displayBalance > 0 && (
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Calendar className="w-4 h-4" />
+                        <span>Final payment due: {formatDate(paymentSummary.final_deadline)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Discount Code */}
-            <div>
+            <div className="border-t border-slate-200 pt-4">
               <p className="text-sm text-slate-600 mb-2">Have a discount code?</p>
               <div className="flex gap-2">
                 <input

@@ -2,6 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime
+from decimal import Decimal
 from app.core.deps import get_db, get_current_user, get_current_agency_id, require_permission
 from app.schemas.itinerary import (
     ItineraryCreate,
@@ -11,8 +12,17 @@ from app.schemas.itinerary import (
     ItineraryDayDetailResponse,
     ItineraryDayActivityResponse
 )
+from app.schemas.itinerary_pricing import (
+    ItineraryPricingUpdate,
+    ItineraryPricingWithPayments,
+    ItineraryPaymentCreate,
+    ItineraryPaymentUpdate,
+    ItineraryPaymentResponse,
+    PaymentSummary,
+)
 from app.schemas.auth import MessageResponse
 from app.models.itinerary import Itinerary, ItineraryDay, ItineraryDayActivity
+from app.models.itinerary_payment import ItineraryPayment
 from app.models.share import ShareLink
 from app.models.user import User
 from app.services.template_service import template_service
@@ -486,3 +496,296 @@ def _build_public_itinerary_payload(itinerary: Itinerary, share_link: ShareLink)
             "created_at": share_link.created_at.isoformat() if share_link.created_at else None,
         }
     }
+
+
+# ============================================================
+# PAYMENT SCHEDULE AND PAYMENT TRACKING ENDPOINTS
+# ============================================================
+
+
+def _compute_payment_summary(itinerary: Itinerary) -> dict:
+    """Compute payment summary including total paid, balance due, advance status"""
+    pricing = itinerary.pricing
+    payments = itinerary.payments or []
+
+    total_amount = Decimal("0.00")
+    if pricing and pricing.total:
+        total_amount = Decimal(str(pricing.total))
+
+    total_paid = sum(Decimal(str(p.amount)) for p in payments)
+    balance_due = max(Decimal("0.00"), total_amount - total_paid)
+
+    # Check advance payment status
+    advance_required = None
+    advance_paid = False
+
+    if pricing and pricing.advance_enabled:
+        if pricing.advance_type == "fixed" and pricing.advance_amount:
+            advance_required = Decimal(str(pricing.advance_amount))
+        elif pricing.advance_type == "percent" and pricing.advance_percent:
+            advance_required = total_amount * (Decimal(str(pricing.advance_percent)) / Decimal("100"))
+
+        if advance_required:
+            # Check if advance payments cover the required amount
+            advance_payments = sum(
+                Decimal(str(p.amount)) for p in payments if p.payment_type == "advance"
+            )
+            advance_paid = advance_payments >= advance_required
+
+    return {
+        "total_amount": total_amount,
+        "total_paid": total_paid,
+        "balance_due": balance_due,
+        "currency": pricing.currency if pricing else "USD",
+        "advance_required": advance_required,
+        "advance_paid": advance_paid,
+        "advance_deadline": pricing.advance_deadline if pricing else None,
+        "final_deadline": pricing.final_deadline if pricing else None,
+    }
+
+
+@router.get("/{itinerary_id}/pricing", response_model=ItineraryPricingWithPayments)
+def get_itinerary_pricing_with_payments(
+    itinerary_id: str,
+    agency_id: str = Depends(get_current_agency_id),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("itineraries.view"))
+):
+    """Get itinerary pricing with all payments and summary"""
+    itinerary = db.query(Itinerary).filter(
+        Itinerary.id == itinerary_id,
+        Itinerary.agency_id == agency_id
+    ).first()
+
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+
+    if not itinerary.pricing:
+        # Create empty pricing record
+        from app.models.itinerary_pricing import ItineraryPricing
+        itinerary.pricing = ItineraryPricing(itinerary_id=itinerary.id)
+        db.add(itinerary.pricing)
+        db.commit()
+        db.refresh(itinerary)
+
+    summary = _compute_payment_summary(itinerary)
+
+    # Build response
+    response_data = {
+        **itinerary.pricing.__dict__,
+        "payments": itinerary.payments or [],
+        "total_paid": summary["total_paid"],
+        "balance_due": summary["balance_due"],
+        "advance_required": summary["advance_required"],
+        "advance_paid": summary["advance_paid"],
+    }
+    # Remove SQLAlchemy internal state
+    response_data = {k: v for k, v in response_data.items() if not k.startswith("_")}
+
+    return ItineraryPricingWithPayments(**response_data)
+
+
+@router.put("/{itinerary_id}/pricing", response_model=ItineraryPricingWithPayments)
+def update_itinerary_pricing(
+    itinerary_id: str,
+    data: ItineraryPricingUpdate,
+    agency_id: str = Depends(get_current_agency_id),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("itineraries.edit"))
+):
+    """Update itinerary pricing and payment schedule"""
+    itinerary = db.query(Itinerary).filter(
+        Itinerary.id == itinerary_id,
+        Itinerary.agency_id == agency_id
+    ).first()
+
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+
+    if not itinerary.pricing:
+        from app.models.itinerary_pricing import ItineraryPricing
+        itinerary.pricing = ItineraryPricing(itinerary_id=itinerary.id)
+        db.add(itinerary.pricing)
+        db.flush()
+
+    # Update pricing fields
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        if field == "advance_enabled" and value is not None:
+            value = 1 if value else 0
+        setattr(itinerary.pricing, field, value)
+
+    db.commit()
+    db.refresh(itinerary)
+
+    summary = _compute_payment_summary(itinerary)
+
+    response_data = {
+        **itinerary.pricing.__dict__,
+        "payments": itinerary.payments or [],
+        "total_paid": summary["total_paid"],
+        "balance_due": summary["balance_due"],
+        "advance_required": summary["advance_required"],
+        "advance_paid": summary["advance_paid"],
+    }
+    response_data = {k: v for k, v in response_data.items() if not k.startswith("_")}
+
+    return ItineraryPricingWithPayments(**response_data)
+
+
+@router.get("/{itinerary_id}/payments", response_model=List[ItineraryPaymentResponse])
+def get_itinerary_payments(
+    itinerary_id: str,
+    agency_id: str = Depends(get_current_agency_id),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("itineraries.view"))
+):
+    """Get all payment records for an itinerary"""
+    itinerary = db.query(Itinerary).filter(
+        Itinerary.id == itinerary_id,
+        Itinerary.agency_id == agency_id
+    ).first()
+
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+
+    return itinerary.payments or []
+
+
+@router.post("/{itinerary_id}/payments", response_model=ItineraryPaymentResponse)
+def create_payment(
+    itinerary_id: str,
+    data: ItineraryPaymentCreate,
+    agency_id: str = Depends(get_current_agency_id),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("itineraries.edit"))
+):
+    """Record a new payment for an itinerary"""
+    itinerary = db.query(Itinerary).filter(
+        Itinerary.id == itinerary_id,
+        Itinerary.agency_id == agency_id
+    ).first()
+
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+
+    payment = ItineraryPayment(
+        itinerary_id=itinerary.id,
+        payment_type=data.payment_type,
+        amount=data.amount,
+        currency=data.currency,
+        payment_method=data.payment_method,
+        reference_number=data.reference_number,
+        paid_at=data.paid_at,
+        notes=data.notes,
+        confirmed_by=current_user.id,
+    )
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+
+    return payment
+
+
+@router.put("/{itinerary_id}/payments/{payment_id}", response_model=ItineraryPaymentResponse)
+def update_payment(
+    itinerary_id: str,
+    payment_id: str,
+    data: ItineraryPaymentUpdate,
+    agency_id: str = Depends(get_current_agency_id),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("itineraries.edit"))
+):
+    """Update a payment record"""
+    itinerary = db.query(Itinerary).filter(
+        Itinerary.id == itinerary_id,
+        Itinerary.agency_id == agency_id
+    ).first()
+
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+
+    payment = db.query(ItineraryPayment).filter(
+        ItineraryPayment.id == payment_id,
+        ItineraryPayment.itinerary_id == itinerary_id
+    ).first()
+
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    # Update fields
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(payment, field, value)
+
+    db.commit()
+    db.refresh(payment)
+
+    return payment
+
+
+@router.delete("/{itinerary_id}/payments/{payment_id}", response_model=MessageResponse)
+def delete_payment(
+    itinerary_id: str,
+    payment_id: str,
+    agency_id: str = Depends(get_current_agency_id),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("itineraries.edit"))
+):
+    """Delete a payment record"""
+    itinerary = db.query(Itinerary).filter(
+        Itinerary.id == itinerary_id,
+        Itinerary.agency_id == agency_id
+    ).first()
+
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+
+    payment = db.query(ItineraryPayment).filter(
+        ItineraryPayment.id == payment_id,
+        ItineraryPayment.itinerary_id == itinerary_id
+    ).first()
+
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    db.delete(payment)
+    db.commit()
+
+    return MessageResponse(message="Payment deleted successfully")
+
+
+@router.get("/{itinerary_id}/payment-summary", response_model=PaymentSummary)
+def get_payment_summary(
+    itinerary_id: str,
+    agency_id: str = Depends(get_current_agency_id),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("itineraries.view"))
+):
+    """Get payment summary for an itinerary"""
+    from app.schemas.itinerary_pricing import ItineraryPaymentPublic
+
+    itinerary = db.query(Itinerary).filter(
+        Itinerary.id == itinerary_id,
+        Itinerary.agency_id == agency_id
+    ).first()
+
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+
+    summary = _compute_payment_summary(itinerary)
+    payments = [
+        ItineraryPaymentPublic(
+            id=p.id,
+            payment_type=p.payment_type,
+            amount=p.amount,
+            currency=p.currency,
+            paid_at=p.paid_at,
+        )
+        for p in (itinerary.payments or [])
+    ]
+
+    return PaymentSummary(
+        **summary,
+        payments=payments,
+    )
