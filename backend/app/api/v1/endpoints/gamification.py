@@ -18,12 +18,18 @@ from app.schemas.gamification import (
     ActivityGamificationUpdate,
     GamificationValidationResponse,
     GamificationStatusOverview,
+    AgencyPersonalizationAnalytics,
 )
 from app.services.gamification.vibe_service import VibeService
 from app.services.gamification.settings_service import SettingsService
 from app.services.gamification.readiness_calculator import ReadinessCalculator
 from decimal import Decimal
 import json
+from sqlalchemy import func, case
+from app.models.personalization_session import PersonalizationSession, SessionStatus
+from app.models.user_deck_interaction import UserDeckInteraction, InteractionAction
+from app.models.itinerary_cart_item import ItineraryCartItem, CartItemStatus
+from app.models.itinerary import Itinerary
 
 router = APIRouter()
 
@@ -195,6 +201,127 @@ def reorder_vibes(
 # ============================================================
 # ACTIVITY GAMIFICATION ENDPOINTS
 # ============================================================
+
+
+@router.get("/agency/analytics", response_model=AgencyPersonalizationAnalytics)
+def get_agency_analytics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Return personalization analytics scoped to the current agency.
+    This powers the /analytics/personalization page on the frontend.
+    """
+    if not current_user.agency_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User not associated with an agency"
+        )
+
+    # Base session query scoped to agency's itineraries
+    session_q = (
+        db.query(PersonalizationSession)
+        .join(Itinerary, Itinerary.id == PersonalizationSession.itinerary_id)
+        .filter(Itinerary.agency_id == current_user.agency_id)
+    )
+
+    total_sessions = session_q.count()
+    completed_sessions = session_q.filter(PersonalizationSession.status == SessionStatus.completed).count()
+    completion_rate = Decimal(0)
+    if total_sessions > 0:
+        completion_rate = (Decimal(completed_sessions) / Decimal(total_sessions)) * Decimal(100)
+
+    # Confirmation = confirmed cart items out of total cart items for agency itineraries
+    cart_q = (
+        db.query(ItineraryCartItem)
+        .join(Itinerary, Itinerary.id == ItineraryCartItem.itinerary_id)
+        .filter(Itinerary.agency_id == current_user.agency_id)
+    )
+    total_cart_items = cart_q.count()
+    confirmed_cart_items = cart_q.filter(ItineraryCartItem.status == CartItemStatus.CONFIRMED).count()
+    confirmation_rate = Decimal(0)
+    if total_cart_items > 0:
+        confirmation_rate = (Decimal(confirmed_cart_items) / Decimal(total_cart_items)) * Decimal(100)
+
+    # Revenue added = sum of confirmed cart item quoted_price (fallback 0)
+    revenue_sum = (
+        db.query(func.coalesce(func.sum(ItineraryCartItem.quoted_price), 0))
+        .select_from(ItineraryCartItem)
+        .join(Itinerary, Itinerary.id == ItineraryCartItem.itinerary_id)
+        .filter(
+            Itinerary.agency_id == current_user.agency_id,
+            ItineraryCartItem.status == CartItemStatus.CONFIRMED,
+        )
+        .scalar()
+    ) or 0
+    total_revenue_added = Decimal(str(revenue_sum or 0))
+
+    # Sessions over time (last 30 days by start date)
+    sessions_over_time = []
+    rows = (
+        db.query(
+            func.date(PersonalizationSession.started_at).label("day"),
+            func.count(PersonalizationSession.id),
+        )
+        .join(Itinerary, Itinerary.id == PersonalizationSession.itinerary_id)
+        .filter(Itinerary.agency_id == current_user.agency_id)
+        .group_by("day")
+        .order_by("day")
+        .limit(60)
+        .all()
+    )
+    for day, count in rows:
+        sessions_over_time.append({"date": str(day), "count": count})
+
+    # Top performing activities (likes/pass counts)
+    activity_stats = (
+        db.query(
+            UserDeckInteraction.activity_id,
+            func.sum(case((UserDeckInteraction.action == InteractionAction.like, 1), else_=0)).label("like_count"),
+            func.sum(case((UserDeckInteraction.action == InteractionAction.pass_, 1), else_=0)).label("pass_count"),
+        )
+        .join(Itinerary, Itinerary.id == UserDeckInteraction.itinerary_id)
+        .filter(Itinerary.agency_id == current_user.agency_id)
+        .group_by(UserDeckInteraction.activity_id)
+        .order_by(func.sum(case((UserDeckInteraction.action == InteractionAction.like, 1), else_=0)).desc())
+        .limit(10)
+        .all()
+    )
+
+    top_performing_activities = []
+    if activity_stats:
+        activity_ids = [row.activity_id for row in activity_stats]
+        activities = {
+            a.id: a.name
+            for a in db.query(Activity.id, Activity.name)
+            .filter(Activity.id.in_(activity_ids))
+            .all()
+        }
+        for row in activity_stats:
+            top_performing_activities.append({
+                "id": row.activity_id,
+                "name": activities.get(row.activity_id, "Unknown activity"),
+                "like_count": int(row.like_count or 0),
+                "pass_count": int(row.pass_count or 0),
+            })
+
+    # Vibe distribution from sessions.selected_vibes
+    vibe_distribution = {}
+    sessions_with_vibes = session_q.with_entities(PersonalizationSession.selected_vibes).all()
+    for (vibes,) in sessions_with_vibes:
+        if isinstance(vibes, list):
+            for v in vibes:
+                vibe_distribution[v] = vibe_distribution.get(v, 0) + 1
+
+    return AgencyPersonalizationAnalytics(
+        total_sessions=total_sessions,
+        completion_rate=completion_rate.quantize(Decimal("0.01")) if total_sessions else Decimal(0),
+        confirmation_rate=confirmation_rate.quantize(Decimal("0.01")) if total_cart_items else Decimal(0),
+        total_revenue_added=total_revenue_added,
+        sessions_over_time=sessions_over_time,
+        top_performing_activities=top_performing_activities,
+        vibe_distribution=vibe_distribution,
+    )
 
 @router.put("/activities/{activity_id}/gamification")
 def update_activity_gamification(

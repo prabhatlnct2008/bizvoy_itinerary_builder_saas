@@ -276,7 +276,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <CreditCard className="w-5 h-5 text-primary-600" />
+          <CreditCard className="w-6 h-6 text-primary-600" />
           <h2 className="text-lg font-semibold text-primary">Payment & Schedule</h2>
         </div>
       </div>
@@ -316,7 +316,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
       {/* Settings Section */}
       <div className="border-t border-border pt-6 mb-6">
         <h3 className="font-medium text-primary mb-4 flex items-center gap-2">
-          <Percent className="w-4 h-4" />
+          <Percent className="w-5 h-5" />
           Payment Settings
         </h3>
 
@@ -356,7 +356,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
               id="advance-enabled"
               checked={advanceEnabled}
               onChange={(e) => setAdvanceEnabled(e.target.checked)}
-              className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+              className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
             />
             <label htmlFor="advance-enabled" className="font-medium text-primary cursor-pointer">
               Require Advance Payment
@@ -427,7 +427,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
       <div className="border-t border-border pt-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-medium text-primary flex items-center gap-2">
-            <DollarSign className="w-4 h-4" />
+            <DollarSign className="w-5 h-5" />
             Payment Records
           </h3>
           <Button size="sm" onClick={handleAddPayment}>

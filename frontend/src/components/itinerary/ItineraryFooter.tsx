@@ -88,6 +88,8 @@ const ItineraryFooter: React.FC<ItineraryFooterProps> = ({
   const displayPaid = paymentSummary?.total_paid ?? 0;
   const displayBalance = paymentSummary?.balance_due ?? displayTotal ?? 0;
   const hasPayments = paymentSummary && paymentSummary.payments.length > 0;
+  const qrAmount = displayBalance > 0 ? displayBalance : displayTotal ?? 0;
+  const qrCurrency = paymentSummary?.currency || pricing?.currency || priceCurrency;
 
   return (
     <section className="bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 rounded-3xl p-8 md:p-10">
@@ -103,7 +105,7 @@ const ItineraryFooter: React.FC<ItineraryFooterProps> = ({
               />
             ) : (
               <div className="w-16 h-16 rounded-xl bg-slate-700 flex items-center justify-center">
-                <Building2 className="w-8 h-8 text-slate-400" />
+                <Building2 className="w-9 h-9 text-slate-400" />
               </div>
             )}
             <div>
@@ -129,7 +131,7 @@ const ItineraryFooter: React.FC<ItineraryFooterProps> = ({
                 href={`mailto:${companyProfile.email}`}
                 className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors"
               >
-                <Mail className="w-5 h-5 text-slate-400" />
+                <Mail className="w-5 h-5 text-slate-300" />
                 <span className="text-sm">{companyProfile.email}</span>
               </a>
             )}
@@ -138,7 +140,7 @@ const ItineraryFooter: React.FC<ItineraryFooterProps> = ({
                 href={`tel:${companyProfile.phone}`}
                 className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors"
               >
-                <Phone className="w-5 h-5 text-slate-400" />
+                <Phone className="w-5 h-5 text-slate-300" />
                 <span className="text-sm">{companyProfile.phone}</span>
               </a>
             )}
@@ -149,7 +151,7 @@ const ItineraryFooter: React.FC<ItineraryFooterProps> = ({
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors"
               >
-                <Globe className="w-5 h-5 text-slate-400" />
+                <Globe className="w-5 h-5 text-slate-300" />
                 <span className="text-sm">{companyProfile.website_url}</span>
               </a>
             )}
@@ -267,6 +269,33 @@ const ItineraryFooter: React.FC<ItineraryFooterProps> = ({
                     )}
                   </div>
                 )}
+
+                {/* Payment Records - inline pills below balance */}
+                {hasPayments && (
+                  <div className="space-y-2 text-sm">
+                    {[...paymentSummary!.payments]
+                      .sort((a, b) => {
+                        const da = a.paid_at ? new Date(a.paid_at).getTime() : 0;
+                        const db = b.paid_at ? new Date(b.paid_at).getTime() : 0;
+                        return db - da;
+                      })
+                      .map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between gap-3 bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-emerald-500 text-lg leading-none">•</span>
+                            <span className="capitalize">{p.payment_type}</span>
+                            {p.paid_at && <span className="text-emerald-600">· {formatDate(p.paid_at)}</span>}
+                          </div>
+                          <span className="font-semibold">
+                            {formatPrice(p.amount, p.currency || paymentSummary?.currency)}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -295,14 +324,17 @@ const ItineraryFooter: React.FC<ItineraryFooterProps> = ({
         <div className="mt-8 pt-8 border-t border-slate-700">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
-              <h4 className="text-xl font-bold text-white mb-2">Ready to Confirm?</h4>
+              <h4 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-amber-400" />
+                Ready to Confirm?
+              </h4>
               <p className="text-slate-300 text-sm max-w-md mb-3">
                 Scan the QR code to complete your payment securely. Your booking will be confirmed
                 instantly.
               </p>
               {companyProfile.payment_note && (
-                <div className="flex items-center gap-2 text-emerald-400 text-xs">
-                  <Shield className="w-4 h-4" />
+                <div className="flex items-center gap-2 text-emerald-400 text-sm">
+                  <Shield className="w-5 h-5" />
                   <span>{companyProfile.payment_note}</span>
                 </div>
               )}
@@ -313,9 +345,13 @@ const ItineraryFooter: React.FC<ItineraryFooterProps> = ({
                 alt="Payment QR"
                 className="w-32 h-32 md:w-40 md:h-40"
               />
-              <p className="text-sm font-medium text-amber-500 mt-2">
-                Scan to Pay {formatPrice(pricing?.total || totalPrice, pricing?.currency)}
-              </p>
+              {displayBalance > 0 ? (
+                <p className="text-sm font-medium text-amber-500 mt-2">
+                  Scan to Pay {formatPrice(qrAmount, qrCurrency)}
+                </p>
+              ) : (
+                <p className="text-sm font-semibold text-emerald-600 mt-2">Payment completed</p>
+              )}
             </div>
           </div>
         </div>

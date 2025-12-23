@@ -64,7 +64,7 @@ def main() -> int:
                 CREATE TABLE ai_builder_sessions (
                     id TEXT PRIMARY KEY,
                     agency_id TEXT NOT NULL,
-                    created_by TEXT,
+                    user_id TEXT,
                     status TEXT NOT NULL DEFAULT 'pending',
                     current_step INTEGER DEFAULT 1,
                     error_message TEXT,
@@ -80,7 +80,7 @@ def main() -> int:
                     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     completed_at DATETIME,
                     FOREIGN KEY (agency_id) REFERENCES agencies(id) ON DELETE CASCADE,
-                    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
                     FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE SET NULL
                 )
             """)
@@ -209,9 +209,8 @@ def main() -> int:
         print("+ MIGRATION COMPLETE!")
         print("=" * 60)
         print("\nAI Itinerary Builder tables are now ready.")
-        print("\nTo enable for an agency, add 'ai_itinerary_builder' to enabled_modules:")
-        print("  UPDATE agencies SET enabled_modules = ")
-        print("    json_insert(coalesce(enabled_modules, '[]'), '$[#]', 'ai_itinerary_builder')")
+        print("\nTo enable for an agency, set ai_builder_enabled = 1:")
+        print("  UPDATE agencies SET ai_builder_enabled = 1")
         print("  WHERE id = 'your-agency-id';")
         return 0
 

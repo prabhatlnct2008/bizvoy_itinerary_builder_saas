@@ -372,6 +372,10 @@ def _compute_pricing_snapshot(itinerary) -> dict:
     taxes = float(itinerary.pricing.taxes_fees) if getattr(itinerary, "pricing", None) and itinerary.pricing.taxes_fees else 0.0
     discount_total = float(itinerary.pricing.discount_amount) if getattr(itinerary, "pricing", None) and itinerary.pricing.discount_amount else 0.0
     base_package = float(itinerary.pricing.base_package) if getattr(itinerary, "pricing", None) and itinerary.pricing.base_package is not None else subtotal
+    # If discount amount is missing but percent exists, derive a discount value
+    if discount_total == 0.0 and getattr(itinerary, "pricing", None) and getattr(itinerary.pricing, "discount_percent", None):
+        discount_total = (base_package + taxes) * (float(itinerary.pricing.discount_percent) / 100.0)
+
     total = (base_package if base_package is not None else 0) + taxes - discount_total
 
     return {
@@ -379,6 +383,42 @@ def _compute_pricing_snapshot(itinerary) -> dict:
         "taxes_fees": taxes if taxes else None,
         "discount_code": itinerary.pricing.discount_code if getattr(itinerary, "pricing", None) else None,
         "discount_amount": discount_total if discount_total else None,
+        "total": total,
+        "currency": currency,
+    }
+
+
+def _compute_pricing_totals(itinerary) -> dict:
+    """
+    Determine effective pricing values using stored pricing fields with sensible fallbacks
+    from itinerary items. Returns numeric values for total, base_package, taxes, discount_amount,
+    and currency.
+    """
+    snapshot = _compute_pricing_snapshot(itinerary)
+    pricing = getattr(itinerary, "pricing", None)
+
+    base_from_pricing = float(pricing.base_package) if pricing and pricing.base_package is not None else None
+    taxes_from_pricing = float(pricing.taxes_fees) if pricing and pricing.taxes_fees is not None else None
+    discount_amount_pricing = float(pricing.discount_amount) if pricing and pricing.discount_amount is not None else None
+    discount_percent_pricing = float(pricing.discount_percent) if pricing and pricing.discount_percent is not None else None
+
+    base_package = base_from_pricing if base_from_pricing is not None else (snapshot.get("base_package") or 0.0)
+    taxes = taxes_from_pricing if taxes_from_pricing is not None else (snapshot.get("taxes_fees") or 0.0)
+
+    if discount_amount_pricing is not None:
+        discount_amount = discount_amount_pricing
+    elif discount_percent_pricing is not None:
+        discount_amount = (base_package + taxes) * (discount_percent_pricing / 100.0)
+    else:
+        discount_amount = snapshot.get("discount_amount") or 0.0
+
+    total = max(base_package + taxes - discount_amount, 0.0)
+    currency = snapshot.get("currency") or (pricing.currency if pricing else "USD")
+
+    return {
+        "base_package": base_package,
+        "taxes_fees": taxes,
+        "discount_amount": discount_amount if discount_amount else None,
         "total": total,
         "currency": currency,
     }
@@ -508,9 +548,8 @@ def _compute_payment_summary(itinerary: Itinerary) -> dict:
     pricing = itinerary.pricing
     payments = itinerary.payments or []
 
-    total_amount = Decimal("0.00")
-    if pricing and pricing.total:
-        total_amount = Decimal(str(pricing.total))
+    totals = _compute_pricing_totals(itinerary)
+    total_amount = Decimal(str(totals.get("total") or 0))
 
     total_paid = sum(Decimal(str(p.amount)) for p in payments)
     balance_due = max(Decimal("0.00"), total_amount - total_paid)
@@ -536,7 +575,7 @@ def _compute_payment_summary(itinerary: Itinerary) -> dict:
         "total_amount": total_amount,
         "total_paid": total_paid,
         "balance_due": balance_due,
-        "currency": pricing.currency if pricing else "USD",
+        "currency": totals.get("currency") or (pricing.currency if pricing else "USD"),
         "advance_required": advance_required,
         "advance_paid": advance_paid,
         "advance_deadline": pricing.advance_deadline if pricing else None,
@@ -568,11 +607,17 @@ def get_itinerary_pricing_with_payments(
         db.commit()
         db.refresh(itinerary)
 
+    totals = _compute_pricing_totals(itinerary)
     summary = _compute_payment_summary(itinerary)
 
     # Build response
     response_data = {
         **itinerary.pricing.__dict__,
+        "total": itinerary.pricing.total if itinerary.pricing.total is not None else totals.get("total"),
+        "base_package": itinerary.pricing.base_package if itinerary.pricing.base_package is not None else totals.get("base_package"),
+        "taxes_fees": itinerary.pricing.taxes_fees if itinerary.pricing.taxes_fees is not None else totals.get("taxes_fees"),
+        "discount_amount": itinerary.pricing.discount_amount if itinerary.pricing.discount_amount is not None else totals.get("discount_amount"),
+        "currency": itinerary.pricing.currency or totals.get("currency"),
         "payments": itinerary.payments or [],
         "total_paid": summary["total_paid"],
         "balance_due": summary["balance_due"],
@@ -615,13 +660,30 @@ def update_itinerary_pricing(
             value = 1 if value else 0
         setattr(itinerary.pricing, field, value)
 
+    totals = _compute_pricing_totals(itinerary)
+    if itinerary.pricing.base_package is None and totals.get("base_package") is not None:
+        itinerary.pricing.base_package = Decimal(str(totals["base_package"]))
+    if itinerary.pricing.taxes_fees is None and totals.get("taxes_fees") is not None:
+        itinerary.pricing.taxes_fees = Decimal(str(totals["taxes_fees"]))
+    if itinerary.pricing.discount_amount is None and totals.get("discount_amount") is not None:
+        itinerary.pricing.discount_amount = Decimal(str(totals["discount_amount"]))
+    if totals.get("total") is not None:
+        itinerary.pricing.total = Decimal(str(totals["total"]))
+
     db.commit()
     db.refresh(itinerary)
 
+    # Recompute summary after persisting totals
+    totals = _compute_pricing_totals(itinerary)
     summary = _compute_payment_summary(itinerary)
 
     response_data = {
         **itinerary.pricing.__dict__,
+        "total": itinerary.pricing.total if itinerary.pricing.total is not None else totals.get("total"),
+        "base_package": itinerary.pricing.base_package if itinerary.pricing.base_package is not None else totals.get("base_package"),
+        "taxes_fees": itinerary.pricing.taxes_fees if itinerary.pricing.taxes_fees is not None else totals.get("taxes_fees"),
+        "discount_amount": itinerary.pricing.discount_amount if itinerary.pricing.discount_amount is not None else totals.get("discount_amount"),
+        "currency": itinerary.pricing.currency or totals.get("currency"),
         "payments": itinerary.payments or [],
         "total_paid": summary["total_paid"],
         "balance_due": summary["balance_due"],

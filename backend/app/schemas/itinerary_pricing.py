@@ -12,40 +12,40 @@ PaymentMethodEnum = Literal["bank_transfer", "upi", "card", "cash", "cheque", "o
 
 class ItineraryPricingCreate(BaseModel):
     """Schema for creating itinerary pricing"""
-    base_package: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    taxes_fees: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    base_package: Optional[Decimal] = Field(None, ge=0)
+    taxes_fees: Optional[Decimal] = Field(None, ge=0)
     discount_code: Optional[str] = Field(None, max_length=50)
-    discount_amount: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    total: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    discount_amount: Optional[Decimal] = Field(None, ge=0)
+    total: Optional[Decimal] = Field(None, ge=0)
     currency: str = Field(default="USD", max_length=10)
     pricing_notes: Optional[str] = None
 
     # Payment schedule fields
-    discount_percent: Optional[Decimal] = Field(None, ge=0, le=100, decimal_places=2)
+    discount_percent: Optional[Decimal] = Field(None, ge=0, le=100)
     advance_enabled: bool = False
     advance_type: Optional[AdvanceTypeEnum] = None
-    advance_amount: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    advance_percent: Optional[Decimal] = Field(None, ge=0, le=100, decimal_places=2)
+    advance_amount: Optional[Decimal] = Field(None, ge=0)
+    advance_percent: Optional[Decimal] = Field(None, ge=0, le=100)
     advance_deadline: Optional[datetime] = None
     final_deadline: Optional[datetime] = None
 
 
 class ItineraryPricingUpdate(BaseModel):
     """Schema for updating itinerary pricing"""
-    base_package: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    taxes_fees: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    base_package: Optional[Decimal] = Field(None, ge=0)
+    taxes_fees: Optional[Decimal] = Field(None, ge=0)
     discount_code: Optional[str] = Field(None, max_length=50)
-    discount_amount: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    total: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    discount_amount: Optional[Decimal] = Field(None, ge=0)
+    total: Optional[Decimal] = Field(None, ge=0)
     currency: Optional[str] = Field(None, max_length=10)
     pricing_notes: Optional[str] = None
 
     # Payment schedule fields
-    discount_percent: Optional[Decimal] = Field(None, ge=0, le=100, decimal_places=2)
+    discount_percent: Optional[Decimal] = Field(None, ge=0, le=100)
     advance_enabled: Optional[bool] = None
     advance_type: Optional[AdvanceTypeEnum] = None
-    advance_amount: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    advance_percent: Optional[Decimal] = Field(None, ge=0, le=100, decimal_places=2)
+    advance_amount: Optional[Decimal] = Field(None, ge=0)
+    advance_percent: Optional[Decimal] = Field(None, ge=0, le=100)
     advance_deadline: Optional[datetime] = None
     final_deadline: Optional[datetime] = None
 
@@ -122,7 +122,7 @@ class ItineraryPricingPublic(BaseModel):
 class ItineraryPaymentCreate(BaseModel):
     """Schema for recording a payment"""
     payment_type: PaymentTypeEnum
-    amount: Decimal = Field(..., ge=0, decimal_places=2)
+    amount: Decimal = Field(..., ge=0)
     currency: str = Field(default="USD", max_length=10)
     payment_method: Optional[PaymentMethodEnum] = None
     reference_number: Optional[str] = Field(None, max_length=100)
@@ -133,7 +133,7 @@ class ItineraryPaymentCreate(BaseModel):
 class ItineraryPaymentUpdate(BaseModel):
     """Schema for updating a payment record"""
     payment_type: Optional[PaymentTypeEnum] = None
-    amount: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    amount: Optional[Decimal] = Field(None, ge=0)
     currency: Optional[str] = Field(None, max_length=10)
     payment_method: Optional[PaymentMethodEnum] = None
     reference_number: Optional[str] = Field(None, max_length=100)

@@ -321,3 +321,14 @@ class PersonalizationAnalytics(BaseModel):
     average_session_duration: int  # seconds
     popular_vibes: List[Dict[str, Any]]
     popular_activities: List[Dict[str, Any]]
+
+
+class AgencyPersonalizationAnalytics(BaseModel):
+    """Aggregated analytics for personalization at the agency level"""
+    total_sessions: int
+    completion_rate: Decimal
+    confirmation_rate: Decimal
+    total_revenue_added: Decimal
+    sessions_over_time: List[Dict[str, Any]]
+    top_performing_activities: List[Dict[str, Any]]
+    vibe_distribution: Dict[str, int]
