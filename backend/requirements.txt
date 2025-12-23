@@ -2,10 +2,12 @@
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-multipart==0.0.6
+gunicorn==21.2.0  # Production WSGI server
 
 # Database
 sqlalchemy==2.0.25
-aiosqlite==0.19.0
+aiosqlite==0.19.0  # SQLite async driver (local dev)
+psycopg[binary]==3.1.18  # PostgreSQL driver (Azure/production)
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
@@ -36,3 +38,7 @@ httpx==0.26.0
 # Utilities
 python-dateutil==2.8.2
 pillow==10.2.0
+
+# Azure (optional - for App Insights)
+opencensus-ext-azure==1.1.13
+applicationinsights==0.11.10
